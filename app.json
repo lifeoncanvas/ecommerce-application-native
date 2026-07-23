@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "HTTN",
+    "slug": "httn-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#032757"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.httn.app"
+    },
+    "android": {
+      "package": "com.httn.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#032757"
+      }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
