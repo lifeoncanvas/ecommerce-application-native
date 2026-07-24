@@ -10,9 +10,10 @@ import {
   Dimensions,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { categories as mockCategories, products as mockProducts, vendors } from '../../data/mockData';
 import { getCategories, getCategoryDetails, getCategoryProducts } from '../../api/products.api';
+import { useTheme } from '../../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,8 @@ const withTimeout = (promise, ms = 2500) => {
 };
 
 export default function CategoriesScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [activeCategoryId, setActiveCategoryId] = useState('cat_food');
   const [loading, setLoading] = useState(false);
   const [categoriesList, setCategoriesList] = useState(mockCategories);
@@ -214,7 +217,7 @@ export default function CategoriesScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.background,

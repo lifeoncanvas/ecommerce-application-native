@@ -1,14 +1,24 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const menuItems = [
+    {
+      id: 'edit_profile',
+      title: 'Edit Profile',
+      subtitle: 'Manage your name, email, and phone number',
+      icon: '👤',
+      onPress: () => navigation.navigate('EditProfile'),
+    },
     {
       id: 'my_orders',
       title: 'My Orders',
@@ -16,19 +26,53 @@ export default function ProfileScreen({ navigation }) {
       icon: '📦',
       onPress: () => navigation.navigate('MyOrders'),
     },
-    {
-      id: 'addresses',
-      title: 'Delivery Addresses',
-      subtitle: 'Manage saved checkout locations',
-      icon: '📍',
-      onPress: () => {},
+    user?.isVendor ? {
+      id: 'vendor_dashboard',
+      title: 'Seller Dashboard',
+      subtitle: 'Manage your store orders and inventory stats',
+      icon: '📈',
+      onPress: () => navigation.navigate('VendorDashboard'),
+    } : {
+      id: 'become_vendor',
+      title: 'Become a Seller',
+      subtitle: 'Register your store and list premium items',
+      icon: '🏪',
+      onPress: () => navigation.navigate('BecomeVendor'),
     },
     {
-      id: 'payment_methods',
-      title: 'Payment Cards',
-      subtitle: 'Manage Stripe & PayPal configurations',
-      icon: '💳',
-      onPress: () => {},
+      id: 'change_password',
+      title: 'Change Password',
+      subtitle: 'Update your account login password',
+      icon: '🔒',
+      onPress: () => navigation.navigate('ChangePassword'),
+    },
+    {
+      id: 'exchanges',
+      title: 'Product Exchanges',
+      subtitle: 'Track and manage your item exchange requests',
+      icon: '🔄',
+      onPress: () => navigation.navigate('ExchangeList'),
+    },
+    {
+      id: 'support',
+      title: 'Help & Support',
+      subtitle: 'Open support cases and ask technical queries',
+      icon: '☎️',
+      onPress: () => navigation.navigate('Support'),
+    },
+    {
+      id: 'loyalty',
+      title: 'Loyalty Rewards',
+      subtitle: 'Earn points and redeem discount coupons',
+      icon: '🪙',
+      onPress: () => navigation.navigate('Loyalty'),
+    },
+    {
+      id: 'settings',
+      title: 'App Settings',
+      subtitle: 'Configure alert and layout preferences',
+      icon: '⚙️',
+      onPress: () => navigation.navigate('Settings'),
     },
   ];
 
@@ -36,13 +80,17 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.container}>
         {/* Profile Avatar Card */}
-        <View style={styles.avatarSection}>
+        <TouchableOpacity
+          style={styles.avatarSection}
+          onPress={() => navigation.navigate('EditProfile')}
+          activeOpacity={0.8}
+        >
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarEmoji}>👤</Text>
+            <Text style={styles.avatarEmoji}>{user?.avatar || '👤'}</Text>
           </View>
-          <Text style={styles.profileEmail}>{user?.email ?? 'guest@httn.shop'}</Text>
-          <Text style={styles.profileRole}>E-Commerce Guest Member</Text>
-        </View>
+          <Text style={styles.profileEmail}>{user?.name || 'Guest User'}</Text>
+          <Text style={styles.profileRole}>{user?.email || 'guest@httn.shop'}</Text>
+        </TouchableOpacity>
 
         {/* Menu Items List */}
         <View style={styles.menuList}>
@@ -81,7 +129,7 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -90,6 +138,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     justifyContent: 'space-between',
+    backgroundColor: colors.background,
   },
   avatarSection: {
     alignItems: 'center',
@@ -111,7 +160,7 @@ const styles = StyleSheet.create({
   },
   profileEmail: {
     ...typography.bodyBold,
-    color: colors.navy,
+    color: colors.textPrimary,
     fontSize: 16,
     marginTop: spacing.md,
   },
@@ -128,7 +177,7 @@ const styles = StyleSheet.create({
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
@@ -138,7 +187,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

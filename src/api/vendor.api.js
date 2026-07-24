@@ -7,8 +7,29 @@ export const getVendorReviews = (id) => client.get(`/vendor/${id}/reviews`);
 export const registerVendor = (payload) =>
   client.post('/vendor/register', payload);
 
+export const uploadVendorDocument = (formData) => {
+  return client.post('/upload/vendor-document', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 export const getVendorDashboard = () => client.get('/vendor/dashboard');
 export const getVendorOrders = () => client.get('/vendor/orders');
+
+// 31. Vendor Products
+export const createVendorProduct = (payload) => client.post('/vendor/products', payload);
+export const updateVendorProduct = (id, payload) => client.put(`/vendor/products/${id}`, payload);
+export const deleteVendorProduct = (id) => client.delete(`/vendor/products/${id}`);
+export const uploadProductImages = (formData) => {
+  return client.post('/vendor/products/upload-images', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 export const acceptVendorOrder = (id) =>
   client.put(`/vendor/orders/${id}/accept`);
 export const dispatchVendorOrder = (id) =>

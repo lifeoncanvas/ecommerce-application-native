@@ -1,9 +1,13 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors, typography, radius } from '../theme';
+import { typography, radius } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Button({ title, onPress, variant = 'primary', loading, disabled, style }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const isPrimary = variant === 'primary';
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -27,7 +31,7 @@ export default function Button({ title, onPress, variant = 'primary', loading, d
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   base: {
     height: 50,
     borderRadius: radius.md,
@@ -53,6 +57,6 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
   textSecondary: {
-    color: colors.navy,
+    color: colors.gold, // Gold text for secondary button matches border
   },
 });

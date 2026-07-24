@@ -13,9 +13,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Svg, { Path, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../../theme';
+import { colors as staticColors, typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useTheme } from '../../context/ThemeContext';
 import { categories as mockCategories, vendors, products as mockProducts } from '../../data/mockData';
 import {
   getBanners,
@@ -30,9 +31,9 @@ import {
 const { width } = Dimensions.get('window');
 
 const fallbackPromoBanners = [
-  { id: 1, title: 'Boutique Sale', subtitle: '30% Discount', colors: [colors.navyLight, colors.navy], promo: 'SPECIAL PROMO' },
-  { id: 2, title: 'Smart Living Tech', subtitle: 'Latest Smartphones', colors: [colors.gold, colors.goldLight], promo: 'UP TO 20% OFF' },
-  { id: 3, title: 'Gourmet Dining', subtitle: 'Free Delivery', colors: [colors.navy, colors.gold], promo: 'JAZARI & MORE' },
+  { id: 1, title: 'Boutique Sale', subtitle: '30% Discount', colors: [staticColors.navyLight, staticColors.navy], promo: 'SPECIAL PROMO' },
+  { id: 2, title: 'Smart Living Tech', subtitle: 'Latest Smartphones', colors: [staticColors.gold, staticColors.goldLight], promo: 'UP TO 20% OFF' },
+  { id: 3, title: 'Gourmet Dining', subtitle: 'Free Delivery', colors: [staticColors.navy, staticColors.gold], promo: 'JAZARI & MORE' },
 ];
 
 const withTimeout = (promise, ms = 2500) => {
@@ -43,6 +44,8 @@ const withTimeout = (promise, ms = 2500) => {
 };
 
 export default function HomeScreen({ navigation }) {
+  const { colors, isDarkMode } = useTheme();
+  const styles = getStyles(colors);
   const { user } = useAuth();
   const { isLiked, toggleWishlist } = useWishlist();
   const [refreshing, setRefreshing] = useState(false);
@@ -440,7 +443,7 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,

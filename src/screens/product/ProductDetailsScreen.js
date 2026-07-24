@@ -8,14 +8,24 @@ import {
   Alert,
   SafeAreaView,
   ActivityIndicator,
-  FlatList,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { products as mockProducts, vendors } from '../../data/mockData';
 import { useCart } from '../../context/CartContext';
-import { getProductDetails, getProductReviews, getRelatedProducts } from '../../api/products.api';
+import { getProductDetails, getRelatedProducts } from '../../api/products.api';
+import {
+  getProductReviews,
+  createReview,
+  updateReview,
+  deleteReview,
+} from '../../api/reviews.api';
+import { useTheme } from '../../context/ThemeContext';
 
 const withTimeout = (promise, ms = 2500) => {
   return Promise.race([
@@ -25,6 +35,8 @@ const withTimeout = (promise, ms = 2500) => {
 };
 
 export default function ProductDetailsScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { id } = route.params;
   const { addItem } = useCart();
   
@@ -32,16 +44,23 @@ export default function ProductDetailsScreen({ route, navigation }) {
   const [adding, setAdding] = useState(false);
   const [buying, setBuying] = useState(false);
 
-  // States loaded from endpoints (initialized with local mock lookups for instant loading)
+  // States loaded from endpoints
   const initialProduct = mockProducts.find((p) => p.id === id);
   const [product, setProduct] = useState(initialProduct);
   const [reviews, setReviews] = useState([
     { id: 'rev_1', userName: 'Ada O.', rating: 5, comment: 'Excellent quality, exactly as described!' },
-    { id: 'rev_2', userName: 'John D.', rating: 4, comment: 'Very good product. Highly recommended.' }
+    { id: 'rev_2', userName: 'John D.', rating: 4, comment: 'Very good product. Highly recommended.' },
+    { id: 'rev_user', userName: 'You', rating: 5, comment: 'Perfect addition to my household. Will buy again!', isCurrentUser: true }
   ]);
   const [relatedProducts, setRelatedProducts] = useState(
     mockProducts.filter((p) => p.categoryId === initialProduct?.categoryId && p.id !== id)
   );
+
+  // Modal form states for Add/Edit Review
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState(null); // ID if editing, null if adding
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
 
   // Fetch from Spring Boot endpoints in background
   const loadDetailsFromApi = useCallback(async () => {
@@ -56,11 +75,19 @@ export default function ProductDetailsScreen({ route, navigation }) {
       );
 
       if (detailsRes.data) setProduct(detailsRes.data);
-      if (reviewsRes.data) setReviews(reviewsRes.data || []);
+      if (reviewsRes.data) {
+        // Merge mock user review so user can always test edit/delete
+        const apiReviews = reviewsRes.data || [];
+        const userReviewExists = apiReviews.some((r) => r.isCurrentUser || r.userName === 'You');
+        if (!userReviewExists) {
+          setReviews([...apiReviews, { id: 'rev_user', userName: 'You', rating: 5, comment: 'Perfect addition to my household. Will buy again!', isCurrentUser: true }]);
+        } else {
+          setReviews(apiReviews);
+        }
+      }
       if (relatedRes.data) setRelatedProducts(relatedRes.data || []);
     } catch (e) {
       console.warn('Product Details API endpoints failed, utilizing local mock fallback.', e.message);
-      // Fallback is already loaded in default states
     }
   }, [id]);
 
@@ -102,6 +129,101 @@ export default function ProductDetailsScreen({ route, navigation }) {
       setBuying(false);
       navigation.navigate('Cart');
     }
+  };
+
+  // Open Review actions
+  const handleOpenAddReview = () => {
+    setEditingReviewId(null);
+    setReviewRating(5);
+    setReviewComment('');
+    setReviewModalVisible(true);
+  };
+
+  const handleOpenEditReview = (rev) => {
+    setEditingReviewId(rev.id);
+    setReviewRating(rev.rating);
+    setReviewComment(rev.comment);
+    setReviewModalVisible(true);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewComment.trim()) {
+      Alert.alert('Error', 'Please enter your review text.');
+      return;
+    }
+
+    const payload = {
+      productId: id,
+      rating: reviewRating,
+      comment: reviewComment,
+    };
+
+    if (editingReviewId) {
+      // Edit mode
+      try {
+        await withTimeout(updateReview(editingReviewId, payload), 2000);
+        setReviews((prev) =>
+          prev.map((r) =>
+            r.id === editingReviewId
+              ? { ...r, rating: reviewRating, comment: reviewComment }
+              : r
+          )
+        );
+      } catch (e) {
+        console.warn('Update review API failed, updating locally.', e.message);
+        setReviews((prev) =>
+          prev.map((r) =>
+            r.id === editingReviewId
+              ? { ...r, rating: reviewRating, comment: reviewComment }
+              : r
+          )
+        );
+      }
+    } else {
+      // Add mode
+      const tempId = 'rev_' + Date.now();
+      const newReviewObj = {
+        id: tempId,
+        userName: 'You',
+        rating: reviewRating,
+        comment: reviewComment,
+        isCurrentUser: true,
+      };
+
+      try {
+        const res = await withTimeout(createReview(payload), 2000);
+        const saved = res.data || newReviewObj;
+        setReviews((prev) => [...prev, { ...saved, isCurrentUser: true, userName: 'You' }]);
+      } catch (e) {
+        console.warn('Create review API failed, saving locally.', e.message);
+        setReviews((prev) => [...prev, newReviewObj]);
+      }
+    }
+
+    setReviewModalVisible(false);
+  };
+
+  const handleDeleteReview = (reviewId) => {
+    Alert.alert(
+      'Delete Review',
+      'Are you sure you want to delete this review?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await withTimeout(deleteReview(reviewId), 2000);
+              setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+            } catch (e) {
+              console.warn('Delete review API failed, removing locally.', e.message);
+              setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -147,7 +269,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
               <Text style={styles.ratingText}>{product.rating} Rating</Text>
             </View>
             <View style={styles.bullet} />
-            <Text style={styles.reviewsText}>{product.reviewsCount || 24} Verified Reviews</Text>
+            <Text style={styles.reviewsText}>{reviews.length} Verified Reviews</Text>
           </View>
 
           {/* Price details */}
@@ -176,7 +298,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
             </View>
             <View style={styles.vendorInfo}>
               <Text style={styles.vendorHeading}>Sold by</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('ProductListing', { vendorId: vendor?.id })}>
+              <TouchableOpacity onPress={() => navigation.navigate('Profile', { screen: 'VendorStore', params: { id: vendor?.id } })}>
                 <Text style={styles.vendorTitle}>{vendor?.name || 'Local Merchant'}</Text>
               </TouchableOpacity>
               <Text style={styles.vendorSubtitle}>Official Partner • {vendor?.rating || 4.7}★ Rating</Text>
@@ -187,20 +309,43 @@ export default function ProductDetailsScreen({ route, navigation }) {
 
           {/* Reviews Section */}
           <View style={styles.reviewsSection}>
-            <Text style={styles.sectionHeading}>Verified Reviews ({reviews.length})</Text>
-            {reviews.map((rev) => (
-              <View key={rev.id} style={styles.reviewCard}>
-                <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewerName}>{rev.userName}</Text>
-                  <View style={styles.reviewStars}>
-                    {Array.from({ length: rev.rating }).map((_, i) => (
-                      <Text key={i} style={styles.miniStar}>★</Text>
-                    ))}
+            <View style={styles.reviewsHeaderRow}>
+              <Text style={styles.sectionHeading}>Verified Reviews ({reviews.length})</Text>
+              <TouchableOpacity style={styles.addReviewBtn} onPress={handleOpenAddReview}>
+                <Text style={styles.addReviewBtnText}>+ Add Review</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {reviews.map((rev) => {
+              const isOwner = rev.isCurrentUser || rev.userName === 'You';
+              return (
+                <View key={rev.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <View>
+                      <Text style={styles.reviewerName}>{rev.userName}</Text>
+                      <View style={styles.reviewStars}>
+                        {Array.from({ length: rev.rating }).map((_, i) => (
+                          <Text key={i} style={styles.miniStar}>★</Text>
+                        ))}
+                      </View>
+                    </View>
+                    
+                    {/* Owner Action Buttons */}
+                    {isOwner && (
+                      <View style={styles.ownerActions}>
+                        <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleOpenEditReview(rev)}>
+                          <Text style={styles.actionIconText}>✏️</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleDeleteReview(rev.id)}>
+                          <Text style={styles.actionIconText}>🗑️</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
+                  <Text style={styles.reviewComment}>{rev.comment}</Text>
                 </View>
-                <Text style={styles.reviewComment}>{rev.comment}</Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
 
           {/* Similar Products */}
@@ -255,11 +400,66 @@ export default function ProductDetailsScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Add / Edit Review Modal */}
+      <Modal
+        visible={reviewModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setReviewModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{editingReviewId ? 'Edit Review' : 'Write a Review'}</Text>
+              <TouchableOpacity onPress={() => setReviewModalVisible(false)} style={styles.closeBtn}>
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Star Rating Selector */}
+              <Text style={styles.modalLabel}>Rating</Text>
+              <View style={styles.starSelectorRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    style={styles.starSelectBtn}
+                    onPress={() => setReviewRating(star)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.selectorStar, star <= reviewRating && styles.selectorStarActive]}>★</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Comment Review box */}
+              <Text style={styles.modalLabel}>Your Review</Text>
+              <TextInput
+                style={styles.modalTextarea}
+                placeholder="Share your thoughts about this product..."
+                placeholderTextColor={colors.textSecondary}
+                value={reviewComment}
+                onChangeText={setReviewComment}
+                multiline={true}
+                numberOfLines={4}
+              />
+
+              <View style={styles.modalBtnWrapper}>
+                <Button title={editingReviewId ? 'Update Review' : 'Submit Review'} onPress={handleSubmitReview} />
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -392,8 +592,7 @@ const styles = StyleSheet.create({
   sectionHeading: {
     ...typography.bodyBold,
     color: colors.textPrimary,
-    fontSize: 15,
-    marginBottom: spacing.xs,
+    fontSize: 13,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -451,6 +650,22 @@ const styles = StyleSheet.create({
   reviewsSection: {
     marginTop: spacing.xs,
   },
+  reviewsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  addReviewBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  addReviewBtnText: {
+    ...typography.caption,
+    color: colors.gold,
+    fontWeight: '700',
+    fontSize: 12,
+  },
   reviewCard: {
     backgroundColor: colors.surface,
     borderWidth: 0.5,
@@ -462,8 +677,8 @@ const styles = StyleSheet.create({
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
+    alignItems: 'flex-start',
+    marginBottom: 6,
   },
   reviewerName: {
     ...typography.bodyBold,
@@ -472,10 +687,24 @@ const styles = StyleSheet.create({
   },
   reviewStars: {
     flexDirection: 'row',
+    marginTop: 2,
   },
   miniStar: {
     color: colors.gold,
     fontSize: 11,
+  },
+  ownerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionIconBtn: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionIconText: {
+    fontSize: 12,
   },
   reviewComment: {
     ...typography.caption,
@@ -592,5 +821,83 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.body,
     color: colors.textSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    maxHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.navy,
+    fontWeight: '800',
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeBtnText: {
+    fontSize: 18,
+    color: colors.textSecondary,
+    fontWeight: '700',
+  },
+  modalLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    fontSize: 9,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  starSelectorRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  starSelectBtn: {
+    padding: spacing.xs,
+  },
+  selectorStar: {
+    fontSize: 32,
+    color: colors.disabled,
+  },
+  selectorStarActive: {
+    color: colors.gold,
+  },
+  modalTextarea: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    height: 100,
+    ...typography.body,
+    color: colors.textPrimary,
+    fontSize: 13,
+    textAlignVertical: 'top',
+    marginBottom: spacing.lg,
+  },
+  modalBtnWrapper: {
+    marginBottom: spacing.lg,
   },
 });

@@ -11,9 +11,10 @@ import {
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { getOrderDetails, cancelOrder } from '../../api/orders.api';
+import { useTheme } from '../../context/ThemeContext';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -23,6 +24,8 @@ const withTimeout = (promise, ms = 2000) => {
 };
 
 export default function OrderDetailsScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { orderId } = route?.params || {};
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -285,6 +288,15 @@ export default function OrderDetailsScreen({ route, navigation }) {
             </TouchableOpacity>
           )}
 
+          {order.status !== 'Cancelled' && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.exchangeBtn]}
+              onPress={() => navigation.navigate('ExchangeRequest', { orderId: order.id, items: order.items || [] })}
+            >
+              <Text style={styles.exchangeBtnText}>Exchange Items</Text>
+            </TouchableOpacity>
+          )}
+
           {canCancel && (
             <TouchableOpacity
               style={[styles.actionBtn, styles.cancelBtn]}
@@ -299,7 +311,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -543,6 +555,15 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     ...typography.button,
     color: colors.error,
+    fontWeight: '700',
+  },
+  exchangeBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.gold,
+  },
+  exchangeBtnText: {
+    ...typography.button,
+    color: colors.gold,
     fontWeight: '700',
   },
 });

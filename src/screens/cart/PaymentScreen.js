@@ -11,26 +11,30 @@ import {
   Alert,
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useCart } from '../../context/CartContext';
 import { createOrder } from '../../api/orders.api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../../context/ThemeContext';
 import {
   processStripePayment,
   processPaypalPayment,
   processEspeesPayment,
   verifyPayment,
 } from '../../api/payment.api';
+import { sendLocalNotification } from '../../utils/notificationManager';
 
-const withTimeout = (promise, ms = 2000) => {
+const withTimeout = (promise, ms = 2500) => {
   return Promise.race([
     promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), ms))
   ]);
 };
 
 export default function PaymentScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { addressId, shippingRateId, totalAmount } = route?.params || {};
   const { clear, items } = useCart();
   
@@ -134,7 +138,20 @@ export default function PaymentScreen({ route, navigation }) {
       await saveLocalOrder();
       await clear();
       setLoading(false);
-      navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount });
+      sendLocalNotification(
+        'Order Placed Successfully! 📦',
+        `Your order #${mockOrderId} has been created. Total: $${totalAmount.toFixed(2)}`
+      );
+      Alert.alert(
+        'Order Confirmed! 🎉',
+        `Your order #${mockOrderId} has been successfully placed.`,
+        [
+          {
+            text: 'View Receipt',
+            onPress: () => navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount })
+          }
+        ]
+      );
     } catch (e) {
       console.warn('Payment or Order API chains failed. Proceeding locally.', e.message);
       
@@ -142,7 +159,20 @@ export default function PaymentScreen({ route, navigation }) {
       await saveLocalOrder();
       await clear();
       setLoading(false);
-      navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount });
+      sendLocalNotification(
+        'Order Placed (Offline) 📦',
+        `Your order #${mockOrderId} has been saved locally. Total: $${totalAmount.toFixed(2)}`
+      );
+      Alert.alert(
+        'Order Confirmed! 🎉',
+        `Your order #${mockOrderId} has been successfully placed (Offline Mode).`,
+        [
+          {
+            text: 'View Receipt',
+            onPress: () => navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount })
+          }
+        ]
+      );
     }
   };
 
@@ -317,7 +347,7 @@ export default function PaymentScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.background,

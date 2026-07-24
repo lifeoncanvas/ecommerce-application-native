@@ -17,6 +17,18 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 import MyOrdersScreen from '../screens/profile/MyOrdersScreen';
 import OrderDetailsScreen from '../screens/profile/OrderDetailsScreen';
 import TrackOrderScreen from '../screens/profile/TrackOrderScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import SettingsScreen from '../screens/profile/SettingsScreen';
+import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
+import BecomeVendorScreen from '../screens/profile/BecomeVendorScreen';
+import VendorDashboardScreen from '../screens/profile/VendorDashboardScreen';
+import VendorStoreScreen from '../screens/profile/VendorStoreScreen';
+import ExchangeRequestScreen from '../screens/profile/ExchangeRequestScreen';
+import ExchangeListScreen from '../screens/profile/ExchangeListScreen';
+import SupportScreen from '../screens/profile/SupportScreen';
+import ReturnScreen from '../screens/profile/ReturnScreen';
+import LoyaltyScreen from '../screens/profile/LoyaltyScreen';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -56,18 +68,35 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="MyOrders" component={MyOrdersScreen} />
       <ProfileStackNav.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <ProfileStackNav.Screen name="TrackOrder" component={TrackOrderScreen} />
+      <ProfileStackNav.Screen name="EditProfile" component={EditProfileScreen} />
+      <ProfileStackNav.Screen name="Settings" component={SettingsScreen} />
+      <ProfileStackNav.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <ProfileStackNav.Screen name="BecomeVendor" component={BecomeVendorScreen} />
+      <ProfileStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
+      <ProfileStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
+      <ProfileStackNav.Screen name="ExchangeRequest" component={ExchangeRequestScreen} />
+      <ProfileStackNav.Screen name="ExchangeList" component={ExchangeListScreen} />
+      <ProfileStackNav.Screen name="Support" component={SupportScreen} />
+      <ProfileStackNav.Screen name="Return" component={ReturnScreen} />
+      <ProfileStackNav.Screen name="Loyalty" component={LoyaltyScreen} />
     </ProfileStackNav.Navigator>
   );
 }
 
 export default function MainTabNavigator() {
+  const { colors, isDarkMode } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.gold,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: { backgroundColor: colors.navy, borderTopWidth: 0 },
+        tabBarStyle: { 
+          backgroundColor: isDarkMode ? colors.surface : colors.navy, 
+          borderTopWidth: isDarkMode ? 1 : 0,
+          borderColor: colors.border
+        },
       }}
     >
       <Tab.Screen name="Home" component={HomeStack} />

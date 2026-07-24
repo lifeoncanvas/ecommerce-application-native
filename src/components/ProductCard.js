@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, typography, radius, spacing } from '../theme';
+import { typography, radius, spacing } from '../theme';
 import { vendors } from '../data/mockData';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ProductCard({ product, onPress }) {
   const vendor = vendors.find((v) => v.id === product.vendorId);
   const discount = product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
@@ -49,11 +52,11 @@ export default function ProductCard({ product, onPress }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   card: {
     flex: 1,
     borderRadius: radius.md,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
@@ -66,7 +69,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     height: 120,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
   },
   price: {
     ...typography.bodyBold,
-    color: colors.navy,
+    color: colors.textPrimary,
     fontSize: 12,
   },
   oldPrice: {

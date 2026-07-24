@@ -9,13 +9,20 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useCart } from '../../context/CartContext';
+import { useTheme } from '../../context/ThemeContext';
+import { getCoupons, applyCoupon } from '../../api/coupons.api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CartScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const {
     items,
     loading,
@@ -31,6 +38,50 @@ export default function CartScreen({ navigation }) {
   } = useCart();
 
   const [promoInput, setPromoInput] = useState('');
+  const [couponsModalVisible, setCouponsModalVisible] = useState(false);
+  const [coupons, setCoupons] = useState([]);
+
+  const handleOpenCouponsModal = async () => {
+    let apiCoupons = [];
+    let localCoupons = [];
+
+    try {
+      const stored = await AsyncStorage.getItem('@local_coupons');
+      if (stored) localCoupons = JSON.parse(stored);
+    } catch (err) {}
+
+    try {
+      const res = await getCoupons();
+      apiCoupons = res.data || [];
+    } catch (e) {
+      console.warn('GET /api/coupons failed. Loading mock coupons.', e.message);
+      apiCoupons = [
+        { code: 'TECH20', description: 'Get 20% off on electronics and gadget orders', value: 20 },
+        { code: 'FREESHIP', description: 'Free shipping on orders above $30', value: 5.99 },
+        { code: 'HTTN10', description: 'Get a flat 10% discount on food orders', value: 10 }
+      ];
+    }
+
+    const merged = [...localCoupons, ...apiCoupons];
+    const unique = merged.filter((v, i, a) => a.findIndex(t => t.code === v.code) === i);
+    setCoupons(unique);
+    setCouponsModalVisible(true);
+  };
+
+  const handleSelectCoupon = async (code) => {
+    setCouponsModalVisible(false);
+    try {
+      await applyCoupon(code);
+      setPromoInput(code);
+      applyPromoCoupon(code);
+      Alert.alert('Success', `Promo code "${code}" applied successfully!`);
+    } catch (e) {
+      console.warn('POST /api/cart/apply-coupon failed. Applying locally.', e.message);
+      setPromoInput(code);
+      applyPromoCoupon(code);
+      Alert.alert('Success', `Promo code "${code}" applied (Offline Mode).`);
+    }
+  };
 
   useEffect(() => {
     refreshCart();
@@ -146,6 +197,13 @@ export default function CartScreen({ navigation }) {
           style={styles.footerContainer}
         >
           {/* Coupon Input Box */}
+          <View style={styles.couponHeaderRow}>
+            <Text style={styles.fieldLabel}>Promo Code</Text>
+            <TouchableOpacity onPress={handleOpenCouponsModal}>
+              <Text style={styles.viewCouponsText}>View Available Coupons 🏷️</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.couponWrapper}>
             <TextInput
               style={styles.couponInput}
@@ -183,7 +241,7 @@ export default function CartScreen({ navigation }) {
             {discountAmount > 0 && (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Discount ({couponCode})</Text>
-                <Text style={styles.discountValue}>-${discountAmount.toFixed(2)}</Text>
+                <Text style={[styles.totalValue, styles.discountValue]}>-${discountAmount.toFixed(2)}</Text>
               </View>
             )}
 
@@ -206,11 +264,52 @@ export default function CartScreen({ navigation }) {
           </View>
         </KeyboardAvoidingView>
       )}
+
+      {/* Available Coupons Modal */}
+      <Modal
+        visible={couponsModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setCouponsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Available Coupons</Text>
+              <TouchableOpacity onPress={() => setCouponsModalVisible(false)}>
+                <Text style={styles.modalCloseIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
+              {coupons.map((c) => (
+                <TouchableOpacity
+                  key={c.code}
+                  style={styles.couponCard}
+                  onPress={() => handleSelectCoupon(c.code)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.couponCardHeader}>
+                    <Text style={styles.couponCodeText}>{c.code}</Text>
+                    <Text style={styles.couponValueTag}>SAVE ${c.value}</Text>
+                  </View>
+                  <Text style={styles.couponDescText}>{c.description}</Text>
+                  <Text style={styles.applyHint}>Tap to apply promo code</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Button title="Close" variant="secondary" onPress={() => setCouponsModalVisible(false)} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -349,7 +448,7 @@ const styles = StyleSheet.create({
   footerContainer: {
     borderTopWidth: 1,
     borderColor: colors.border,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     paddingTop: spacing.md,
   },
   couponWrapper: {
@@ -367,6 +466,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     ...typography.caption,
     color: colors.textPrimary,
+    backgroundColor: colors.surface,
   },
   couponApplyBtn: {
     backgroundColor: colors.navy,
@@ -430,15 +530,108 @@ const styles = StyleSheet.create({
   },
   grandLabel: {
     ...typography.bodyBold,
-    color: colors.navy,
+    color: colors.textPrimary,
     fontSize: 15,
   },
   grandValue: {
     ...typography.h2,
-    color: colors.navy,
+    color: colors.textPrimary,
     fontWeight: '800',
   },
   btnWrapper: {
     marginTop: spacing.md,
+  },
+  couponHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.lg,
+  },
+  viewCouponsText: {
+    ...typography.caption,
+    color: colors.gold,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    height: '65%',
+    padding: spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    paddingBottom: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  modalCloseIcon: {
+    fontSize: 20,
+    color: colors.textSecondary,
+  },
+  modalList: {
+    flex: 1,
+  },
+  modalListContent: {
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  couponCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: 4,
+  },
+  couponCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  couponCodeText: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+  couponValueTag: {
+    ...typography.caption,
+    color: colors.success,
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  couponDescText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  applyHint: {
+    ...typography.caption,
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  modalFooter: {
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    paddingTop: spacing.md,
+    marginTop: spacing.sm,
   },
 });

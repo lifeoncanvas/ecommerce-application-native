@@ -12,8 +12,9 @@ import {
   ScrollView,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { products as mockProducts, vendors as mockVendors, categories as mockCategories } from '../../data/mockData';
+import { useTheme } from '../../context/ThemeContext';
 import {
   searchProducts,
   getSearchSuggestions,
@@ -29,6 +30,8 @@ const withTimeout = (promise, ms = 2500) => {
 };
 
 export default function SearchScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -419,7 +422,7 @@ export default function SearchScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

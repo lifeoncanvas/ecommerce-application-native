@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function OrderSuccessScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { orderId, totalAmount } = route.params || { orderId: 'ORD-000000', totalAmount: 0.00 };
 
   const handleContinueShopping = () => {
@@ -94,7 +97,7 @@ export default function OrderSuccessScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

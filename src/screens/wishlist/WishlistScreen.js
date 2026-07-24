@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, FlatList, StyleSheet, Text, SafeAreaView, TouchableOpacity } from 'react-native';
-import { colors, spacing, typography, radius } from '../../theme';
+import { spacing, typography, radius } from '../../theme';
 import ProductCard from '../../components/ProductCard';
 import { useWishlist } from '../../context/WishlistContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function WishlistScreen({ navigation }) {
   const { wishlistItems } = useWishlist();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -47,7 +50,7 @@ export default function WishlistScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -61,7 +64,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.h3,
-    color: colors.navy,
+    color: colors.textPrimary,
     fontWeight: '800',
   },
   headerSubtitle: {

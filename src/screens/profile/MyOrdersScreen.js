@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { getOrders, cancelOrder } from '../../api/orders.api';
+import { sendLocalNotification } from '../../utils/notificationManager';
+import { useTheme } from '../../context/ThemeContext';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -23,6 +25,8 @@ const withTimeout = (promise, ms = 2000) => {
 };
 
 export default function MyOrdersScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -46,31 +50,35 @@ export default function MyOrdersScreen({ navigation }) {
       apiOrders = res.data || [];
     } catch (e) {
       console.warn('Failed to fetch orders from API. Using local & mock fallbacks.', e.message);
-      // Mock history to populate the list if completely empty
-      if (localOrders.length === 0) {
-        localOrders = [
-          {
-            id: 'ORD-984321',
-            date: 'Jan 15, 2026',
-            totalAmount: 129.99,
-            status: 'Delivered',
-            items: [{ id: 'p_redemp_1', name: 'Vintage Leather Jacket', price: 129.99, quantity: 1, emoji: '🧥' }],
-            paymentMethod: 'Stripe Card'
-          },
-          {
-            id: 'ORD-723910',
-            date: 'Jan 02, 2026',
-            totalAmount: 45.50,
-            status: 'Cancelled',
-            items: [{ id: 'p_jazari_1', name: 'Jazari Special Rice Platter', price: 22.75, quantity: 2, emoji: '🍛' }],
-            paymentMethod: 'PayPal'
-          }
-        ];
+    }
+
+    // Merge
+    let merged = [...localOrders, ...apiOrders];
+
+    // Check if we have at least one delivered order to test return/refund flow.
+    // If not, prepend the demo delivered order to the list.
+    const hasDelivered = merged.some(o => o.status?.toLowerCase() === 'delivered');
+    if (!hasDelivered) {
+      const demoDeliveredOrder = {
+        id: 'ORD-984321',
+        date: 'Jan 23, 2026',
+        totalAmount: 129.99,
+        status: 'Delivered',
+        items: [{ id: 'p_redemp_1', name: 'DISHWA FASHION Kurtas', price: 129.99, quantity: 1, emoji: '👗', size: 'S' }],
+        paymentMethod: 'Stripe Card',
+        statusSubtext: 'On Thu, 23 Jan, 1:57 PM'
+      };
+      
+      // Prepend so it appears at the top of the list for easy access
+      merged = [demoDeliveredOrder, ...merged];
+      
+      try {
+        await AsyncStorage.setItem('@local_orders', JSON.stringify(merged));
+      } catch (err) {
+        console.warn('Failed to save seeded delivered order to AsyncStorage', err);
       }
     }
 
-    // Merge and set
-    const merged = [...localOrders, ...apiOrders];
     // De-duplicate by ID
     const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
     setOrders(unique);
@@ -96,27 +104,43 @@ export default function MyOrdersScreen({ navigation }) {
               await withTimeout(cancelOrder(orderId), 2000);
               // Update state
               setOrders((prev) =>
-                prev.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled' } : o))
+                prev.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled', statusSubtext: 'This order was cancelled' } : o))
               );
               // Update AsyncStorage
               const stored = await AsyncStorage.getItem('@local_orders');
               if (stored) {
                 const list = JSON.parse(stored);
-                const updated = list.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled' } : o));
+                const updated = list.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled', statusSubtext: 'This order was cancelled' } : o));
                 await AsyncStorage.setItem('@local_orders', JSON.stringify(updated));
               }
+              sendLocalNotification(
+                'Order Cancelled 🛑',
+                `Your order #${orderId} has been successfully cancelled.`
+              );
+              Alert.alert(
+                'Order Cancelled 🛑',
+                `Order #${orderId} has been successfully cancelled.`
+              );
             } catch (e) {
               console.warn('API Cancel failed. Executing locally.', e.message);
               // Fallback local update
               setOrders((prev) =>
-                prev.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled' } : o))
+                prev.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled', statusSubtext: 'This order was cancelled' } : o))
               );
               const stored = await AsyncStorage.getItem('@local_orders');
               if (stored) {
                 const list = JSON.parse(stored);
-                const updated = list.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled' } : o));
+                const updated = list.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled', statusSubtext: 'This order was cancelled' } : o));
                 await AsyncStorage.setItem('@local_orders', JSON.stringify(updated));
               }
+              sendLocalNotification(
+                'Order Cancelled (Offline) 🛑',
+                `Your order #${orderId} has been successfully cancelled locally.`
+              );
+              Alert.alert(
+                'Order Cancelled 🛑',
+                `Order #${orderId} has been successfully cancelled (Offline Mode).`
+              );
             }
           }
         }
@@ -130,6 +154,7 @@ export default function MyOrdersScreen({ navigation }) {
         return colors.success;
       case 'cancelled':
         return colors.error;
+      case 'in transit':
       case 'shipped':
         return colors.navyLight;
       default:
@@ -138,45 +163,126 @@ export default function MyOrdersScreen({ navigation }) {
   };
 
   const renderOrderItem = ({ item }) => {
-    const itemCount = item.items ? item.items.reduce((sum, i) => sum + i.quantity, 0) : 1;
-    const canCancel = item.status === 'Placed' || item.status === 'Processing';
+    const isDelivered = item.status?.toLowerCase() === 'delivered';
+    const isTransit = item.status?.toLowerCase() === 'in transit' || item.status?.toLowerCase() === 'shipped';
+    const isPlaced = item.status?.toLowerCase() === 'placed' || item.status?.toLowerCase() === 'processing';
+    const isCancelled = item.status?.toLowerCase() === 'cancelled';
 
     return (
-      <TouchableOpacity
-        style={styles.orderCard}
-        onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
-        activeOpacity={0.8}
-      >
+      <View style={styles.orderCard}>
+        {/* Status Line */}
         <View style={styles.cardHeader}>
-          <Text style={styles.orderId}>{item.id}</Text>
-          <View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) + '15' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+          <View style={styles.statusInfoRow}>
+            <View style={[styles.statusIconBox, { borderColor: getStatusColor(item.status) }]}>
+              <Text style={styles.statusBoxIcon}>{isDelivered ? '📦✓' : '📦'}</Text>
+            </View>
+            <View style={styles.statusTexts}>
+              <Text style={[styles.statusLabel, { color: getStatusColor(item.status) }]}>
+                {item.status || 'Placed'}
+              </Text>
+              <Text style={styles.statusSubtext}>{item.statusSubtext || 'Placed'}</Text>
+            </View>
           </View>
+          <Text style={styles.orderId}>#{item.id}</Text>
         </View>
 
-        <Text style={styles.orderDate}>Placed on: {item.date}</Text>
-        <Text style={styles.orderSummary}>{itemCount} items • ${item.totalAmount.toFixed(2)}</Text>
+        {/* Items List inside card */}
+        {item.items && item.items.map((prod, idx) => (
+          <TouchableOpacity
+            key={idx}
+            style={styles.productRow}
+            onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
+            activeOpacity={0.7}
+          >
+            <View style={styles.productEmojiBox}>
+              <Text style={styles.productEmoji}>{prod.emoji || '🎁'}</Text>
+            </View>
+            <View style={styles.productDetails}>
+              <Text style={styles.productName} numberOfLines={1}>{prod.name}</Text>
+              <Text style={styles.productMeta}>Size: {prod.size || 'M'} • Qty: {prod.quantity || 1}</Text>
+            </View>
+            <Text style={styles.chevron}>❯</Text>
+          </TouchableOpacity>
+        ))}
 
         <View style={styles.divider} />
 
-        <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={styles.detailsBtn}
-            onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
-          >
-            <Text style={styles.detailsBtnText}>View Details</Text>
-          </TouchableOpacity>
+        {/* Action buttons */}
+        <View style={styles.actionRow}>
+          {isDelivered && (
+            <>
+              <TouchableOpacity style={styles.actionButtonSecondary}>
+                <Text style={styles.actionBtnTextSecondary}>Size Exchange</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButtonPrimary}
+                onPress={() => navigation.navigate('Return', { orderId: item.id, items: item.items })}
+              >
+                <Text style={styles.actionBtnTextPrimary}>Return Item</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
-          {canCancel && (
+          {isTransit && (
+            <>
+              <TouchableOpacity
+                style={styles.actionButtonSecondary}
+                onPress={() => navigation.navigate('TrackOrder', { orderId: item.id })}
+              >
+                <Text style={styles.actionBtnTextSecondary}>Track Item</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButtonSecondary}
+                onPress={() => handleCancelOrder(item.id)}
+              >
+                <Text style={styles.actionBtnTextSecondary}>Cancel Item</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButtonSecondary}
+                onPress={() => navigation.navigate('Support')}
+              >
+                <Text style={styles.actionBtnTextSecondary}>Need Help?</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {isPlaced && (
+            <>
+              <TouchableOpacity
+                style={styles.actionButtonSecondary}
+                onPress={() => handleCancelOrder(item.id)}
+              >
+                <Text style={styles.actionBtnTextSecondary}>Cancel Item</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButtonSecondary}
+                onPress={() => navigation.navigate('Support')}
+              >
+                <Text style={styles.actionBtnTextSecondary}>Need Help?</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {isCancelled && (
             <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={() => handleCancelOrder(item.id)}
+              style={styles.actionButtonSecondary}
+              onPress={() => navigation.navigate('Support')}
             >
-              <Text style={styles.cancelBtnText}>Cancel Order</Text>
+              <Text style={styles.actionBtnTextSecondary}>Need Help?</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Refund Pending or Exchange Pending statuses */}
+          {!isDelivered && !isTransit && !isPlaced && !isCancelled && (
+            <TouchableOpacity
+              style={styles.actionButtonSecondary}
+              onPress={() => navigation.navigate('Support')}
+            >
+              <Text style={styles.actionBtnTextSecondary}>Need Help?</Text>
             </TouchableOpacity>
           )}
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -203,18 +309,13 @@ export default function MyOrdersScreen({ navigation }) {
         <FlatList
           data={orders}
           keyExtractor={(item) => item.id}
-          renderItem={renderOrderItem}
           contentContainerStyle={styles.list}
+          renderItem={renderOrderItem}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📦</Text>
+              <Text style={styles.emptyIcon}>🛍️</Text>
               <Text style={styles.emptyTitle}>No Orders Yet</Text>
-              <Text style={styles.emptySub}>When you place an order, it will appear here.</Text>
-              <Button
-                title="Start Shopping"
-                onPress={() => navigation.navigate('Home')}
-                style={{ marginTop: spacing.lg }}
-              />
+              <Text style={styles.emptySub}>When you buy items, they will show up here.</Text>
             </View>
           }
         />
@@ -223,7 +324,7 @@ export default function MyOrdersScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -236,6 +337,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
   },
   headerBtn: {
     width: 40,
@@ -245,7 +347,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.h3,
-    color: colors.navy,
+    color: colors.textPrimary,
     fontWeight: '800',
   },
   refreshEmoji: {
@@ -255,12 +357,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
   list: {
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   orderCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -271,65 +374,121 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.md,
   },
-  orderId: {
-    ...typography.bodyBold,
-    color: colors.navy,
+  statusInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+    backgroundColor: colors.background,
+  },
+  statusBoxIcon: {
     fontSize: 14,
   },
-  statusChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
+  statusTexts: {
+    justifyContent: 'center',
   },
-  statusText: {
+  statusLabel: {
+    ...typography.bodyBold,
+    fontSize: 13,
+  },
+  statusSubtext: {
     ...typography.caption,
+    color: colors.textSecondary,
     fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    marginTop: 1,
   },
-  orderDate: {
+  orderId: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+  },
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  productEmojiBox: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.xs,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productEmoji: {
+    fontSize: 22,
+  },
+  productDetails: {
+    flex: 1,
+    marginLeft: spacing.sm,
+  },
+  productName: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    fontSize: 13,
+  },
+  productMeta: {
     ...typography.caption,
     color: colors.textSecondary,
     fontSize: 11,
+    marginTop: 2,
   },
-  orderSummary: {
-    ...typography.body,
-    color: colors.textPrimary,
-    marginTop: spacing.xs,
+  chevron: {
     fontSize: 12,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.xs,
   },
   divider: {
-    height: 1,
+    height: 0.5,
     backgroundColor: colors.border,
-    marginVertical: spacing.md,
+    marginVertical: spacing.sm,
   },
-  cardActions: {
+  actionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: spacing.sm,
+    justifyContent: 'flex-end',
   },
-  detailsBtn: {
-    paddingVertical: spacing.xs,
-  },
-  detailsBtnText: {
-    ...typography.bodyBold,
-    color: colors.navy,
-    fontSize: 12,
-    textDecorationLine: 'underline',
-  },
-  cancelBtn: {
-    backgroundColor: colors.error + '10',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+  actionButtonPrimary: {
+    backgroundColor: colors.navy,
     borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.navy,
   },
-  cancelBtnText: {
-    ...typography.caption,
-    color: colors.error,
-    fontWeight: '700',
+  actionBtnTextPrimary: {
+    ...typography.button,
+    color: '#FFFFFF',
     fontSize: 11,
+    fontWeight: '700',
+  },
+  actionButtonSecondary: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionBtnTextSecondary: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontSize: 11,
+    fontWeight: '700',
   },
   emptyContainer: {
     alignItems: 'center',
