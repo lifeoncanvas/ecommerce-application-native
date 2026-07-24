@@ -34,9 +34,9 @@ const withTimeout = (promise, ms = 2500) => {
 export default function CategoriesScreen({ navigation }) {
   const [activeCategoryId, setActiveCategoryId] = useState('cat_food');
   const [loading, setLoading] = useState(false);
-  const [categoriesList, setCategoriesList] = useState([]);
-  const [subcategoriesList, setSubcategoriesList] = useState([]);
-  const [categoryProducts, setCategoryProducts] = useState([]);
+  const [categoriesList, setCategoriesList] = useState(mockCategories);
+  const [subcategoriesList, setSubcategoriesList] = useState(mockCategories[0].subcategories);
+  const [categoryProducts, setCategoryProducts] = useState(mockProducts.filter((p) => p.categoryId === 'cat_food'));
 
   // Fetch Category lists from Spring Boot endpoints
   const loadCategories = useCallback(async () => {

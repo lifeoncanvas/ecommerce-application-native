@@ -12,16 +12,17 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../theme';
 import { categories, products, vendors } from '../../data/mockData';
+import { useWishlist } from '../../context/WishlistContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ProductListingScreen({ route, navigation }) {
   const { categoryId, subcategoryId, vendorId } = route?.params || {};
+  const { isLiked, toggleWishlist } = useWishlist();
 
   const [selectedSubCatId, setSelectedSubCatId] = useState(subcategoryId || 'all');
   const [selectedFilterTag, setSelectedFilterTag] = useState('All');
   const [sortOption, setSortOption] = useState('popularity'); // 'popularity', 'price_asc', 'price_desc'
-  const [wishlist, setWishlist] = useState({});
 
   // Reset subcategory selection when category changes
   useEffect(() => {
@@ -101,10 +102,6 @@ export default function ProductListingScreen({ route, navigation }) {
     return items;
   }, [initialProducts, selectedSubCatId, selectedFilterTag, sortOption, categoryId, vendorId]);
 
-  const toggleWishlist = (id) => {
-    setWishlist((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
   const handleSortToggle = () => {
     if (sortOption === 'popularity') setSortOption('price_asc');
     else if (sortOption === 'price_asc') setSortOption('price_desc');
@@ -114,7 +111,7 @@ export default function ProductListingScreen({ route, navigation }) {
 
   const renderGridItem = ({ item }) => {
     const vendor = vendors.find((v) => v.id === item.vendorId);
-    const isLiked = !!wishlist[item.id];
+    const liked = isLiked(item.id);
     const discount = item.oldPrice ? Math.round(((item.oldPrice - item.price) / item.oldPrice) * 100) : 0;
 
     return (
@@ -140,7 +137,7 @@ export default function ProductListingScreen({ route, navigation }) {
               <Svg width="16" height="16" viewBox="0 0 24 24">
                 <Path
                   d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  fill={isLiked ? colors.error : colors.disabled}
+                  fill={liked ? colors.error : colors.disabled}
                 />
               </Svg>
             </TouchableOpacity>

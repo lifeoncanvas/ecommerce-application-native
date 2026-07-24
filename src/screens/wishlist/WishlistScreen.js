@@ -1,32 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Text, SafeAreaView } from 'react-native';
-import { colors, spacing, typography } from '../../theme';
+import React from 'react';
+import { View, FlatList, StyleSheet, Text, SafeAreaView, TouchableOpacity } from 'react-native';
+import { colors, spacing, typography, radius } from '../../theme';
 import ProductCard from '../../components/ProductCard';
-import { products } from '../../data/mockData';
+import { useWishlist } from '../../context/WishlistContext';
 
 export default function WishlistScreen({ navigation }) {
-  // Populating the wishlist with a couple of default products for design demonstration
-  const [items, setItems] = useState([]);
-
-  useEffect(() => {
-    // Show a few mock products in the wishlist by default
-    const defaultWishlist = products.filter(
-      (p) => p.id === 'p_jazari_1' || p.id === 'p_redemp_1' || p.id === 'p_capelli_1'
-    );
-    setItems(defaultWishlist);
-  }, []);
+  const { wishlistItems } = useWishlist();
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Your Wishlist</Text>
-        <Text style={styles.headerSubtitle}>{items.length} saved items</Text>
+        <Text style={styles.headerSubtitle}>{wishlistItems.length} saved items</Text>
       </View>
 
       {/* Grid List */}
       <FlatList
-        data={items}
+        data={wishlistItems}
         numColumns={2}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.grid}
@@ -35,6 +26,12 @@ export default function WishlistScreen({ navigation }) {
             <Text style={styles.emptyIcon}>❤️</Text>
             <Text style={styles.emptyText}>Your wishlist is empty</Text>
             <Text style={styles.emptySubtext}>Tap the heart icon on any product to save it here.</Text>
+            <TouchableOpacity 
+              style={styles.shopBtn}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Text style={styles.shopBtnText}>Start Shopping</Text>
+            </TouchableOpacity>
           </View>
         }
         renderItem={({ item }) => (
@@ -101,5 +98,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.xs,
+  },
+  shopBtn: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.navy,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+  },
+  shopBtnText: {
+    ...typography.button,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

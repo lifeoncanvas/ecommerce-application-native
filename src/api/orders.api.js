@@ -12,3 +12,5 @@ export const updateAddress = (id, payload) =>
   client.put(`/address/${id}`, payload);
 export const deleteAddress = (id) => client.delete(`/address/${id}`);
 export const setDefaultAddress = (id) => client.put(`/address/default/${id}`);
+
+export const getShippingRates = () => client.get('/shipping/rates');
