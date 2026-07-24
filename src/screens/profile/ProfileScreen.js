@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
@@ -68,6 +68,34 @@ export default function ProfileScreen({ navigation }) {
       onPress: () => navigation.navigate('Loyalty'),
     },
     {
+      id: 'contact',
+      title: 'Contact Us',
+      subtitle: 'Official channels and direct support messages',
+      icon: '📞',
+      onPress: () => navigation.navigate('Contact'),
+    },
+    {
+      id: 'about',
+      title: 'About Us',
+      subtitle: 'Read our story, mission, and release details',
+      icon: 'ℹ️',
+      onPress: () => navigation.navigate('About'),
+    },
+    {
+      id: 'privacy',
+      title: 'Privacy Policy',
+      subtitle: 'How we safely collect and protect user data',
+      icon: '🛡️',
+      onPress: () => navigation.navigate('PrivacyPolicy'),
+    },
+    {
+      id: 'terms',
+      title: 'Terms & Conditions',
+      subtitle: 'User agreements, purchases, and refund policies',
+      icon: '📄',
+      onPress: () => navigation.navigate('TermsConditions'),
+    },
+    {
       id: 'settings',
       title: 'App Settings',
       subtitle: 'Configure alert and layout preferences',
@@ -78,7 +106,11 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Profile Avatar Card */}
         <TouchableOpacity
           style={styles.avatarSection}
@@ -89,7 +121,7 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.avatarEmoji}>{user?.avatar || '👤'}</Text>
           </View>
           <Text style={styles.profileEmail}>{user?.name || 'Guest User'}</Text>
-          <Text style={styles.profileRole}>{user?.email || 'guest@httn.shop'}</Text>
+          <Text style={styles.profileRole}>{user?.email || 'guest@kingsshoppers.com'}</Text>
         </TouchableOpacity>
 
         {/* Menu Items List */}
@@ -124,7 +156,7 @@ export default function ProfileScreen({ navigation }) {
             style={styles.logoutBtn}
           />
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -134,16 +166,17 @@ const getStyles = (colors) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  container: {
+  scrollContainer: {
     flex: 1,
+  },
+  scrollContent: {
     padding: spacing.lg,
-    justifyContent: 'space-between',
-    backgroundColor: colors.background,
+    paddingBottom: spacing.xl,
   },
   avatarSection: {
     alignItems: 'center',
-    marginTop: spacing.xl,
-    marginBottom: spacing.xl,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
   },
   avatarCircle: {
     width: 80,
@@ -171,8 +204,8 @@ const getStyles = (colors) => StyleSheet.create({
     marginTop: 2,
   },
   menuList: {
-    flex: 1,
-    gap: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   menuRow: {
     flexDirection: 'row',
@@ -214,10 +247,11 @@ const getStyles = (colors) => StyleSheet.create({
   },
   logoutWrapper: {
     width: '100%',
+    marginTop: spacing.md,
     marginBottom: spacing.md,
   },
   logoutBtn: {
     borderColor: colors.error,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
 });

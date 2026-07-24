@@ -11,6 +11,7 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import Svg, { Path, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { colors as staticColors, typography, spacing, radius } from '../../theme';
@@ -60,6 +61,31 @@ export default function HomeScreen({ navigation }) {
   const [latestProducts, setLatestProducts] = useState(mockProducts.filter((p) => p.tag === 'New' || p.categoryId === 'cat_food'));
   const [popularProducts, setPopularProducts] = useState(mockProducts.filter((p) => p.tag === 'Popular' || p.tag === 'Bestseller'));
   const [recProducts, setRecProducts] = useState(mockProducts.filter((p) => p.tag === 'Bestseller' || p.tag === 'Popular').slice(0, 4));
+
+  // Filter settings modal states
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedSort, setSelectedSort] = useState('popularity');
+  const [selectedTag, setSelectedTag] = useState('All');
+
+  const handleOpenFilter = () => {
+    setFilterModalVisible(true);
+  };
+
+  const handleApplyFilter = () => {
+    setFilterModalVisible(false);
+    navigation.navigate('ProductListing', {
+      categoryId: selectedCategory === 'all' ? undefined : selectedCategory,
+      initialSortOption: selectedSort,
+      initialFilterTag: selectedTag,
+    });
+  };
+
+  const handleResetFilter = () => {
+    setSelectedCategory('all');
+    setSelectedSort('popularity');
+    setSelectedTag('All');
+  };
 
   // Flash countdown timer effect
   useEffect(() => {
@@ -248,7 +274,7 @@ export default function HomeScreen({ navigation }) {
             </Svg>
             <Text style={styles.searchPlaceholder}>What are you looking for?</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.filterBtn}>
+          <TouchableOpacity style={styles.filterBtn} onPress={handleOpenFilter} activeOpacity={0.8}>
             <Svg width="18" height="18" viewBox="0 0 24 24">
               <Path
                 d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"
@@ -439,6 +465,121 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
+
+      {/* Dynamic Filter Modal */}
+      <Modal
+        visible={filterModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter & Sort</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <Text style={styles.modalCloseIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              {/* Category Filter */}
+              <Text style={styles.filterSectionTitle}>Filter by Category</Text>
+              <View style={styles.optionsGrid}>
+                {[
+                  { id: 'all', label: 'All Categories' },
+                  { id: 'cat_food', label: 'Food & Pantry' },
+                  { id: 'cat_fashion', label: 'Fashion & Apparel' },
+                  { id: 'cat_electronics', label: 'Electronics & Gadgets' }
+                ].map((cat) => {
+                  const isSel = selectedCategory === cat.id;
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[styles.optionBadge, isSel && styles.optionBadgeActive]}
+                      onPress={() => setSelectedCategory(cat.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.optionText, isSel && styles.optionTextActive]}>
+                        {cat.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Sort By Filter */}
+              <Text style={styles.filterSectionTitle}>Sort Products By</Text>
+              <View style={styles.optionsGrid}>
+                {[
+                  { id: 'popularity', label: 'Popularity' },
+                  { id: 'price_asc', label: 'Price: Low to High' },
+                  { id: 'price_desc', label: 'Price: High to Low' }
+                ].map((sort) => {
+                  const isSel = selectedSort === sort.id;
+                  return (
+                    <TouchableOpacity
+                      key={sort.id}
+                      style={[styles.optionBadge, isSel && styles.optionBadgeActive]}
+                      onPress={() => setSelectedSort(sort.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.optionText, isSel && styles.optionTextActive]}>
+                        {sort.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Tags Filter */}
+              <Text style={styles.filterSectionTitle}>Product Tags</Text>
+              <View style={styles.optionsGrid}>
+                {[
+                  { id: 'All', label: 'All Products' },
+                  { id: 'Bestseller', label: 'Bestsellers' },
+                  { id: 'Flash Sale', label: 'Flash Sale' },
+                  { id: 'Featured', label: 'Featured' },
+                  { id: 'Discounted', label: 'Discounted Only' }
+                ].map((tag) => {
+                  const isSel = selectedTag === tag.id;
+                  return (
+                    <TouchableOpacity
+                      key={tag.id}
+                      style={[styles.optionBadge, isSel && styles.optionBadgeActive]}
+                      onPress={() => setSelectedTag(tag.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.optionText, isSel && styles.optionTextActive]}>
+                        {tag.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            {/* Modal Actions */}
+            <View style={styles.modalActionsRow}>
+              <TouchableOpacity
+                style={styles.resetBtn}
+                onPress={handleResetFilter}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.resetBtnText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyBtn}
+                onPress={handleApplyFilter}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.applyBtnText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -826,5 +967,114 @@ const getStyles = (colors) => StyleSheet.create({
   gridItemWrapper: {
     width: '48%',
     marginBottom: spacing.md,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  modalCloseIcon: {
+    fontSize: 20,
+    color: colors.textSecondary,
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  filterSectionTitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  optionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  optionBadge: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+  },
+  optionBadgeActive: {
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
+  },
+  optionText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  optionTextActive: {
+    color: '#FFFFFF',
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    paddingTop: spacing.md,
+  },
+  resetBtn: {
+    flex: 1,
+    height: 44,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resetBtnText: {
+    ...typography.button,
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  applyBtn: {
+    flex: 2,
+    height: 44,
+    backgroundColor: colors.navy,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  applyBtnText: {
+    ...typography.button,
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

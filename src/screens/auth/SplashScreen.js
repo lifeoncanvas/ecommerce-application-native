@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, ActivityIndicator, Dimensions } from 'react-native';
-import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { colors, typography } from '../../theme';
+import { Crown } from 'phosphor-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -23,22 +23,20 @@ export default function SplashScreen() {
         }),
         Animated.timing(logoScale, {
           toValue: 1,
-          duration: 1000,
+          duration: 900,
           useNativeDriver: true,
         }),
       ]),
-      Animated.parallel([
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(sloganOpacity, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(textOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(sloganOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
       Animated.timing(loaderOpacity, {
         toValue: 1,
         duration: 400,
@@ -58,36 +56,11 @@ export default function SplashScreen() {
           },
         ]}
       >
-        {/* Custom Premium E-commerce SVG Logo */}
-        <Svg width="120" height="120" viewBox="0 0 100 100">
-          <Defs>
-            <LinearGradient id="goldGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#C98A00" />
-              <Stop offset="100%" stopColor="#F6A400" />
-            </LinearGradient>
-            <LinearGradient id="goldGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#FBC358" />
-              <Stop offset="100%" stopColor="#F6A400" />
-            </LinearGradient>
-          </Defs>
-          {/* Shopping Bag Handle */}
-          <Path
-            d="M35 30 C35 15, 65 15, 65 30"
-            fill="none"
-            stroke="url(#goldGradLight)"
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
-          {/* Left Facet of Bag */}
-          <Path d="M22 35 L50 35 L50 82 L14 82 Z" fill="url(#goldGradDark)" />
-          {/* Right Facet of Bag */}
-          <Path d="M50 35 L78 35 L86 82 L50 82 Z" fill="url(#goldGradLight)" />
-          {/* Chevron cutout for styling */}
-          <Path d="M50 48 L60 62 L40 62 Z" fill={colors.navy} />
-        </Svg>
+        {/* Crown Icon */}
+        <Crown color={colors.gold} size={110} weight="fill" />
 
         <Animated.Text style={[styles.title, { opacity: textOpacity }]}>
-          HTTN SHOP
+          KingsShoppers
         </Animated.Text>
         <Animated.Text style={[styles.slogan, { opacity: sloganOpacity }]}>
           Premium Shopping Experience

@@ -28,7 +28,12 @@ import ExchangeListScreen from '../screens/profile/ExchangeListScreen';
 import SupportScreen from '../screens/profile/SupportScreen';
 import ReturnScreen from '../screens/profile/ReturnScreen';
 import LoyaltyScreen from '../screens/profile/LoyaltyScreen';
+import AboutScreen from '../screens/profile/AboutScreen';
+import PrivacyPolicyScreen from '../screens/profile/PrivacyPolicyScreen';
+import TermsConditionsScreen from '../screens/profile/TermsConditionsScreen';
+import ContactScreen from '../screens/profile/ContactScreen';
 import { useTheme } from '../context/ThemeContext';
+import { House, SquaresFour, Heart, ShoppingCart, User } from 'phosphor-react-native';
 
 const Tab = createBottomTabNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -79,6 +84,10 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="Support" component={SupportScreen} />
       <ProfileStackNav.Screen name="Return" component={ReturnScreen} />
       <ProfileStackNav.Screen name="Loyalty" component={LoyaltyScreen} />
+      <ProfileStackNav.Screen name="About" component={AboutScreen} />
+      <ProfileStackNav.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      <ProfileStackNav.Screen name="TermsConditions" component={TermsConditionsScreen} />
+      <ProfileStackNav.Screen name="Contact" component={ContactScreen} />
     </ProfileStackNav.Navigator>
   );
 }
@@ -88,16 +97,37 @@ export default function MainTabNavigator() {
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.gold,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { 
           backgroundColor: isDarkMode ? colors.surface : colors.navy, 
           borderTopWidth: isDarkMode ? 1 : 0,
-          borderColor: colors.border
+          borderColor: colors.border,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
-      }}
+        tabBarIcon: ({ color, size, focused }) => {
+          const iconSize = size || 22;
+          const weight = focused ? 'fill' : 'regular';
+          switch (route.name) {
+            case 'Home':
+              return <House color={color} size={iconSize} weight={weight} />;
+            case 'Categories':
+              return <SquaresFour color={color} size={iconSize} weight={weight} />;
+            case 'Wishlist':
+              return <Heart color={color} size={iconSize} weight={weight} />;
+            case 'Cart':
+              return <ShoppingCart color={color} size={iconSize} weight={weight} />;
+            case 'Profile':
+              return <User color={color} size={iconSize} weight={weight} />;
+            default:
+              return null;
+          }
+        }
+      })}
     >
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Categories" component={CategoriesScreen} />

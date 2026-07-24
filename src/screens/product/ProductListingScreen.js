@@ -20,12 +20,12 @@ const { width } = Dimensions.get('window');
 export default function ProductListingScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const { categoryId, subcategoryId, vendorId } = route?.params || {};
+  const { categoryId, subcategoryId, vendorId, initialSortOption, initialFilterTag } = route?.params || {};
   const { isLiked, toggleWishlist } = useWishlist();
 
   const [selectedSubCatId, setSelectedSubCatId] = useState(subcategoryId || 'all');
-  const [selectedFilterTag, setSelectedFilterTag] = useState('All');
-  const [sortOption, setSortOption] = useState('popularity'); // 'popularity', 'price_asc', 'price_desc'
+  const [selectedFilterTag, setSelectedFilterTag] = useState(initialFilterTag || 'All');
+  const [sortOption, setSortOption] = useState(initialSortOption || 'popularity'); // 'popularity', 'price_asc', 'price_desc'
 
   // Reset subcategory selection when category changes
   useEffect(() => {

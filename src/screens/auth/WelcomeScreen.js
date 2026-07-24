@@ -4,6 +4,8 @@ import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 
+import { Crown } from 'phosphor-react-native';
+
 const { height } = Dimensions.get('window');
 
 export default function WelcomeScreen({ navigation }) {
@@ -14,33 +16,8 @@ export default function WelcomeScreen({ navigation }) {
       <View style={styles.content}>
         {/* Brand Header */}
         <View style={styles.logoContainer}>
-          <Svg width="100" height="100" viewBox="0 0 100 100">
-            <Defs>
-              <LinearGradient id="goldGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor="#C98A00" />
-                <Stop offset="100%" stopColor="#F6A400" />
-              </LinearGradient>
-              <LinearGradient id="goldGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor="#FBC358" />
-                <Stop offset="100%" stopColor="#F6A400" />
-              </LinearGradient>
-            </Defs>
-            {/* Shopping Bag Handle */}
-            <Path
-              d="M35 30 C35 15, 65 15, 65 30"
-              fill="none"
-              stroke="url(#goldGradLight)"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-            {/* Left Facet of Bag */}
-            <Path d="M22 35 L50 35 L50 82 L14 82 Z" fill="url(#goldGradDark)" />
-            {/* Right Facet of Bag */}
-            <Path d="M50 35 L78 35 L86 82 L50 82 Z" fill="url(#goldGradLight)" />
-            {/* Chevron cutout */}
-            <Path d="M50 48 L60 62 L40 62 Z" fill={colors.navy} />
-          </Svg>
-          <Text style={styles.brandName}>HTTN SHOP</Text>
+          <Crown color={colors.gold} size={100} weight="fill" />
+          <Text style={styles.brandName}>KingsShoppers</Text>
           <Text style={styles.tagline}>Elevate Your Lifestyle</Text>
         </View>
 
