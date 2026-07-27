@@ -6,9 +6,9 @@ import * as SecureStore from 'expo-secure-store';
 // use your machine's local network IP instead, e.g. http://192.168.1.42:8080
 // Toggle this to true to run purely in frontend mock mode (no connection attempts).
 // Set this to false when you want to connect your Spring Boot database.
-export const IS_OFFLINE = true;
+export const IS_OFFLINE = false;
 
-export const BASE_URL = 'http://192.168.1.42:8080/api';
+export const BASE_URL = 'http://192.168.1.108:8080/api';
 
 const client = axios.create({
   baseURL: BASE_URL,
