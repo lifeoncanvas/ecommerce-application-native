@@ -96,42 +96,42 @@ export const categories = [
 ];
 
 export const vendors = [
-  { id: 'v_jazari', name: 'Jazari', emoji: '🥘', rating: 4.8 },
-  { id: 'v_akara', name: 'Finger licking Akara', emoji: '🍟', rating: 4.5 },
-  { id: 'v_redemption', name: 'Fashion Redemption', emoji: '🛍️', rating: 4.7 },
-  { id: 'v_homeworld', name: 'Home world', emoji: '🏺', rating: 4.4 },
-  { id: 'v_sharers', name: 'Sharers', emoji: '🏢', rating: 4.9 },
-  { id: 'v_playarena', name: 'The Play Arena', emoji: '🕹️', rating: 4.6 },
-  { id: 'v_washspot', name: 'The Wash Spot', emoji: '🧺', rating: 4.7 },
-  { id: 'v_azers', name: 'Azers cinema', emoji: '🎥', rating: 4.5 },
-  { id: 'v_minisou', name: 'Mini Sou', emoji: '🎁', rating: 4.6 },
-  { id: 'v_smarthome', name: 'Smart home solutions', emoji: '⚡', rating: 4.8 },
-  { id: 'v_omniatech', name: 'Omnia Tech World', emoji: '💻', rating: 4.7 },
-  { id: 'v_loveworld', name: 'Loveworld Store', emoji: '❤️', rating: 4.9 },
-  { id: 'v_omniaeye', name: 'Omnia Eye Clinic', emoji: '👁️', rating: 4.8 },
-  { id: 'v_allnatural', name: 'All Natural', emoji: '🍏', rating: 4.6 },
-  { id: 'v_capelli', name: 'Capelli Salon & Parlor', emoji: '💇', rating: 4.7 },
-  { id: 'v_omniahealth', name: 'Omnia health & lifestyle', emoji: '🏥', rating: 4.8 },
-  { id: 'v_beverly', name: 'Beverly Meals & Bakeries', emoji: '🎂', rating: 4.8 },
-  { id: 'v_auxano', name: 'Auxano', emoji: '🍛', rating: 4.6 },
-  { id: 'v_cwe', name: 'CWE Bistro', emoji: '🍷', rating: 4.7 },
-  { id: 'v_pointek', name: 'Pointek', emoji: '🔌', rating: 4.5 },
-  { id: 'v_parallex', name: 'Parallex Bank', emoji: '🏦', rating: 4.7 },
-  { id: 'v_ladylili', name: 'Lady Lili', emoji: '🌸', rating: 4.9 },
-  { id: 'v_dixons', name: 'Dixons Foods', emoji: '📦', rating: 4.4 },
-  { id: 'v_kings', name: 'Kings carwash', emoji: '🚗', rating: 4.6 },
-  { id: 'v_carlos', name: 'Carlos Pharmaceutics', emoji: '💊', rating: 4.5 },
-  { id: 'v_puredent', name: 'Puredent', emoji: '🦷', rating: 4.8 }
+  { id: 101, name: 'Jazari', location: 'PINNACLE MALL', emoji: '🥘', rating: 4.8 },
+  { id: 102, name: 'Finger licking Akara', location: 'PINNACLE MALL', emoji: '🍟', rating: 4.5 },
+  { id: 103, name: 'Fashion Redemption', location: 'PINNACLE MALL', emoji: '🛍️', rating: 4.7 },
+  { id: 104, name: 'Home world', location: 'PINNACLE MALL', emoji: '🏺', rating: 4.4 },
+  { id: 105, name: 'Sharers', location: 'PINNACLE MALL', emoji: '🏢', rating: 4.9 },
+  { id: 106, name: 'The Play Arena', location: 'PINNACLE MALL', emoji: '🕹️', rating: 4.6 },
+  { id: 107, name: 'The Wash Spot', location: 'PINNACLE MALL', emoji: '🧺', rating: 4.7 },
+  { id: 108, name: 'Azers cinema', location: 'PINNACLE MALL', emoji: '🎥', rating: 4.5 },
+  { id: 109, name: 'Mini Sou', location: 'PINNACLE MALL', emoji: '🎁', rating: 4.6 },
+  { id: 110, name: 'Smart home solutions', location: 'PINNACLE MALL', emoji: '⚡', rating: 4.8 },
+  { id: 111, name: 'Omnia Tech World', location: 'PINNACLE MALL', emoji: '💻', rating: 4.7 },
+  { id: 112, name: 'Loveworld Store', location: 'PINNACLE MALL', emoji: '❤️', rating: 4.9 },
+  { id: 113, name: 'Omnia Eye Clinic', location: 'PINNACLE MALL', emoji: '👁️', rating: 4.8 },
+  { id: 114, name: 'All Natural', location: 'PINNACLE MALL', emoji: '🍏', rating: 4.6 },
+  { id: 115, name: 'Capelli Salon & Parlor', location: 'PINNACLE MALL', emoji: '💇', rating: 4.7 },
+  { id: 116, name: 'Omnia health & lifestyle', location: 'PINNACLE MALL', emoji: '🏥', rating: 4.8 },
+  { id: 117, name: 'Beverly Meals & Bakeries', location: 'PINNACLE MALL', emoji: '🎂', rating: 4.8 },
+  { id: 118, name: 'Auxano', location: 'PINNACLE MALL', emoji: '🍛', rating: 4.6 },
+  { id: 119, name: 'CWE Bistro', location: 'PINNACLE MALL', emoji: '🍷', rating: 4.7 },
+  { id: 120, name: 'Pointek', location: 'PINNACLE MALL', emoji: '🔌', rating: 4.5 },
+  { id: 121, name: 'Parallex Bank', location: 'PINNACLE MALL', emoji: '🏦', rating: 4.7 },
+  { id: 122, name: 'Lady Lili', location: 'PINNACLE MALL', emoji: '🌸', rating: 4.9 },
+  { id: 123, name: 'Dixons Foods', location: 'PINNACLE MALL', emoji: '📦', rating: 4.4 },
+  { id: 124, name: 'Kings carwash', location: 'PINNACLE MALL', emoji: '🚗', rating: 4.6 },
+  { id: 125, name: 'Carlos Pharmaceutics', location: 'PINNACLE MALL', emoji: '💊', rating: 4.5 },
+  { id: 126, name: 'Puredent', location: 'PINNACLE MALL', emoji: '🦷', rating: 4.8 }
 ];
 
 export const products = [
   // FOOD & DINING
   {
-    id: 'p_jazari_1',
+    id: 1,
     name: 'Gourmet Jollof Rice platter',
     categoryId: 'cat_food',
     subcategoryId: 'sub_rest',
-    vendorId: 'v_jazari',
+    vendorId: 101,
     price: 18.5,
     oldPrice: 22.0,
     rating: 4.8,
@@ -141,11 +141,11 @@ export const products = [
     description: 'Flavor-rich Nigerian Jollof rice served with grilled chicken, plantain, and crisp salad.'
   },
   {
-    id: 'p_akara_1',
+    id: 2,
     name: 'Crispy Akara & French Fries',
     categoryId: 'cat_food',
     subcategoryId: 'sub_fries',
-    vendorId: 'v_akara',
+    vendorId: 102,
     price: 8.0,
     oldPrice: 10.0,
     rating: 4.6,
@@ -156,11 +156,11 @@ export const products = [
     description: 'Hot bean fritters (Akara) fried to perfect golden crisp, paired with home-cut potato fries.'
   },
   {
-    id: 'p_beverly_1',
+    id: 3,
     name: 'Red Velvet Celebration Cake',
     categoryId: 'cat_food',
     subcategoryId: 'sub_bake',
-    vendorId: 'v_beverly',
+    vendorId: 117,
     price: 35.0,
     rating: 4.9,
     reviewsCount: 65,
@@ -169,11 +169,11 @@ export const products = [
     description: 'Rich, moist double-layer red velvet cake topped with smooth cream cheese frosting.'
   },
   {
-    id: 'p_beverly_2',
+    id: 4,
     name: 'Fresh Butter Croissant (4 Pack)',
     categoryId: 'cat_food',
     subcategoryId: 'sub_bake',
-    vendorId: 'v_beverly',
+    vendorId: 117,
     price: 6.5,
     oldPrice: 8.0,
     rating: 4.7,
@@ -183,11 +183,11 @@ export const products = [
     description: 'Flaky, buttery French pastries baked fresh daily, perfect for breakfast.'
   },
   {
-    id: 'p_natural_1',
+    id: 5,
     name: 'Cold-Pressed Green Juice',
     categoryId: 'cat_food',
     subcategoryId: 'sub_snack',
-    vendorId: 'v_allnatural',
+    vendorId: 114,
     price: 4.5,
     rating: 4.5,
     reviewsCount: 52,
@@ -196,11 +196,11 @@ export const products = [
     description: 'Organic cucumber, celery, green apple, kale, and lemon juice blended fresh.'
   },
   {
-    id: 'p_auxano_1',
+    id: 6,
     name: 'Stir-Fry Noodles & Grilled Turkey',
     categoryId: 'cat_food',
     subcategoryId: 'sub_rest',
-    vendorId: 'v_auxano',
+    vendorId: 118,
     price: 15.0,
     rating: 4.6,
     reviewsCount: 43,
@@ -209,11 +209,11 @@ export const products = [
     description: 'Spicy noodles stir-fried with mixed vegetables, served with a succulent grilled turkey leg.'
   },
   {
-    id: 'p_cwe_1',
+    id: 7,
     name: 'Bistro Grilled Beef Burger',
     categoryId: 'cat_food',
     subcategoryId: 'sub_rest',
-    vendorId: 'v_cwe',
+    vendorId: 119,
     price: 12.99,
     oldPrice: 15.99,
     rating: 4.7,
@@ -226,11 +226,11 @@ export const products = [
 
   // FASHION & APPAREL
   {
-    id: 'p_redemp_1',
+    id: 8,
     name: 'Premium Velvet Dinner Suit',
     categoryId: 'cat_fashion',
     subcategoryId: 'sub_boutique',
-    vendorId: 'v_redemption',
+    vendorId: 103,
     price: 180.0,
     oldPrice: 240.0,
     rating: 4.9,
@@ -240,11 +240,11 @@ export const products = [
     description: 'Elegant slim-fit double-breasted velvet jacket and matching trousers for formal events.'
   },
   {
-    id: 'p_sharers_b1',
+    id: 9,
     name: 'Classic Bridal A-Line Gown',
     categoryId: 'cat_fashion',
     subcategoryId: 'sub_bridal',
-    vendorId: 'v_sharers',
+    vendorId: 105,
     price: 750.0,
     rating: 4.9,
     reviewsCount: 15,
@@ -253,11 +253,11 @@ export const products = [
     description: 'Stunning tulle and lace off-shoulder bridal gown with a chapel train.'
   },
   {
-    id: 'p_sharers_b2',
+    id: 10,
     name: 'Kids Organic Cotton Dungarees',
     categoryId: 'cat_fashion',
     subcategoryId: 'sub_kids',
-    vendorId: 'v_sharers',
+    vendorId: 105,
     price: 25.0,
     oldPrice: 35.0,
     rating: 4.6,
@@ -267,11 +267,11 @@ export const products = [
     description: 'Super-soft and breathable cotton overall dungarees for infants and toddlers.'
   },
   {
-    id: 'p_loveworld_1',
+    id: 11,
     name: 'Commemorative Golden Shield Souvenir',
     categoryId: 'cat_fashion',
     subcategoryId: 'sub_souvenir',
-    vendorId: 'v_loveworld',
+    vendorId: 112,
     price: 30.0,
     rating: 4.9,
     reviewsCount: 120,
@@ -282,11 +282,11 @@ export const products = [
 
   // ELECTRONICS & GADGETS
   {
-    id: 'p_omniatech_1',
+    id: 12,
     name: 'Omnia 5G Smartphone 256GB',
     categoryId: 'cat_electronics',
     subcategoryId: 'sub_phone',
-    vendorId: 'v_omniatech',
+    vendorId: 111,
     price: 899.0,
     oldPrice: 999.0,
     rating: 4.8,
@@ -296,11 +296,11 @@ export const products = [
     description: 'Super Amoled screen, 108MP quad-camera, ultra battery life, unlocked global 5G.'
   },
   {
-    id: 'p_pointek_1',
+    id: 13,
     name: 'SuperBass ANC Earbuds',
     categoryId: 'cat_electronics',
     subcategoryId: 'sub_acc',
-    vendorId: 'v_pointek',
+    vendorId: 120,
     price: 45.0,
     oldPrice: 65.0,
     rating: 4.5,
@@ -311,11 +311,11 @@ export const products = [
     description: 'Active noise cancellation earbuds with 40-hour deep bass playback and fast charging case.'
   },
   {
-    id: 'p_smarthome_1',
+    id: 14,
     name: '65" Ultra HD Smart TV',
     categoryId: 'cat_electronics',
     subcategoryId: 'sub_smarthome',
-    vendorId: 'v_smarthome',
+    vendorId: 110,
     price: 580.0,
     rating: 4.7,
     reviewsCount: 38,
@@ -326,11 +326,11 @@ export const products = [
 
   // HOME & UTENSILS
   {
-    id: 'p_homeworld_1',
+    id: 15,
     name: '12-Piece Ceramic Cookware Set',
     categoryId: 'cat_home',
     subcategoryId: 'sub_utensil',
-    vendorId: 'v_homeworld',
+    vendorId: 104,
     price: 110.0,
     oldPrice: 140.0,
     rating: 4.7,
@@ -340,11 +340,11 @@ export const products = [
     description: 'Non-toxic, non-stick ceramic pots and pans set with heat-resistant handles.'
   },
   {
-    id: 'p_minisou_1',
+    id: 16,
     name: 'Minimalist USB Aromatherapy Humidifier',
     categoryId: 'cat_home',
     subcategoryId: 'sub_lifestyle',
-    vendorId: 'v_minisou',
+    vendorId: 109,
     price: 18.0,
     rating: 4.4,
     reviewsCount: 145,
@@ -355,11 +355,11 @@ export const products = [
 
   // BEAUTY & GROOMING
   {
-    id: 'p_capelli_1',
+    id: 17,
     name: 'Argan Oil Nourishing Shampoo',
     categoryId: 'cat_beauty',
     subcategoryId: 'sub_cosmetics',
-    vendorId: 'v_capelli',
+    vendorId: 115,
     price: 15.0,
     oldPrice: 19.5,
     rating: 4.8,
@@ -369,11 +369,11 @@ export const products = [
     description: 'Deep hair hydration and scalp therapy infused with pure Moroccan Argan oil.'
   },
   {
-    id: 'p_sharers_salon1',
+    id: 18,
     name: 'Premium Make-up Session Voucher',
     categoryId: 'cat_beauty',
     subcategoryId: 'sub_makeup',
-    vendorId: 'v_sharers',
+    vendorId: 105,
     price: 50.0,
     rating: 4.9,
     reviewsCount: 31,
@@ -384,11 +384,11 @@ export const products = [
 
   // HEALTH & PHARMACY
   {
-    id: 'p_omniaeye_1',
+    id: 19,
     name: 'Anti-Blue Light Reading Glasses',
     categoryId: 'cat_health',
     subcategoryId: 'sub_eye',
-    vendorId: 'v_omniaeye',
+    vendorId: 113,
     price: 25.0,
     rating: 4.6,
     reviewsCount: 94,
@@ -397,11 +397,11 @@ export const products = [
     description: 'Protective glasses designed to filter harmful blue light emitted from phone/TV screens.'
   },
   {
-    id: 'p_ladylili_1',
+    id: 20,
     name: 'Lady Lili Cotton Soft Sanitary Pads',
     categoryId: 'cat_health',
     subcategoryId: 'sub_personal',
-    vendorId: 'v_ladylili',
+    vendorId: 122,
     price: 4.2,
     oldPrice: 5.5,
     rating: 4.9,
@@ -411,11 +411,11 @@ export const products = [
     description: 'Extra long, wings-enabled ultra thin cotton sanitary pads for comfort and safety. Pack of 24.'
   },
   {
-    id: 'p_carlos_1',
+    id: 21,
     name: 'Carlos Vitamin C Immune Boost (60 Tab)',
     categoryId: 'cat_health',
     subcategoryId: 'sub_pharmacy',
-    vendorId: 'v_carlos',
+    vendorId: 125,
     price: 12.0,
     rating: 4.7,
     reviewsCount: 78,
@@ -423,11 +423,11 @@ export const products = [
     description: 'Chewable tablets offering high strength daily support for optimal immune system function.'
   },
   {
-    id: 'p_puredent_1',
+    id: 22,
     name: 'Puredent Herbal Whitening Toothpaste',
     categoryId: 'cat_health',
     subcategoryId: 'sub_personal',
-    vendorId: 'v_puredent',
+    vendorId: 126,
     price: 3.5,
     rating: 4.8,
     reviewsCount: 198,
@@ -438,11 +438,11 @@ export const products = [
 
   // GROCERIES & ESSENTIALS
   {
-    id: 'p_dixons_1',
+    id: 23,
     name: 'Dixons Chicken Noodles Box (40 Pack)',
     categoryId: 'cat_groceries',
     subcategoryId: 'sub_noodles',
-    vendorId: 'v_dixons',
+    vendorId: 123,
     price: 14.5,
     oldPrice: 18.0,
     rating: 4.5,
@@ -453,11 +453,11 @@ export const products = [
     description: 'Quick-cooking delicious noodles with aromatic seasoning packs. Family box size.'
   },
   {
-    id: 'p_dixons_2',
+    id: 24,
     name: 'Dixons Seasoning Cubes (Pack of 100)',
     categoryId: 'cat_groceries',
     subcategoryId: 'sub_noodles',
-    vendorId: 'v_dixons',
+    vendorId: 123,
     price: 3.0,
     rating: 4.6,
     reviewsCount: 165,
@@ -467,11 +467,11 @@ export const products = [
 
   // SERVICES & FUN
   {
-    id: 'p_play_1',
+    id: 25,
     name: 'VR Arcade Unlimited Pass (2 Hours)',
     categoryId: 'cat_services',
     subcategoryId: 'sub_arcade',
-    vendorId: 'v_playarena',
+    vendorId: 106,
     price: 20.0,
     rating: 4.7,
     reviewsCount: 88,
@@ -480,11 +480,11 @@ export const products = [
     description: 'Access ticket to all virtual reality simulator capsules and arcade machines at Play Arena.'
   },
   {
-    id: 'p_wash_1',
+    id: 26,
     name: 'Express Suit Dry Cleaning',
     categoryId: 'cat_services',
     subcategoryId: 'sub_laundry',
-    vendorId: 'v_washspot',
+    vendorId: 107,
     price: 10.0,
     oldPrice: 15.0,
     rating: 4.8,
@@ -495,11 +495,11 @@ export const products = [
     description: 'Quick 24-hour wash, stain-removal, press, and hanger delivery for two-piece suits.'
   },
   {
-    id: 'p_azers_1',
+    id: 27,
     name: 'Azers Cinema VIP Movie Ticket',
     categoryId: 'cat_services',
     subcategoryId: 'sub_cinema',
-    vendorId: 'v_azers',
+    vendorId: 108,
     price: 9.99,
     rating: 4.5,
     reviewsCount: 154,
@@ -507,11 +507,11 @@ export const products = [
     description: 'Standard VIP recliner ticket valid for any current blockbusters with free drink.'
   },
   {
-    id: 'p_kings_1',
+    id: 28,
     name: 'Kings Premium Foam Exterior Car Wash',
     categoryId: 'cat_services',
     subcategoryId: 'sub_carwash',
-    vendorId: 'v_kings',
+    vendorId: 124,
     price: 15.0,
     rating: 4.6,
     reviewsCount: 50,
@@ -519,11 +519,11 @@ export const products = [
     description: 'Pressure clean, active wax coating, tire dressing, and dashboard wiping.'
   },
   {
-    id: 'p_parallex_1',
+    id: 29,
     name: 'Parallex Premium Metal Card Setup',
     categoryId: 'cat_services',
     subcategoryId: 'sub_banking',
-    vendorId: 'v_parallex',
+    vendorId: 121,
     price: 5.0,
     rating: 4.7,
     reviewsCount: 220,

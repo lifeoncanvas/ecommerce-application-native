@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getWishlist, addToWishlist, removeFromWishlist } from '../api/cart.api';
 import { products as mockProducts } from '../data/mockData';
+import { useAuth } from './AuthContext';
 
 const WishlistContext = createContext(null);
 
@@ -12,11 +13,13 @@ const withTimeout = (promise, ms = 2000) => {
 };
 
 export const WishlistProvider = ({ children }) => {
+  const { user, isGuest } = useAuth();
   const [wishlistIds, setWishlistIds] = useState(['p_jazari_1', 'p_redemp_1', 'p_capelli_1']); // Default items shown in mockup
   const [loading, setLoading] = useState(false);
 
   // Sync with API in background
   const syncWishlist = useCallback(async () => {
+    if (!user || isGuest) return; // Don't fetch if not logged in
     try {
       const res = await withTimeout(getWishlist(), 2000);
       const list = res.data?.items || res.data || [];
@@ -26,7 +29,7 @@ export const WishlistProvider = ({ children }) => {
     } catch (e) {
       console.warn('GET /api/wishlist failed. Operating in offline/mock mode.', e.message);
     }
-  }, []);
+  }, [user, isGuest]);
 
   useEffect(() => {
     syncWishlist();

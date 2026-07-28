@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import { CartProvider } from './src/context/CartContext';
 import { WishlistProvider } from './src/context/WishlistContext';
@@ -31,15 +32,17 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <StatusBar style="light" />
-            <RootNavigator />
-          </CartProvider>
-        </WishlistProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <StatusBar style="light" />
+              <RootNavigator />
+            </CartProvider>
+          </WishlistProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

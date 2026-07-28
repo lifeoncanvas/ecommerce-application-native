@@ -7,12 +7,12 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  SafeAreaView,
-  Dimensions,
-  Platform,
   ActivityIndicator,
   Modal,
+  Dimensions,
+  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { colors as staticColors, typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
