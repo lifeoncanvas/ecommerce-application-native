@@ -74,18 +74,26 @@ export default function ProductDetailsScreen({ route, navigation }) {
         2500
       );
 
-      if (detailsRes.data) setProduct(detailsRes.data);
+      if (detailsRes.data && detailsRes.data.price !== undefined) {
+        setProduct(detailsRes.data);
+      }
       if (reviewsRes.data) {
-        // Merge mock user review so user can always test edit/delete
-        const apiReviews = reviewsRes.data || [];
-        const userReviewExists = apiReviews.some((r) => r.isCurrentUser || r.userName === 'You');
-        if (!userReviewExists) {
-          setReviews([...apiReviews, { id: 'rev_user', userName: 'You', rating: 5, comment: 'Perfect addition to my household. Will buy again!', isCurrentUser: true }]);
-        } else {
-          setReviews(apiReviews);
+        // Handle both Array and Page (Spring Boot pageable) formats
+        const apiReviews = Array.isArray(reviewsRes.data) ? reviewsRes.data : (reviewsRes.data.content || []);
+        
+        if (Array.isArray(apiReviews)) {
+          const userReviewExists = apiReviews.some((r) => r.isCurrentUser || r.userName === 'You');
+          if (!userReviewExists) {
+            setReviews([...apiReviews, { id: 'rev_user', userName: 'You', rating: 5, comment: 'Perfect addition to my household. Will buy again!', isCurrentUser: true }]);
+          } else {
+            setReviews(apiReviews);
+          }
         }
       }
-      if (relatedRes.data) setRelatedProducts(relatedRes.data || []);
+      if (relatedRes.data) {
+        const related = Array.isArray(relatedRes.data) ? relatedRes.data : (relatedRes.data.content || []);
+        setRelatedProducts(related);
+      }
     } catch (e) {
       console.warn('Product Details API endpoints failed, utilizing local mock fallback.', e.message);
     }

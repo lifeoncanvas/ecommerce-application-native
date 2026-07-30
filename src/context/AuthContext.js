@@ -7,6 +7,8 @@ import {
   loginWithGoogle,
   loginWithApple,
   loginWithFacebook,
+  loginWithKingschat,
+  loginWithFirebase,
 } from '../api/auth.api';
 
 const AuthContext = createContext(null);
@@ -58,11 +60,20 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const loginFirebase = async (idToken) => {
+    const { data } = await loginWithFirebase(idToken);
+    await SecureStore.setItemAsync('authToken', data.token);
+    setUser(data.user ?? { token: data.token });
+    setIsGuest(false);
+    return data;
+  };
+
   const loginSocial = async (provider, mockToken) => {
     let response;
     if (provider === 'google') response = await loginWithGoogle(mockToken);
     else if (provider === 'apple') response = await loginWithApple(mockToken);
     else if (provider === 'facebook') response = await loginWithFacebook(mockToken);
+    else if (provider === 'kingschat') response = await loginWithKingschat(mockToken);
     
     if (response && response.data) {
       const { data } = response;
@@ -106,6 +117,7 @@ export const AuthProvider = ({ children }) => {
         isOnboardingCompleted,
         isLoading,
         login,
+        loginFirebase,
         loginSocial,
         logout,
         setUser,

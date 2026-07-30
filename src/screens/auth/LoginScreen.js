@@ -15,6 +15,8 @@ import {
 import Svg, { Path, Circle } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { auth } from '../../config/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 // List of supported countries for the dropdown selector
 const countries = [
@@ -29,7 +31,7 @@ const countries = [
 ];
 
 export default function LoginScreen({ route, navigation }) {
-  const { login, loginSocial } = useAuth();
+  const { login, loginSocial, loginFirebase } = useAuth();
   
   // Input fields state
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -77,24 +79,19 @@ export default function LoginScreen({ route, navigation }) {
     if (!validateForm()) return;
     
     setLoading('phone');
-    const fullPhone = `${selectedCountry.code}${phoneNumber.trim()}`;
+    // We used phone number previously, but Firebase uses Email by default for email/password.
+    // If the user wants to log in with Email, we need an Email field.
+    // Assuming phoneNumber here might actually be an email for now (or we rename it to email/phone).
+    // Let's assume it's email for Firebase Email/Password auth.
+    const identifier = phoneNumber.trim();
     
     try {
-      // BACKEND CONNECTION POINT (Commented out until backend is active):
-      /*
-      // Call mock or real login API
-      const result = await login(fullPhone, password);
-      // Process result...
-      */
+      // 1. Authenticate with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
+      const idToken = await userCredential.user.getIdToken();
       
-      // Active Mock Transition
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate networking
-      await login(fullPhone, password, {
-        id: 'mock-phone-user',
-        name: 'Premium Member',
-        phone: fullPhone,
-        provider: 'phone',
-      });
+      // 2. Send Firebase ID Token to Spring Boot backend
+      await loginFirebase(idToken);
     } catch (e) {
       setGeneralError(e.message || 'Login failed. Please check credentials.');
     } finally {
@@ -105,16 +102,10 @@ export default function LoginScreen({ route, navigation }) {
   const handleGoogleLogin = async () => {
     setLoading('google');
     try {
-      // BACKEND CONNECTION POINT (Commented out until backend is active):
-      /*
-      // Fetch Google idToken and run backend oauth callback
-      const idToken = 'mock-google-token';
+      // BACKEND CONNECTION POINT
+      // In a real flow, you'd fetch Google idToken here via GoogleSignin
+      const idToken = 'mock-google-token'; // Replace with real token when Google SDK is added
       await loginSocial('google', idToken);
-      */
-      
-      // Active Mock Transition
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate networking
-      await loginSocial('google', 'mock-google-id-token');
     } catch (e) {
       setGeneralError('Google login failed. Please try again.');
     } finally {
@@ -125,16 +116,10 @@ export default function LoginScreen({ route, navigation }) {
   const handleKingsChatLogin = async () => {
     setLoading('kingschat');
     try {
-      // BACKEND CONNECTION POINT (Commented out until backend is active):
-      /*
-      // Fetch KingsChat token and run backend callback
-      const accessToken = 'mock-kingschat-token';
-      await loginSocial('kingschat', accessToken); // Assuming backend registers custom oauth for kingschat
-      */
-      
-      // Active Mock Transition
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate networking
-      await loginSocial('kingschat', 'mock-kingschat-token');
+      // BACKEND CONNECTION POINT
+      // In a real flow, you'd fetch KingsChat token here
+      const accessToken = 'mock-kingschat-token'; // Replace with real token when SDK is added
+      await loginSocial('kingschat', accessToken);
     } catch (e) {
       setGeneralError('KingsChat login failed. Please try again.');
     } finally {

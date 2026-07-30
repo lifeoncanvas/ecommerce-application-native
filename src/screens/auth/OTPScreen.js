@@ -74,14 +74,8 @@ export default function OTPScreen({ route, navigation }) {
     setLoading(true);
 
     try {
-      // BACKEND CONNECTION POINT (Commented out until backend is active):
-      /*
+      // BACKEND CONNECTION POINT
       await verifyOtp(email, fullPin);
-      navigation.navigate('Login', { verificationSuccess: true });
-      */
-
-      // Active Mock Transition
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate network query
       navigation.navigate('Login', { verificationSuccess: true });
     } catch (e) {
       setError(e.response?.data?.message || 'Verification failed. Please try again.');
@@ -98,13 +92,8 @@ export default function OTPScreen({ route, navigation }) {
     setSuccessMessage('');
 
     try {
-      // BACKEND CONNECTION POINT (Commented out until backend is active):
-      /*
+      // BACKEND CONNECTION POINT
       await resendOtp(email);
-      */
-
-      // Active Mock Transition
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // Simulate network query
       setSuccessMessage('A new verification code has been sent to your email.');
       setTimeLeft(60); // Restart countdown
     } catch (e) {
