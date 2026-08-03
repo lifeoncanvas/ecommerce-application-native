@@ -1,14 +1,36 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+const getToken = async () => {
+  if (Platform.OS === 'web') {
+    return await AsyncStorage.getItem('authToken');
+  } else {
+    return await SecureStore.getItemAsync('authToken');
+  }
+};
+
+const deleteToken = async () => {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.removeItem('authToken');
+  } else {
+    await SecureStore.deleteItemAsync('authToken');
+  }
+};
 
 // TODO: replace with your real Spring Boot base URL (staging/prod)
 // While developing on a physical device with Expo Go, "localhost" will NOT work —
 // use your machine's local network IP instead, e.g. http://192.168.1.42:8080
 // Toggle this to true to run purely in frontend mock mode (no connection attempts).
+
+
 // Set this to false when you want to connect your Spring Boot database.
 export const IS_OFFLINE = false;
 
-export const BASE_URL = 'http://10.0.2.2:8080/api'; // 10.0.2.2 is the Android Emulator alias for localhost
+// Android uses 10.0.2.2 for localhost, iOS uses localhost
+const LOCAL_IP = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+export const BASE_URL = `http://${LOCAL_IP}:8080/api`;
 
 const client = axios.create({
   baseURL: BASE_URL,
@@ -24,7 +46,7 @@ client.interceptors.request.use(async (config) => {
     // Instantly reject request to bypass network socket connection entirely
     return Promise.reject(new Error('Running in offline/mock mode'));
   }
-  const token = await SecureStore.getItemAsync('authToken');
+  const token = await getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -38,7 +60,7 @@ client.interceptors.response.use(
     console.error('API Error:', error.message, error.config?.url);
     if (error.response?.status === 401) {
       // token expired/invalid — clear it, navigate user to Login from AuthContext
-      await SecureStore.deleteItemAsync('authToken');
+      await deleteToken();
     }
     
     // Graceful fallback for missing backend endpoints or type mismatch (500/404)

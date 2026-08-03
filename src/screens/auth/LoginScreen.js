@@ -15,9 +15,6 @@ import {
 import Svg, { Path, Circle } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
-import { auth } from '../../config/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-
 // List of supported countries for the dropdown selector
 const countries = [
   { name: 'United States', code: '+1', flag: '🇺🇸' },
@@ -31,7 +28,7 @@ const countries = [
 ];
 
 export default function LoginScreen({ route, navigation }) {
-  const { login, loginSocial, loginFirebase } = useAuth();
+  const { login, loginSocial } = useAuth();
   
   // Input fields state
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -86,12 +83,8 @@ export default function LoginScreen({ route, navigation }) {
     const identifier = phoneNumber.trim();
     
     try {
-      // 1. Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
-      const idToken = await userCredential.user.getIdToken();
-      
-      // 2. Send Firebase ID Token to Spring Boot backend
-      await loginFirebase(idToken);
+      // 1. Authenticate directly with Spring Boot backend
+      await login(identifier, password);
     } catch (e) {
       setGeneralError(e.message || 'Login failed. Please check credentials.');
     } finally {

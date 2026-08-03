@@ -16,8 +16,7 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../theme';
 import { register, sendOtp } from '../../api/auth.api';
-import { auth } from '../../config/firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { useAuth } from '../../context/AuthContext';
 
 const countries = [
   { name: 'United States', code: '+1', flag: '🇺🇸' },
@@ -31,6 +30,7 @@ const countries = [
 ];
 
 export default function RegisterScreen({ navigation }) {
+  const { login } = useAuth();
   // Input fields state
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -109,20 +109,11 @@ export default function RegisterScreen({ navigation }) {
     };
 
     try {
-      // 1. Register with Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth, payload.email, password);
-      const user = userCredential.user;
+      // 1. Send Registration Payload to Spring Boot Backend
+      await register({ ...payload, password });
       
-      // 2. Update Firebase Profile
-      await updateProfile(user, { displayName: payload.name });
-      
-      // 3. Send ID Token and Extra Data to Backend
-      const idToken = await user.getIdToken();
-      // We pass the idToken and other fields to our AuthContext loginFirebase,
-      // but wait, loginFirebase currently only takes idToken.
-      // Let's call the backend /auth/firebase-register or just pass everything to loginFirebase.
-      await register({ ...payload, idToken, password }); // fallback or use the new firebase endpoint
-      navigation.navigate('OTP', { email: payload.email });
+      // 2. Bypass OTP and log in automatically using standard login
+      await login(payload.email, password);
     } catch (e) {
       setGeneralError(e.message || 'Registration failed. Please try again.');
     } finally {

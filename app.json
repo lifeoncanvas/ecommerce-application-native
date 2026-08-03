@@ -13,10 +13,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.httn.app"
+      "bundleIdentifier": "com.kingsshop.app"
     },
     "android": {
-      "package": "com.httn.app",
+      "package": "com.kingsshop.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#032757"
       }

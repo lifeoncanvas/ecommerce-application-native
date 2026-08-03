@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "767318915608",
+    "project_id": "kingsshop-60ffd",
+    "storage_bucket": "kingsshop-60ffd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:767318915608:android:d4bcd59c5058fbd93ce16d",
+        "android_client_info": {
+          "package_name": "com.kingsshop.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXk6EXfbjGzwL9SurBer3f9xaYExcoMD4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

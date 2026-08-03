@@ -1,6 +1,31 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+const setToken = async (token) => {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem('authToken', token);
+  } else {
+    await SecureStore.setItemAsync('authToken', token);
+  }
+};
+
+const getToken = async () => {
+  if (Platform.OS === 'web') {
+    return await AsyncStorage.getItem('authToken');
+  } else {
+    return await SecureStore.getItemAsync('authToken');
+  }
+};
+
+const deleteToken = async () => {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.removeItem('authToken');
+  } else {
+    await SecureStore.deleteItemAsync('authToken');
+  }
+};
 import {
   login as loginApi,
   logout as logoutApi,
@@ -8,7 +33,6 @@ import {
   loginWithApple,
   loginWithFacebook,
   loginWithKingschat,
-  loginWithFirebase,
 } from '../api/auth.api';
 
 const AuthContext = createContext(null);
@@ -32,7 +56,7 @@ export const AuthProvider = ({ children }) => {
         }
         
         console.log('fetching authToken');
-        const token = await SecureStore.getItemAsync('authToken');
+        const token = await getToken();
         console.log('authToken fetched');
         if (token) {
           setUser({ token });
@@ -54,19 +78,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (phoneOrEmail, password) => {
     const { data } = await loginApi(phoneOrEmail, password);
-    await SecureStore.setItemAsync('authToken', data.token);
+    await setToken(data.token);
     setUser(data.user ?? { token: data.token });
     setIsGuest(false);
     return data;
   };
 
-  const loginFirebase = async (idToken) => {
-    const { data } = await loginWithFirebase(idToken);
-    await SecureStore.setItemAsync('authToken', data.token);
-    setUser(data.user ?? { token: data.token });
-    setIsGuest(false);
-    return data;
-  };
 
   const loginSocial = async (provider, mockToken) => {
     let response;
@@ -77,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     
     if (response && response.data) {
       const { data } = response;
-      await SecureStore.setItemAsync('authToken', data.token);
+      await setToken(data.token);
       setUser(data.user ?? { token: data.token });
       setIsGuest(false);
       return data;
@@ -91,7 +108,7 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       // ignore network errors on logout — clear local session regardless
     }
-    await SecureStore.deleteItemAsync('authToken');
+    await deleteToken();
     setUser(null);
     setIsGuest(false);
   };
@@ -117,7 +134,6 @@ export const AuthProvider = ({ children }) => {
         isOnboardingCompleted,
         isLoading,
         login,
-        loginFirebase,
         loginSocial,
         logout,
         setUser,

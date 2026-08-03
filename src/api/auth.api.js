@@ -15,8 +15,6 @@ export const loginWithFacebook = (accessToken) =>
 export const loginWithKingschat = (accessToken) =>
   client.post('/auth/kingschat', { idToken: accessToken }); // Mapping accessToken to idToken to match SocialLoginRequest
 
-export const loginWithFirebase = (idToken) =>
-  client.post('/auth/firebase-login', { idToken });
 
 export const register = (payload) =>
   client.post('/auth/register', payload);
