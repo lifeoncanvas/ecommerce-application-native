@@ -74,12 +74,12 @@ export default function ProductDetailsScreen({ route, navigation }) {
         2500
       );
 
-      if (detailsRes.data && detailsRes.data.price !== undefined) {
-        setProduct(detailsRes.data);
+      if (detailsRes.data && (detailsRes.data.price !== undefined || detailsRes.data.data?.price !== undefined)) {
+        setProduct(detailsRes.data.data || detailsRes.data);
       }
       if (reviewsRes.data) {
-        // Handle both Array and Page (Spring Boot pageable) formats
-        const apiReviews = Array.isArray(reviewsRes.data) ? reviewsRes.data : (reviewsRes.data.content || []);
+        const unwrappedReviews = reviewsRes.data?.data || reviewsRes.data;
+        const apiReviews = Array.isArray(unwrappedReviews) ? unwrappedReviews : (unwrappedReviews?.content || []);
         
         if (Array.isArray(apiReviews)) {
           const userReviewExists = apiReviews.some((r) => r.isCurrentUser || r.userName === 'You');
@@ -91,7 +91,8 @@ export default function ProductDetailsScreen({ route, navigation }) {
         }
       }
       if (relatedRes.data) {
-        const related = Array.isArray(relatedRes.data) ? relatedRes.data : (relatedRes.data.content || []);
+        const unwrappedRelated = relatedRes.data?.data || relatedRes.data;
+        const related = Array.isArray(unwrappedRelated) ? unwrappedRelated : (unwrappedRelated?.content || []);
         setRelatedProducts(related);
       }
     } catch (e) {

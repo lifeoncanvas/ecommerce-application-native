@@ -56,8 +56,8 @@ export default function SearchScreen({ navigation }) {
           ]),
           2500
         );
-        setHistory(historyRes.data || []);
-        setFilters(filtersRes.data || { categories: mockCategories, vendors: mockVendors });
+        setHistory(historyRes.data?.data || historyRes.data || []);
+        setFilters(filtersRes.data?.data || filtersRes.data || { categories: mockCategories, vendors: mockVendors });
       } catch (e) {
         console.warn('Search history/filter endpoints failed. Falling back to local mock data.');
         setHistory(['Akara', 'Velvet Suit', 'Jollof Rice', 'Glasses', 'Noodles']);
@@ -77,7 +77,7 @@ export default function SearchScreen({ navigation }) {
     const fetchSuggestions = async () => {
       try {
         const res = await withTimeout(getSearchSuggestions(query), 1500);
-        setSuggestions(res.data || []);
+        setSuggestions(res.data?.data || res.data || []);
       } catch (e) {
         // Fallback local matching
         const lowerQuery = query.toLowerCase();
@@ -111,7 +111,7 @@ export default function SearchScreen({ navigation }) {
 
     try {
       const res = await withTimeout(searchProducts(activeQuery), 2500);
-      let items = res.data?.items || res.data || [];
+      let items = res.data?.data || res.data?.items || res.data || [];
       setResults(items);
     } catch (e) {
       console.warn('Search query API failed, running local matching fallback.');

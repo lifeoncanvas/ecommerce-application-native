@@ -127,13 +127,13 @@ export default function HomeScreen({ navigation }) {
         2500
       );
 
-      setBanners(bannersRes.data?.items || bannersRes.data || []);
-      setHomeCategories(catsRes.data?.items || catsRes.data || []);
-      setFeaturedProducts(featRes.data?.items || featRes.data || []);
-      setFlashProducts(flashRes.data?.items || flashRes.data || []);
-      setLatestProducts(latestRes.data?.items || latestRes.data || []);
-      setPopularProducts(popularRes.data?.items || popularRes.data || []);
-      setRecProducts(recRes.data?.items || recRes.data || []);
+      setBanners(bannersRes.data?.data || bannersRes.data?.items || []);
+      setHomeCategories(catsRes.data?.data || catsRes.data?.items || []);
+      setFeaturedProducts(featRes.data?.data || featRes.data?.items || []);
+      setFlashProducts(flashRes.data?.data || flashRes.data?.items || []);
+      setLatestProducts(latestRes.data?.data || latestRes.data?.items || []);
+      setPopularProducts(popularRes.data?.data || popularRes.data?.items || []);
+      setRecProducts(recRes.data?.data || recRes.data?.items || []);
     } catch (e) {
       console.warn('Home endpoints failed, utilizing unified mockData fallback.', e.message);
       
@@ -246,7 +246,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.greetRow}>
           <View>
             <Text style={styles.welcomeText}>Hello,</Text>
-            <Text style={styles.userNameText}>{user?.name || 'Guest User'}</Text>
+            <Text style={styles.userNameText}>{user?.fullName || user?.name || 'Guest User'}</Text>
           </View>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconCircle} onPress={() => navigation.navigate('Cart')}>

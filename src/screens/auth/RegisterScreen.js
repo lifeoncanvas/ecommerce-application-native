@@ -103,7 +103,7 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     const fullPhone = `${selectedCountry.code}${phoneNumber.trim()}`;
     const payload = {
-      name: fullName.trim(),
+      fullName: fullName.trim(),
       phone: fullPhone,
       email: email.trim(),
     };

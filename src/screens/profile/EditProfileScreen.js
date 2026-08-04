@@ -33,7 +33,7 @@ export default function EditProfileScreen({ navigation }) {
   const styles = getStyles(colors);
 
   // Local state fields
-  const [name, setName] = useState(user?.name || 'Guest User');
+  const [name, setName] = useState(user?.fullName || user?.name || 'Guest User');
   const [email, setEmail] = useState(user?.email || 'guest@kingsshoppers.com');
   const [phone, setPhone] = useState(user?.phone || '+234 809 123 4567');
   const [avatar, setAvatar] = useState(user?.avatar || '👤');

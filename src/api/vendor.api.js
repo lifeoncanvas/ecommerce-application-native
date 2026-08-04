@@ -8,7 +8,7 @@ export const registerVendor = (payload) =>
   client.post('/vendor/register', payload);
 
 export const uploadVendorDocument = (formData) => {
-  return client.post('/upload/vendor-document', formData, {
+  return client.post('/upload/vendor', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

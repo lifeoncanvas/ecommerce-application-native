@@ -45,7 +45,7 @@ export default function CategoriesScreen({ navigation }) {
   const loadCategories = useCallback(async () => {
     try {
       const res = await withTimeout(getCategories(), 2000);
-      const list = res.data?.items || res.data || [];
+      const list = res.data?.data || res.data?.items || res.data || [];
       if (list.length > 0) {
         setCategoriesList(list);
         if (!activeCategoryId && list[0]?.id) {
@@ -74,9 +74,9 @@ export default function CategoriesScreen({ navigation }) {
         2500
       );
 
-      const details = detailsRes.data || {};
+      const details = detailsRes.data?.data || detailsRes.data || {};
       setSubcategoriesList(details.subcategories || []);
-      setCategoryProducts(productsRes.data?.items || productsRes.data || []);
+      setCategoryProducts(productsRes.data?.data || productsRes.data?.items || []);
     } catch (e) {
       console.warn(`GET /api/categories/${activeCategoryId} endpoints failed, using local mock fallback.`);
       const activeCat = mockCategories.find((c) => c.id === activeCategoryId);

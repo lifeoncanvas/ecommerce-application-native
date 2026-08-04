@@ -4,16 +4,16 @@ export const login = (email, password) =>
   client.post('/auth/login', { email, password });
 
 export const loginWithGoogle = (idToken) =>
-  client.post('/auth/google', { idToken });
+  client.post('/auth/google', { idToken, provider: 'GOOGLE' });
 
 export const loginWithApple = (identityToken) =>
-  client.post('/auth/apple', { identityToken });
+  client.post('/auth/apple', { idToken: identityToken, provider: 'APPLE' });
 
 export const loginWithFacebook = (accessToken) =>
-  client.post('/auth/facebook', { accessToken });
+  client.post('/auth/facebook', { idToken: accessToken, provider: 'FACEBOOK' });
 
 export const loginWithKingschat = (accessToken) =>
-  client.post('/auth/kingschat', { idToken: accessToken }); // Mapping accessToken to idToken to match SocialLoginRequest
+  client.post('/auth/kingschat', { idToken: accessToken, provider: 'LOCAL' }); // Mapping accessToken to idToken to match SocialLoginRequest
 
 
 export const register = (payload) =>

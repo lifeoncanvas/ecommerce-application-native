@@ -31,33 +31,29 @@ export default function LoginScreen({ route, navigation }) {
   const { login, loginSocial } = useAuth();
   
   // Input fields state
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Country dropdown state
-  const [selectedCountry, setSelectedCountry] = useState(countries[0]);
-  const [countryModalVisible, setCountryModalVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Loading & error state
-  const [loading, setLoading] = useState(null); // 'phone', 'google', 'kingschat', or null
-  const [phoneError, setPhoneError] = useState('');
+  const [loading, setLoading] = useState(null); // 'email', 'google', 'kingschat', or null
+  const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [generalError, setGeneralError] = useState('');
 
-  // Handle phone & password form validation
+  // Handle email & password form validation
   const validateForm = () => {
     let valid = true;
-    setPhoneError('');
+    setEmailError('');
     setPasswordError('');
     setGeneralError('');
 
-    if (!phoneNumber.trim()) {
-      setPhoneError('Phone number is required');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) {
+      setEmailError('Email address is required');
       valid = false;
-    } else if (phoneNumber.trim().length < 6) {
-      setPhoneError('Please enter a valid phone number');
+    } else if (!emailRegex.test(email.trim())) {
+      setEmailError('Please enter a valid email address');
       valid = false;
     }
 
@@ -72,15 +68,11 @@ export default function LoginScreen({ route, navigation }) {
     return valid;
   };
 
-  const handlePhoneLogin = async () => {
+  const handleEmailLogin = async () => {
     if (!validateForm()) return;
     
-    setLoading('phone');
-    // We used phone number previously, but Firebase uses Email by default for email/password.
-    // If the user wants to log in with Email, we need an Email field.
-    // Assuming phoneNumber here might actually be an email for now (or we rename it to email/phone).
-    // Let's assume it's email for Firebase Email/Password auth.
-    const identifier = phoneNumber.trim();
+    setLoading('email');
+    const identifier = email.trim();
     
     try {
       // 1. Authenticate directly with Spring Boot backend
@@ -120,11 +112,7 @@ export default function LoginScreen({ route, navigation }) {
     }
   };
 
-  // Filter countries list by search term
-  const filteredCountries = countries.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.code.includes(searchQuery)
-  );
+  // (Removed country code dropdown logic as it's no longer needed for email login)
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -169,30 +157,21 @@ export default function LoginScreen({ route, navigation }) {
             </Text>
           ) : null}
 
-          {/* Phone Number Field with Country Dropdown */}
+          {/* Email Address Field */}
           <View style={styles.inputWrapper}>
-            <Text style={styles.label}>Phone Number</Text>
-            <View style={[styles.phoneInputContainer, phoneError ? styles.inputError : null]}>
-              <TouchableOpacity
-                style={styles.countryPicker}
-                onPress={() => setCountryModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.flagText}>{selectedCountry.flag}</Text>
-                <Text style={styles.countryCodeText}>{selectedCountry.code}</Text>
-                <Text style={styles.dropdownCaret}>▼</Text>
-              </TouchableOpacity>
-              <View style={styles.verticalDivider} />
+            <Text style={styles.label}>Email Address</Text>
+            <View style={[styles.emailInputContainer, emailError ? styles.inputError : null]}>
               <TextInput
-                style={styles.phoneInput}
-                placeholder="Enter phone number"
+                style={styles.emailInput}
+                placeholder="you@example.com"
                 placeholderTextColor={colors.textSecondary}
-                keyboardType="phone-pad"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
               />
             </View>
-            {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
           </View>
 
           {/* Password Field with Inline "Forgot Password?" & Eye Toggle */}
@@ -229,11 +208,11 @@ export default function LoginScreen({ route, navigation }) {
           {/* Log In Submit Button */}
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={handlePhoneLogin}
+            onPress={handleEmailLogin}
             disabled={loading !== null}
             activeOpacity={0.8}
           >
-            {loading === 'phone' ? (
+            {loading === 'email' ? (
               <ActivityIndicator color={colors.textInverse} />
             ) : (
               <Text style={styles.loginBtnText}>Log In</Text>
@@ -322,59 +301,7 @@ export default function LoginScreen({ route, navigation }) {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Country Selection Dropdown Modal */}
-      <Modal
-        visible={countryModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setCountryModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            {/* Modal Title */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Country</Text>
-              <TouchableOpacity onPress={() => setCountryModalVisible(false)} activeOpacity={0.7}>
-                <Text style={styles.modalCloseBtn}>Close</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Modal Search Input */}
-            <TextInput
-              style={styles.modalSearch}
-              placeholder="Search by country or prefix..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-            />
-
-            {/* Countries List */}
-            <FlatList
-              data={filteredCountries}
-              keyExtractor={(item) => item.name}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.countryRow}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    setSelectedCountry(item);
-                    setCountryModalVisible(false);
-                    setSearchQuery('');
-                  }}
-                >
-                  <View style={styles.countryFlagName}>
-                    <Text style={styles.flagSymbol}>{item.flag}</Text>
-                    <Text style={styles.countryNameText}>{item.name}</Text>
-                  </View>
-                  <Text style={styles.countryCodeText}>{item.code}</Text>
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => <View style={styles.modalDivider} />}
-            />
-          </View>
-        </SafeAreaView>
-      </Modal>
+      {/* Removed Country Selection Dropdown Modal */}
     </SafeAreaView>
   );
 }
@@ -445,7 +372,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     fontWeight: '600',
   },
-  phoneInputContainer: {
+  emailInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 50,
@@ -454,31 +381,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
   },
-  countryPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    height: '100%',
-  },
-  flagText: {
-    fontSize: 20,
-    marginRight: 6,
-  },
-  countryCodeText: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-    marginRight: 4,
-  },
-  dropdownCaret: {
-    fontSize: 9,
-    color: colors.textSecondary,
-  },
-  verticalDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: colors.border,
-  },
-  phoneInput: {
+  emailInput: {
     flex: 1,
     height: '100%',
     paddingHorizontal: spacing.md,

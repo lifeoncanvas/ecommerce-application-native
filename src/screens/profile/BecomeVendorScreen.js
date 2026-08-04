@@ -16,6 +16,7 @@ import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { registerVendor, uploadVendorDocument } from '../../api/vendor.api';
+import * as DocumentPicker from 'expo-document-picker';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -33,29 +34,69 @@ export default function BecomeVendorScreen({ navigation }) {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Fashion & Apparel');
   const [documentName, setDocumentName] = useState('');
+  const [logoName, setLogoName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Simulate file selection and document upload
+  // Actual file selection and document upload
   const handleUploadDocument = async () => {
-    setLoading(true);
-    const mockFilename = `biz_license_${Math.floor(Math.random() * 9000 + 1000)}.pdf`;
-
     try {
-      const formData = new FormData();
-      formData.append('document', {
-        uri: `file:///documents/${mockFilename}`,
-        name: mockFilename,
+      const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
+        copyToCacheDirectory: true,
       });
 
-      await withTimeout(uploadVendorDocument(formData), 2500);
-      setDocumentName(mockFilename);
-      Alert.alert('Success', `Document "${mockFilename}" uploaded successfully!`);
+      if (result.canceled) return;
+      
+      setLoading(true);
+      const file = result.assets[0];
+      const formData = new FormData();
+      
+      // Handle cross-platform file format for fetch API
+      formData.append('file', file.file || {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType || 'application/pdf',
+      });
+
+      const response = await uploadVendorDocument(formData);
+      const url = response.data.data.url;
+      setDocumentName(url);
+      Alert.alert('Success', `Registration document uploaded!`);
     } catch (e) {
-      console.warn('POST /api/upload/vendor-document failed, proceeding locally.', e.message);
-      // Local fallback
-      setDocumentName(mockFilename);
-      Alert.alert('Success', `Document "${mockFilename}" attached (Offline Mode).`);
+      console.warn('Document upload failed.', e);
+      Alert.alert('Error', 'Failed to upload document.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Actual logo upload
+  const handleUploadLogo = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+      
+      setLoading(true);
+      const file = result.assets[0];
+      const formData = new FormData();
+      
+      formData.append('file', file.file || {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType || 'image/jpeg',
+      });
+
+      const response = await uploadVendorDocument(formData);
+      const url = response.data.data.url;
+      setLogoName(url);
+      Alert.alert('Success', `Store logo uploaded!`);
+    } catch (e) {
+      console.warn('Logo upload failed.', e);
+      Alert.alert('Error', 'Failed to upload logo.');
     } finally {
       setLoading(false);
     }
@@ -75,10 +116,11 @@ export default function BecomeVendorScreen({ navigation }) {
 
     setLoading(true);
     const payload = {
-      storeName,
-      description,
-      category,
-      documentUrl: `uploads/${documentName}`,
+      businessName: storeName,
+      businessDescription: description,
+      logoUrl: logoName ? logoName : null,
+      documentUrl: documentName ? documentName : null,
+      businessEmail: user?.email || '',
     };
 
     try {
@@ -176,8 +218,17 @@ export default function BecomeVendorScreen({ navigation }) {
             <Text style={styles.label}>Registration License (PDF)</Text>
             <TouchableOpacity style={styles.uploadBtn} onPress={handleUploadDocument} activeOpacity={0.8}>
               <Text style={styles.uploadBtnIcon}>📄</Text>
-              <Text style={styles.uploadBtnText}>
-                {documentName ? documentName : 'Upload Registration Certificate'}
+              <Text style={styles.uploadBtnText} numberOfLines={1}>
+                {documentName ? documentName.split('/').pop() : 'Upload Registration Certificate'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Logo Upload Button */}
+            <Text style={styles.label}>Store Logo (PNG/JPG)</Text>
+            <TouchableOpacity style={styles.uploadBtn} onPress={handleUploadLogo} activeOpacity={0.8}>
+              <Text style={styles.uploadBtnIcon}>🖼️</Text>
+              <Text style={styles.uploadBtnText} numberOfLines={1}>
+                {logoName ? logoName.split('/').pop() : 'Upload Store Logo'}
               </Text>
             </TouchableOpacity>
           </View>

@@ -120,7 +120,7 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarEmoji}>{user?.avatar || '👤'}</Text>
           </View>
-          <Text style={styles.profileEmail}>{user?.name || 'Guest User'}</Text>
+          <Text style={styles.profileEmail}>{user?.fullName || user?.name || 'Guest User'}</Text>
           <Text style={styles.profileRole}>{user?.email || 'guest@kingsshoppers.com'}</Text>
         </TouchableOpacity>
 
