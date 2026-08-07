@@ -22,10 +22,8 @@ const getToken = async () => {
 const deleteToken = async () => {
   if (Platform.OS === 'web') {
     await AsyncStorage.removeItem('authToken');
-    await AsyncStorage.removeItem('authUser');
   } else {
     await SecureStore.deleteItemAsync('authToken');
-    await AsyncStorage.removeItem('authUser');
   }
 };
 import {
@@ -57,26 +55,18 @@ export const AuthProvider = ({ children }) => {
           setIsOnboardingCompleted(true);
         }
         
+        console.log('fetching authToken');
         const token = await getToken();
         console.log('authToken fetched');
         if (token) {
-          try {
-            const userStr = await AsyncStorage.getItem('authUser');
-            if (userStr) {
-              setUser(JSON.parse(userStr));
-            } else {
-              setUser({ token });
-            }
-          } catch (e) {
-            setUser({ token });
-          }
+          setUser({ token });
         }
       } catch (error) {
         console.error('Failed to load auth state', error);
       } finally {
         console.log('initAuth finally block reached');
         const elapsed = Date.now() - startTime;
-        const delay = Math.max(0, 2000 - elapsed); 
+        const delay = Math.max(0, 3000 - elapsed); 
         setTimeout(() => {
           console.log('setting isLoading to false');
           setIsLoading(false);
@@ -88,14 +78,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (phoneOrEmail, password) => {
     const { data } = await loginApi(phoneOrEmail, password);
-    const authData = data.data || data; // handle wrapped ApiResponse vs mock
-    const token = authData.accessToken || authData.token;
-    
-    await setToken(token);
-    if (authData.user) {
-      await AsyncStorage.setItem('authUser', JSON.stringify(authData.user));
-    }
-    setUser(authData.user ?? { token });
+    await setToken(data.token);
+    setUser(data.user ?? { token: data.token });
     setIsGuest(false);
     return data;
   };
@@ -109,16 +93,11 @@ export const AuthProvider = ({ children }) => {
     else if (provider === 'kingschat') response = await loginWithKingschat(mockToken);
     
     if (response && response.data) {
-      const authData = response.data.data || response.data;
-      const token = authData.accessToken || authData.token;
-      
-      await setToken(token);
-      if (authData.user) {
-        await AsyncStorage.setItem('authUser', JSON.stringify(authData.user));
-      }
-      setUser(authData.user ?? { token });
+      const { data } = response;
+      await setToken(data.token);
+      setUser(data.user ?? { token: data.token });
       setIsGuest(false);
-      return authData;
+      return data;
     }
     throw new Error('Social login failed');
   };

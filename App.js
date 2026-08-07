@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
@@ -8,6 +8,19 @@ import { WishlistProvider } from './src/context/WishlistContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { registerForPushNotificationsAsync } from './src/utils/notificationManager';
 import { ThemeProvider } from './src/context/ThemeContext';
+import {
+  useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 
 // Silence the Expo Go push token warning to prevent LogBox blocker overlay
 LogBox.ignoreLogs([
@@ -27,9 +40,28 @@ console.error = (...args) => {
 };
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'PlusJakartaSans-Regular': PlusJakartaSans_400Regular,
+    'PlusJakartaSans-SemiBold': PlusJakartaSans_600SemiBold,
+    'PlusJakartaSans-Bold': PlusJakartaSans_700Bold,
+    'PlusJakartaSans-ExtraBold': PlusJakartaSans_800ExtraBold,
+    'Inter-Regular': Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
+    'Inter-SemiBold': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
+  });
+
   useEffect(() => {
     registerForPushNotificationsAsync();
   }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+        <ActivityIndicator size="large" color="#1A2C5B" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>

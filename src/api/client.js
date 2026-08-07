@@ -26,7 +26,7 @@ const deleteToken = async () => {
 
 
 // Set this to false when you want to connect your Spring Boot database.
-export const IS_OFFLINE = false;
+export const IS_OFFLINE = true;
 
 // Android uses 10.0.2.2 for localhost, iOS uses localhost
 const LOCAL_IP = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
