@@ -10,11 +10,11 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { changePassword } from '../../api/profile.api';
 import { useTheme } from '../../context/ThemeContext';
+import { CaretLeft, Key, LockSimple } from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -31,7 +31,6 @@ export default function ChangePasswordScreen({ navigation }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Handle password modification
   const handleChangePassword = async () => {
     if (!oldPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Please fill out all fields.');
@@ -57,7 +56,6 @@ export default function ChangePasswordScreen({ navigation }) {
       navigation.goBack();
     } catch (e) {
       console.warn('PUT /api/users/change-password failed, running offline mock confirmation.', e.message);
-      // Offline mock fallback confirmation
       Alert.alert('Success', 'Password changed successfully (Offline Mode).');
       navigation.goBack();
     } finally {
@@ -70,9 +68,7 @@ export default function ChangePasswordScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={colors.navy} />
-          </Svg>
+          <CaretLeft size={24} color={colors.navy} weight="bold" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Change Password</Text>
         <View style={styles.headerBtn} />
@@ -85,35 +81,50 @@ export default function ChangePasswordScreen({ navigation }) {
       ) : (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.form}>
-            <Text style={styles.label}>Current Password</Text>
-            <TextInput
-              style={styles.input}
-              value={oldPassword}
-              onChangeText={setOldPassword}
-              placeholder="Enter current password"
-              placeholderTextColor={colors.textSecondary}
-              secureTextEntry={true}
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Current Password</Text>
+              <View style={styles.inputWrapper}>
+                <Key size={18} color="#94A3B8" weight="regular" style={{ marginRight: 10 }} />
+                <TextInput
+                  style={styles.input}
+                  value={oldPassword}
+                  onChangeText={setOldPassword}
+                  placeholder="Enter current password"
+                  placeholderTextColor={colors.textSecondary}
+                  secureTextEntry={true}
+                />
+              </View>
+            </View>
 
-            <Text style={styles.label}>New Password</Text>
-            <TextInput
-              style={styles.input}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              placeholder="Enter new password"
-              placeholderTextColor={colors.textSecondary}
-              secureTextEntry={true}
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>New Password</Text>
+              <View style={styles.inputWrapper}>
+                <LockSimple size={18} color="#94A3B8" weight="regular" style={{ marginRight: 10 }} />
+                <TextInput
+                  style={styles.input}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  placeholder="Enter new password"
+                  placeholderTextColor={colors.textSecondary}
+                  secureTextEntry={true}
+                />
+              </View>
+            </View>
 
-            <Text style={styles.label}>Confirm New Password</Text>
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Re-enter new password"
-              placeholderTextColor={colors.textSecondary}
-              secureTextEntry={true}
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm New Password</Text>
+              <View style={styles.inputWrapper}>
+                <LockSimple size={18} color="#94A3B8" weight="regular" style={{ marginRight: 10 }} />
+                <TextInput
+                  style={styles.input}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="Re-enter new password"
+                  placeholderTextColor={colors.textSecondary}
+                  secureTextEntry={true}
+                />
+              </View>
+            </View>
           </View>
 
           {/* Submit Button */}
@@ -129,7 +140,7 @@ export default function ChangePasswordScreen({ navigation }) {
 const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F8FAFC',
   },
   header: {
     height: 52,
@@ -149,13 +160,15 @@ const getStyles = (colors) => StyleSheet.create({
   },
   headerTitle: {
     ...typography.h3,
-    color: colors.navy,
+    color: colors.textPrimary,
     fontWeight: '800',
+    fontSize: 17,
   },
   loadingWrapper: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
   scroll: {
     flex: 1,
@@ -167,22 +180,35 @@ const getStyles = (colors) => StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.xl,
   },
+  inputGroup: {
+    marginBottom: spacing.xs,
+  },
   label: {
     ...typography.caption,
     color: colors.textSecondary,
     fontWeight: '700',
     fontSize: 10,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: -4,
+    letterSpacing: 0.8,
+    marginBottom: 6,
   },
-  input: {
-    height: 46,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
     backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  input: {
+    flex: 1,
+    height: 48,
     ...typography.body,
     color: colors.textPrimary,
   },

@@ -8,6 +8,7 @@ import { WishlistProvider } from './src/context/WishlistContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { registerForPushNotificationsAsync } from './src/utils/notificationManager';
 import { ThemeProvider } from './src/context/ThemeContext';
+import { TabBarVisibilityProvider } from './src/context/TabBarVisibilityContext';
 import {
   useFonts,
   PlusJakartaSans_400Regular,
@@ -67,12 +68,14 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <ThemeProvider>
-          <WishlistProvider>
-            <CartProvider>
-              <StatusBar style="light" />
-              <RootNavigator />
-            </CartProvider>
-          </WishlistProvider>
+          <TabBarVisibilityProvider>
+            <WishlistProvider>
+              <CartProvider>
+                <StatusBar style="light" />
+                <RootNavigator />
+              </CartProvider>
+            </WishlistProvider>
+          </TabBarVisibilityProvider>
         </ThemeProvider>
       </AuthProvider>
     </SafeAreaProvider>

@@ -6,24 +6,205 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   Dimensions,
+  Image,
+  Platform,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { CaretLeft, ShoppingBagOpen, CaretRight, Star } from 'phosphor-react-native';
 import { typography, spacing, radius } from '../../theme';
 import { categories as mockCategories, products as mockProducts, vendors } from '../../data/mockData';
 import { getCategories, getCategoryDetails, getCategoryProducts } from '../../api/products.api';
 import { useTheme } from '../../context/ThemeContext';
+import { buildProductRouteParams } from '../../utils/productResolver';
+import { useTabBarVisibility } from '../../context/TabBarVisibilityContext';
 
 const { width } = Dimensions.get('window');
 
-// Maps frontend category IDs to backend category IDs to fix backend mismatch
-const getMappedApiId = (id) => {
-  if (id === 'cat_food') return 'cat_fashion';        // Send cat_fashion to get Food details
-  if (id === 'cat_fashion') return 'cat_electronics';  // Send cat_electronics to get Fashion details
-  if (id === 'cat_electronics') return 'cat_food';     // Send cat_food to get Electronics details
-  return id;
+// ─── Curated Subcategory Mappings with Real Photos ──────────────────────────
+const SUBCAT_IMAGES = {
+  cat_food: [
+    { id: 'sub_food_1', name: 'Restaurants', image: require('../../../assets/images/categories/cat_1.jpg') },
+    { id: 'sub_food_2', name: 'Fries & Fast Food', image: require('../../../assets/images/banners/banner3.jpg') },
+    { id: 'sub_food_3', name: 'Bakeries & Pastries', image: require('../../../assets/images/vendors/vendor_3.jpg') },
+    { id: 'sub_food_4', name: 'Healthy Snacks', image: require('../../../assets/images/categories/cat_3.jpg') },
+  ],
+  cat_fashion: [
+    { id: 'sub_fash_1', name: "Women's Wear", image: require('../../../assets/images/products/product_2.jpg') },
+    { id: 'sub_fash_2', name: "Men's Wear", image: require('../../../assets/images/products/product_4.jpg') },
+    { id: 'sub_fash_3', name: 'Kids Dresses', image: require('../../../assets/images/products/product_5.jpg') },
+    { id: 'sub_fash_4', name: 'Summer Blouses', image: require('../../../assets/images/categories/cat_2.jpg') },
+  ],
+  cat_electronics: [
+    { id: 'sub_elec_1', name: 'Smartphones', image: require('../../../assets/images/vendors/vendor_1.jpg') },
+    { id: 'sub_elec_2', name: 'Tablets & Fold', image: require('../../../assets/images/banners/banner1.jpg') },
+    { id: 'sub_elec_3', name: 'Smart Living', image: require('../../../assets/images/vendors/vendor_1.jpg') },
+    { id: 'sub_elec_4', name: 'Tech Gadgets', image: require('../../../assets/images/banners/banner1.jpg') },
+  ],
+  cat_home: [
+    { id: 'sub_home_1', name: 'Candles & Scent', image: require('../../../assets/images/vendors/vendor_4.jpg') },
+    { id: 'sub_home_2', name: 'Ceramic Decor', image: require('../../../assets/images/vendors/vendor_4.jpg') },
+    { id: 'sub_home_3', name: 'Plush & Toys', image: require('../../../assets/images/vendors/vendor_5.jpg') },
+    { id: 'sub_home_4', name: 'Living Room', image: require('../../../assets/images/products/product_2.jpg') },
+  ],
+  cat_beauty: [
+    { id: 'sub_beau_1', name: 'Luxury Parfum', image: require('../../../assets/images/products/product_1.jpg') },
+    { id: 'sub_beau_2', name: 'Lipsticks & Tint', image: require('../../../assets/images/products/product_3.jpg') },
+    { id: 'sub_beau_3', name: 'Complexion 05', image: require('../../../assets/images/products/product_6.jpg') },
+    { id: 'sub_beau_4', name: 'Oral Care Gel', image: require('../../../assets/images/vendors/vendor_6.jpg') },
+  ],
+  cat_services: [
+    { id: 'sub_serv_1', name: 'Car Detailing', image: require('../../../assets/images/vendors/vendor_8.jpg') },
+    { id: 'sub_serv_2', name: 'Arcade & Bowling', image: require('../../../assets/images/categories/cat_4.jpg') },
+    { id: 'sub_serv_3', name: 'Spa & Salon', image: require('../../../assets/images/products/product_3.jpg') },
+    { id: 'sub_serv_4', name: 'Carwash Spa', image: require('../../../assets/images/vendors/vendor_8.jpg') },
+  ],
 };
+
+// ─── Category Popular Products Mappings with Real Photos ────────────────────
+const POPULAR_CATEGORY_PRODUCTS = {
+  cat_food: [
+    {
+      id: 'pop_food_1',
+      vendor: 'JAZARI',
+      name: 'Gourmet Jollof Rice Platter',
+      price: 18.5,
+      rating: 4.8,
+      image: require('../../../assets/images/categories/cat_1.jpg'),
+    },
+    {
+      id: 'pop_food_2',
+      vendor: 'AKARA',
+      name: 'Peri Peri Loaded Fries',
+      price: 12.0,
+      rating: 4.8,
+      image: require('../../../assets/images/banners/banner3.jpg'),
+    },
+    {
+      id: 'pop_food_3',
+      vendor: 'SHARERS',
+      name: 'Artisan Creamy Pasta Bowl',
+      price: 16.0,
+      rating: 4.9,
+      image: require('../../../assets/images/categories/cat_1.jpg'),
+    },
+  ],
+  cat_fashion: [
+    {
+      id: 'pop_fash_1',
+      vendor: 'FASHION REDEMPTION',
+      name: 'Coord Set Ruffle Trouser',
+      price: 380.0,
+      rating: 4.9,
+      image: require('../../../assets/images/products/product_2.jpg'),
+    },
+    {
+      id: 'pop_fash_2',
+      vendor: 'FASHION REDEMPTION',
+      name: 'Mens Tailored Summer Suit',
+      price: 380.0,
+      rating: 4.8,
+      image: require('../../../assets/images/products/product_4.jpg'),
+    },
+    {
+      id: 'pop_fash_3',
+      vendor: 'FASHION REDEMPTION',
+      name: 'Kids Emerald Green Dress',
+      price: 380.0,
+      rating: 4.9,
+      image: require('../../../assets/images/products/product_5.jpg'),
+    },
+  ],
+  cat_electronics: [
+    {
+      id: 'pop_elec_1',
+      vendor: 'OMNIA',
+      name: 'Omnia A-Fold S1 5G 512GB',
+      price: 980.0,
+      rating: 4.9,
+      image: require('../../../assets/images/vendors/vendor_1.jpg'),
+    },
+    {
+      id: 'pop_elec_2',
+      vendor: 'OMNIA',
+      name: 'Omnia Horizon Smart Tablet 11"',
+      price: 640.0,
+      rating: 4.8,
+      image: require('../../../assets/images/banners/banner1.jpg'),
+    },
+  ],
+  cat_home: [
+    {
+      id: 'pop_home_1',
+      vendor: 'HOME WORLD',
+      name: 'Pink Tulip Ceramic Candle Jar',
+      price: 290.0,
+      rating: 4.9,
+      image: require('../../../assets/images/vendors/vendor_4.jpg'),
+    },
+    {
+      id: 'pop_home_2',
+      vendor: 'MINISO',
+      name: 'Fluffy Sheep Tulip Plush',
+      price: 220.0,
+      rating: 5.0,
+      image: require('../../../assets/images/vendors/vendor_5.jpg'),
+    },
+  ],
+  cat_beauty: [
+    {
+      id: 'pop_beau_1',
+      vendor: 'KALAYA BEAUTY',
+      name: 'Beautiful Woman Luxury Parfum',
+      price: 380.0,
+      rating: 5.0,
+      image: require('../../../assets/images/products/product_1.jpg'),
+    },
+    {
+      id: 'pop_beau_2',
+      vendor: 'KALAYA BEAUTY',
+      name: 'Signature Red Liquid Lip',
+      price: 380.0,
+      rating: 4.9,
+      image: require('../../../assets/images/products/product_3.jpg'),
+    },
+    {
+      id: 'pop_beau_3',
+      vendor: 'KALAYA BEAUTY',
+      name: 'Complexion 05 9-Shade Palette',
+      price: 380.0,
+      rating: 5.0,
+      image: require('../../../assets/images/products/product_6.jpg'),
+    },
+  ],
+  cat_services: [
+    {
+      id: 'pop_serv_1',
+      vendor: 'KINGS CARWASH',
+      name: 'Ceramic Detail & Hydrophobic Coat',
+      price: 350.0,
+      rating: 4.9,
+      image: require('../../../assets/images/vendors/vendor_8.jpg'),
+    },
+    {
+      id: 'pop_serv_2',
+      vendor: 'KINGS CARWASH',
+      name: 'Premium Arcade & Bowling Pass',
+      price: 250.0,
+      rating: 4.8,
+      image: require('../../../assets/images/categories/cat_4.jpg'),
+    },
+  ],
+};
+
+const CATEGORY_TABS = [
+  { id: 'cat_food', name: 'FOOD', title: 'FOOD & DINING' },
+  { id: 'cat_fashion', name: 'FASHION', title: 'FASHION & APPAREL' },
+  { id: 'cat_electronics', name: 'ELECTRONICS', title: 'ELECTRONICS & GADGETS' },
+  { id: 'cat_home', name: 'HOME', title: 'HOME & DECOR' },
+  { id: 'cat_beauty', name: 'BEAUTY', title: 'BEAUTY & COSMETICS' },
+  { id: 'cat_services', name: 'SERVICES', title: 'SERVICES & LIFESTYLE' },
+];
 
 const withTimeout = (promise, ms = 2500) => {
   return Promise.race([
@@ -33,85 +214,58 @@ const withTimeout = (promise, ms = 2500) => {
 };
 
 export default function CategoriesScreen({ navigation }) {
-  const { colors } = useTheme();
-  const styles = getStyles(colors);
+  const { colors, isDarkMode } = useTheme();
+  const { handleScrollForTabBar } = useTabBarVisibility();
   const [activeCategoryId, setActiveCategoryId] = useState('cat_food');
   const [loading, setLoading] = useState(false);
-  const [categoriesList, setCategoriesList] = useState(mockCategories);
-  const [subcategoriesList, setSubcategoriesList] = useState(mockCategories[0].subcategories);
-  const [categoryProducts, setCategoryProducts] = useState(mockProducts.filter((p) => p.categoryId === 'cat_food'));
 
-  // Fetch Category lists from Spring Boot endpoints
-  const loadCategories = useCallback(async () => {
-    try {
-      const res = await withTimeout(getCategories(), 2000);
-      const list = res.data?.data || res.data?.items || res.data || [];
-      if (list.length > 0) {
-        setCategoriesList(list);
-        if (!activeCategoryId && list[0]?.id) {
-          setActiveCategoryId(list[0].id);
-        }
-      } else {
-        throw new Error('Categories list empty');
-      }
-    } catch (e) {
-      console.warn('GET /api/categories failed, using local mock fallback.');
-      setCategoriesList(mockCategories);
-    }
-  }, [activeCategoryId]);
-
-  // Fetch Details & Products for the selected category
-  const loadSelectedCategoryDetails = useCallback(async () => {
-    if (!activeCategoryId) return;
-    setLoading(true);
-    try {
-      const apiId = getMappedApiId(activeCategoryId);
-      const [detailsRes, productsRes] = await withTimeout(
-        Promise.all([
-          getCategoryDetails(apiId),
-          getCategoryProducts(apiId),
-        ]),
-        2500
-      );
-
-      const details = detailsRes.data?.data || detailsRes.data || {};
-      setSubcategoriesList(details.subcategories || []);
-      setCategoryProducts(productsRes.data?.data || productsRes.data?.items || []);
-    } catch (e) {
-      console.warn(`GET /api/categories/${activeCategoryId} endpoints failed, using local mock fallback.`);
-      const activeCat = mockCategories.find((c) => c.id === activeCategoryId);
-      setSubcategoriesList(activeCat?.subcategories || []);
-      setCategoryProducts(mockProducts.filter((p) => p.categoryId === activeCategoryId));
-    } finally {
-      setLoading(false);
-    }
-  }, [activeCategoryId]);
-
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
-
-  useEffect(() => {
-    loadSelectedCategoryDetails();
-  }, [loadSelectedCategoryDetails]);
-
-  const activeCategory = categoriesList.find((c) => c.id === activeCategoryId);
+  const activeCategory = CATEGORY_TABS.find((c) => c.id === activeCategoryId) || CATEGORY_TABS[0];
+  const subcategories = SUBCAT_IMAGES[activeCategoryId] || SUBCAT_IMAGES.cat_food;
+  const popularProducts = POPULAR_CATEGORY_PRODUCTS[activeCategoryId] || POPULAR_CATEGORY_PRODUCTS.cat_food;
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      {/* Top Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Shop by Categories</Text>
+      {/* ─── Top Header with Back Button, Centered Gold Crown Logo, and Bag Icon ─── */}
+      <View style={styles.topIconRow}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.iconBtn}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+        >
+          <CaretLeft size={24} color="#1E293B" weight="bold" />
+        </TouchableOpacity>
+
+        <View style={styles.centerLogoWrapper}>
+          <Image
+            source={require('../../../assets/images/crown_logo.png')}
+            style={styles.centerCrownLogo}
+            resizeMode="contain"
+          />
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.iconBtn}
+          onPress={() => navigation.navigate('Cart')}
+        >
+          <ShoppingBagOpen size={24} color="#1E293B" weight="regular" />
+        </TouchableOpacity>
       </View>
 
-      {/* Top Category Tabs (Horizontal Scroll) */}
+      {/* ─── Category Tabs (Horizontal Text Tabs with Underline Indicator) ─── */}
       <View style={styles.tabsWrapper}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsContainer}
         >
-          {categoriesList.map((cat) => {
+          {CATEGORY_TABS.map((cat) => {
             const isActive = cat.id === activeCategoryId;
             return (
               <TouchableOpacity
@@ -120,8 +274,8 @@ export default function CategoriesScreen({ navigation }) {
                 onPress={() => setActiveCategoryId(cat.id)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.tabText, isActive ? styles.tabTextActive : null]}>
-                  {cat.name.split(' ')[0]}
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  {cat.name}
                 </Text>
                 {isActive && <View style={styles.activeIndicator} />}
               </TouchableOpacity>
@@ -130,275 +284,314 @@ export default function CategoriesScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.navy} />
+      {/* ─── Scroll Content ─────────────────────────────────────────────── */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={handleScrollForTabBar}
+        scrollEventThrottle={16}
+      >
+        {/* ─── Subcategories 2x2 Circular Photo Grid (img 2) ───────────── */}
+        <View style={styles.subcatGrid}>
+          {subcategories.map((sub) => (
+            <TouchableOpacity
+              key={sub.id}
+              style={styles.subcatCard}
+              onPress={() =>
+                navigation.navigate('ProductListing', {
+                  categoryId: activeCategoryId,
+                  subcategoryId: sub.id,
+                })
+              }
+              activeOpacity={0.85}
+            >
+              <View style={styles.subcatCircle}>
+                <Image source={sub.image} style={styles.subcatCircleImg} resizeMode="cover" />
+              </View>
+              <Text style={styles.subcatName} numberOfLines={1}>
+                {sub.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Category Banner */}
-          {activeCategory?.banner && (
-            <View style={styles.catBanner}>
-              <Text style={styles.catBannerTitle}>{activeCategory.name}</Text>
-              <Text style={styles.catBannerSub}>{activeCategory.banner}</Text>
-            </View>
-          )}
 
-          {/* Subcategories Header */}
-          <Text style={styles.sectionTitle}>Subcategories</Text>
-
-          {/* Subcategories Grid */}
-          <View style={styles.subcatGrid}>
-            {subcategoriesList.map((sub) => (
-              <TouchableOpacity
-                key={sub.id}
-                style={styles.subcatCard}
-                onPress={() =>
-                  navigation.navigate('ProductListing', {
-                    categoryId: activeCategoryId,
-                    subcategoryId: sub.id,
-                  })
-                }
-                activeOpacity={0.8}
-              >
-                <View style={styles.subcatCircle}>
-                  <Text style={styles.subcatIconText}>{sub.icon || '🛍️'}</Text>
-                </View>
-                <Text style={styles.subcatName} numberOfLines={2}>
-                  {sub.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+        {/* ─── POPULAR IN [CATEGORY] Section (img 2) ───────────────────── */}
+        <View style={styles.popularSection}>
+          <View style={styles.popularHeaderRow}>
+            <Text style={styles.sectionTitle}>
+              POPULAR IN {activeCategory.title}
+            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ProductListing', { categoryId: activeCategoryId })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.seeAllText}>see all</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Popular Products in this Category */}
-          {categoryProducts.length > 0 && (
-            <View style={styles.popularSection}>
-              <Text style={styles.sectionTitle}>Popular In {activeCategory?.name}</Text>
-              {categoryProducts.slice(0, 5).map((prod) => {
-                const vendor = vendors.find((v) => v.id === prod.vendorId);
-                return (
-                  <TouchableOpacity
-                    key={prod.id}
-                    style={styles.productRow}
-                    onPress={() => navigation.navigate('ProductDetails', { id: prod.id })}
-                    activeOpacity={0.85}
-                  >
-                    <View style={styles.prodImagePlaceholder}>
-                      <Text style={styles.prodEmoji}>{prod.emoji || '🎁'}</Text>
-                    </View>
-                    <View style={styles.prodDetails}>
-                      <Text style={styles.prodBrand}>{vendor?.name || 'Brand'}</Text>
-                      <Text style={styles.prodName} numberOfLines={1}>
-                        {prod.name}
-                      </Text>
-                      <View style={styles.prodRatingRow}>
-                        <Text style={styles.starText}>★</Text>
-                        <Text style={styles.ratingLabel}>{prod.rating}</Text>
-                      </View>
-                      <Text style={styles.prodPrice}>${Number(prod.price).toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.arrowIcon}>
-                      <Svg width="18" height="18" viewBox="0 0 24 24">
-                        <Path
-                          d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"
-                          fill={colors.textSecondary}
-                        />
-                      </Svg>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </ScrollView>
-      )}
+          {popularProducts.map((prod) => (
+            <TouchableOpacity
+              key={prod.id}
+              style={styles.productCard}
+              onPress={() => navigation.navigate('ProductDetails', buildProductRouteParams(prod))}
+              activeOpacity={0.9}
+            >
+              {/* Product Thumbnail Photo */}
+              <View style={styles.prodImageWrapper}>
+                <Image source={prod.image} style={styles.prodThumbImg} resizeMode="cover" />
+              </View>
+
+              {/* Product Info */}
+              <View style={styles.prodDetails}>
+                <Text style={styles.prodBrand}>{prod.vendor}</Text>
+                <Text style={styles.prodName} numberOfLines={1}>
+                  {prod.name}
+                </Text>
+                <View style={styles.priceRatingRow}>
+                  <Text style={styles.prodPrice}>
+                    ${Number(prod.price).toFixed(2)}
+                  </Text>
+                  <View style={styles.ratingBadge}>
+                    <Star size={11} color="#F59E0B" weight="fill" style={{ marginRight: 3 }} />
+                    <Text style={styles.ratingText}>{prod.rating}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Right Chevron Arrow */}
+              <View style={styles.arrowContainer}>
+                <CaretRight size={18} color="#94A3B8" weight="bold" />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Extra bottom padding for floating bottom tab bar */}
+        <View style={{ height: 80 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
+const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF', // Pure white background matching Home page
   },
-  header: {
-    height: 52,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
+
+  // Top icon row (Back, Centered Crown & Bag)
+  topIconRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 12 : 6,
+    paddingBottom: 4,
+  },
+  centerLogoWrapper: {
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
   },
-  headerTitle: {
-    ...typography.h3,
-    color: colors.navy,
-    fontWeight: '800',
+  centerCrownLogo: {
+    width: 34,
+    height: 34,
   },
-  tabsWrapper: {
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#FFFFFF',
-  },
-  tabsContainer: {
-    paddingHorizontal: spacing.md,
-    height: 48,
+  iconBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
     alignItems: 'center',
   },
+
+  // Main Header Title
+  titleContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: -0.3,
+  },
+
+  // Category Tabs (Horizontal text tabs with underline indicator)
+  tabsWrapper: {
+    borderBottomWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: '#FAF9F5',
+  },
+  tabsContainer: {
+    paddingHorizontal: 16,
+    height: 38,
+    alignItems: 'center',
+    gap: 18,
+  },
   tabBtn: {
-    paddingHorizontal: spacing.md,
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    paddingHorizontal: 4,
   },
   tabText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    letterSpacing: 0.6,
   },
   tabTextActive: {
-    color: colors.navy,
-    fontWeight: '700',
+    color: '#1E293B',
+    fontWeight: '800',
   },
   activeIndicator: {
     position: 'absolute',
     bottom: 0,
-    left: spacing.md,
-    right: spacing.md,
-    height: 3,
-    backgroundColor: colors.gold,
+    left: 0,
+    right: 0,
+    height: 2.5,
+    backgroundColor: '#A8824B', // Warm gold line matching img 2
     borderRadius: 1.5,
   },
+
+  // Scroll Content
   scrollContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  catBanner: {
-    backgroundColor: colors.navy,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  catBannerTitle: {
-    ...typography.bodyBold,
-    color: colors.textInverse,
-    fontSize: 16,
-    letterSpacing: 0.5,
-  },
-  catBannerSub: {
-    ...typography.caption,
-    color: colors.goldLight,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '700',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing.md,
-  },
+
+  // Subcategories 2x2 Grid with large circular photo containers
   subcatGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: spacing.lg,
+    justifyContent: 'space-between',
+    rowGap: 24,
+    marginBottom: 32,
   },
   subcatCard: {
-    width: '33.3%',
+    width: (width - 64) / 2, // 2-col layout
     alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.xs,
   },
   subcatCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F3EFE6', // Soft round badge
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  subcatIconText: {
-    fontSize: 28,
+  subcatCircleImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
   },
   subcatName: {
-    ...typography.caption,
-    color: colors.textPrimary,
-    fontSize: 11,
+    fontSize: 12,
+    color: '#1E293B',
+    fontWeight: '600',
     textAlign: 'center',
+  },
+
+  // Popular in Category Section
+  popularSection: {
+    marginTop: 4,
+  },
+  popularHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    fontSize: 10.5,
+    color: '#64748B',
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  seeAllText: {
+    fontSize: 11,
+    color: '#94A3B8',
     fontWeight: '600',
   },
-  popularSection: {
-    marginTop: spacing.md,
-  },
-  productRow: {
+
+  // Product Horizontal Card Row
+  productCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
+    borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  prodImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
+  prodImageWrapper: {
+    width: 68,
+    height: 68,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
   },
-  prodEmoji: {
-    fontSize: 30,
+  prodThumbImg: {
+    width: '100%',
+    height: '100%',
   },
   prodDetails: {
     flex: 1,
-    marginLeft: spacing.md,
+    marginLeft: 14,
+    justifyContent: 'center',
   },
   prodBrand: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 9,
-    fontWeight: '600',
+    fontSize: 9.5,
+    color: '#64748B',
+    fontWeight: '700',
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   prodName: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-    fontSize: 13,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#1E293B',
     marginTop: 2,
   },
-  prodRatingRow: {
+  priceRatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
-  },
-  starText: {
-    color: colors.gold,
-    fontSize: 11,
-    marginRight: 2,
-  },
-  ratingLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 10,
+    marginTop: 4,
+    gap: 12,
   },
   prodPrice: {
-    ...typography.bodyBold,
-    color: colors.navyLight,
     fontSize: 13,
-    marginTop: 2,
+    fontWeight: '700',
+    color: '#1E293B',
   },
-  arrowIcon: {
-    paddingLeft: spacing.sm,
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  arrowContainer: {
+    paddingLeft: 8,
   },
 });

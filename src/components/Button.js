@@ -137,8 +137,7 @@ const getStyles = (colors) => StyleSheet.create({
   },
   // Text Styles
   text: {
-    fontWeight: '600',
-    fontFamily: 'Inter',
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   labelLarge: {
     fontSize: 16, // Inter 16px 600

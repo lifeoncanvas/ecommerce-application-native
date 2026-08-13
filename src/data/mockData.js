@@ -153,6 +153,7 @@ export const products = [
     tag: 'Flash Sale',
     claimed: 78,
     emoji: '🍟',
+    image: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=400&q=80',
     description: 'Hot bean fritters (Akara) fried to perfect golden crisp, paired with home-cut potato fries.'
   },
   {
@@ -166,6 +167,7 @@ export const products = [
     reviewsCount: 65,
     tag: 'Featured',
     emoji: '🎂',
+    image: 'https://images.unsplash.com/photo-1586788680434-30d324b2d46f?w=400&q=80',
     description: 'Rich, moist double-layer red velvet cake topped with smooth cream cheese frosting.'
   },
   {
@@ -221,6 +223,7 @@ export const products = [
     tag: 'Flash Sale',
     claimed: 45,
     emoji: '🍔',
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80',
     description: 'Premium flame-grilled beef patty, melted cheddar, house sauce, brioche bun, and side salad.'
   },
 
@@ -237,6 +240,7 @@ export const products = [
     reviewsCount: 38,
     tag: 'Featured',
     emoji: '👔',
+    image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=400&q=80',
     description: 'Elegant slim-fit double-breasted velvet jacket and matching trousers for formal events.'
   },
   {
@@ -250,6 +254,7 @@ export const products = [
     reviewsCount: 15,
     tag: 'Featured',
     emoji: '👰',
+    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&q=80',
     description: 'Stunning tulle and lace off-shoulder bridal gown with a chapel train.'
   },
   {
@@ -293,6 +298,7 @@ export const products = [
     reviewsCount: 150,
     tag: 'Featured',
     emoji: '📱',
+    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&q=80',
     description: 'Super Amoled screen, 108MP quad-camera, ultra battery life, unlocked global 5G.'
   },
   {
@@ -308,6 +314,7 @@ export const products = [
     tag: 'Flash Sale',
     claimed: 91,
     emoji: '🎧',
+    image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&q=80',
     description: 'Active noise cancellation earbuds with 40-hour deep bass playback and fast charging case.'
   },
   {
@@ -379,6 +386,7 @@ export const products = [
     reviewsCount: 31,
     tag: 'Featured',
     emoji: '🎨',
+    image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&q=80',
     description: 'Redeemable voucher for a full-face bridal/glam makeup session at Sharers studio.'
   },
 
@@ -450,6 +458,7 @@ export const products = [
     tag: 'Flash Sale',
     claimed: 86,
     emoji: '🍜',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80',
     description: 'Quick-cooking delicious noodles with aromatic seasoning packs. Family box size.'
   },
   {
@@ -477,6 +486,7 @@ export const products = [
     reviewsCount: 88,
     tag: 'Popular',
     emoji: '🎮',
+    image: 'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?w=400&q=80',
     description: 'Access ticket to all virtual reality simulator capsules and arcade machines at Play Arena.'
   },
   {
@@ -492,6 +502,7 @@ export const products = [
     tag: 'Flash Sale',
     claimed: 34,
     emoji: '🧺',
+    image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400&q=80',
     description: 'Quick 24-hour wash, stain-removal, press, and hanger delivery for two-piece suits.'
   },
   {
@@ -504,6 +515,7 @@ export const products = [
     rating: 4.5,
     reviewsCount: 154,
     emoji: '🎬',
+    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&q=80',
     description: 'Standard VIP recliner ticket valid for any current blockbusters with free drink.'
   },
   {
@@ -516,6 +528,7 @@ export const products = [
     rating: 4.6,
     reviewsCount: 50,
     emoji: '🚿',
+    image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=400&q=80',
     description: 'Pressure clean, active wax coating, tire dressing, and dashboard wiping.'
   },
   {
@@ -528,6 +541,7 @@ export const products = [
     rating: 4.7,
     reviewsCount: 220,
     emoji: '💳',
+    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&q=80',
     description: 'Instant customized heavy-metal contact-less debit card linked to your active checking account.'
   }
 ];

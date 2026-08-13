@@ -35,7 +35,7 @@ const countries = [
 ];
 
 export default function RegisterScreen({ navigation }) {
-  const { login, loginSocial } = useAuth();
+  const { login, loginSocial, continueAsGuest } = useAuth();
   
   // Input fields state
   const [fullName, setFullName] = useState('');
@@ -164,7 +164,7 @@ export default function RegisterScreen({ navigation }) {
           <View style={styles.headerBlock}>
             {/* Skip Text Button */}
             <TouchableOpacity
-              onPress={() => navigation.navigate('Login')}
+              onPress={continueAsGuest}
               activeOpacity={0.7}
               style={styles.skipButton}
             >

@@ -8,7 +8,7 @@ export const lightColors = {
   blue50: '#E6EBF2',
   blue200: '#6B8AB8',
   blue500: '#032757', 
-  blue500Alt: '#2952CC', 
+  blue500Alt: '#032757', 
   blue700: '#032757',
   blue900: '#010E2A',
 
@@ -52,7 +52,7 @@ export const darkColors = {
   blue50: '#1E293B',
   blue200: '#334155',
   blue500: '#60A5FA', 
-  blue500Alt: '#3B82F6', 
+  blue500Alt: '#60A5FA', 
   blue700: '#2563EB',
   blue900: '#1D4ED8',
 

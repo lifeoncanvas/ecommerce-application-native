@@ -22,7 +22,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTAINER_WIDTH = Math.min(SCREEN_WIDTH, 400);
 
 export default function LoginScreen({ route, navigation }) {
-  const { login, loginSocial } = useAuth();
+  const { login, loginSocial, continueAsGuest } = useAuth();
   
   // Input fields state
   const [email, setEmail] = useState('');
@@ -112,7 +112,7 @@ export default function LoginScreen({ route, navigation }) {
           <View style={styles.headerBlock}>
             {/* Skip Text Button */}
             <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
+              onPress={continueAsGuest}
               activeOpacity={0.7}
               style={styles.skipButton}
             >

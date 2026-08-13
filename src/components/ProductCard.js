@@ -1,18 +1,31 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { radius } from '../theme';
 import { vendors } from '../data/mockData';
 import { useTheme } from '../context/ThemeContext';
+import { buildProductRouteParams } from '../utils/productResolver';
 
 export default function ProductCard({ product, onPress }) {
-  const vendor = vendors.find((v) => v.id === product.vendorId);
-  const discount = product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
+  const navigation = useNavigation();
+  const vendor = vendors.find((v) => v.id === product?.vendorId);
+  const discount = product?.oldPrice
+    ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
+    : 0;
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      navigation.navigate('ProductDetails', buildProductRouteParams(product));
+    }
+  };
+
   // Badge configuration based on product tag
   const getBadgeConfig = () => {
-    if (!product.tag) return null;
+    if (!product?.tag) return null;
     const tagLower = product.tag.toLowerCase();
     if (tagLower === 'new') {
       return { backgroundColor: colors.blue500Alt || '#2952CC', text: 'NEW' };
@@ -21,14 +34,13 @@ export default function ProductCard({ product, onPress }) {
     } else if (tagLower === 'sold out' || product.stock === 0) {
       return { backgroundColor: colors.grey400 || '#9CA3AF', text: 'SOLD OUT' };
     }
-    // Default fallback badge
     return { backgroundColor: colors.blue500Alt || '#2952CC', text: product.tag.toUpperCase() };
   };
 
   const badge = getBadgeConfig();
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.85}>
       {/* Top Section: Visual */}
       <View style={styles.imageContainer}>
         {badge && (
@@ -36,30 +48,38 @@ export default function ProductCard({ product, onPress }) {
             <Text style={styles.tagText}>{badge.text}</Text>
           </View>
         )}
-        <Text style={styles.emojiText}>{product.emoji || '🎁'}</Text>
+        {product?.image ? (
+          typeof product.image === 'number' ? (
+            <Image source={product.image} style={styles.cardPhoto} resizeMode="cover" />
+          ) : (
+            <Image source={{ uri: product.image }} style={styles.cardPhoto} resizeMode="cover" />
+          )
+        ) : (
+          <Text style={styles.emojiText}>{product?.emoji || '🎁'}</Text>
+        )}
       </View>
 
       {/* Bottom Section: Details */}
       <View style={styles.info}>
         <Text style={styles.brand} numberOfLines={1}>
-          {vendor?.name || 'Brand'}
+          {product?.brand || vendor?.name || 'KingsShoppers'}
         </Text>
         <Text style={styles.name} numberOfLines={2}>
-          {product.name}
+          {product?.name || product?.title || 'Product'}
         </Text>
 
         {/* Rating */}
         <View style={styles.ratingRow}>
           <Text style={styles.star}>★</Text>
-          <Text style={styles.ratingText}>{product.rating || '4.5'}</Text>
+          <Text style={styles.ratingText}>{product?.rating || '4.5'}</Text>
         </View>
 
         {/* Prices */}
         <View style={styles.priceRow}>
-          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-          {product.oldPrice && (
+          <Text style={styles.price}>₹{product?.price ? Number(product.price).toFixed(2) : '999.00'}</Text>
+          {product?.oldPrice && (
             <>
-              <Text style={styles.oldPrice}>${product.oldPrice.toFixed(2)}</Text>
+              <Text style={styles.oldPrice}>₹{Number(product.oldPrice).toFixed(2)}</Text>
               <Text style={styles.discount}>{discount}% Off</Text>
             </>
           )}
@@ -72,12 +92,11 @@ export default function ProductCard({ product, onPress }) {
 const getStyles = (colors) => StyleSheet.create({
   card: {
     flex: 1,
-    borderRadius: radius.r12, // 12px for product cards
+    borderRadius: radius.r12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
-    // Bounded card shadow spec: 0 2px 8px rgba(0,0,0,0.08)
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -86,23 +105,28 @@ const getStyles = (colors) => StyleSheet.create({
     marginBottom: 16,
   },
   imageContainer: {
-    height: 120,
-    backgroundColor: colors.white, // White background for centered product
+    height: 140,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    aspectRatio: 1.3, // Locked aspect ratio
+    overflow: 'hidden',
+  },
+  cardPhoto: {
+    width: '100%',
+    height: '100%',
   },
   tagBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
+    zIndex: 2,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: radius.r4, // 4px for small badges
+    borderRadius: radius.r4,
   },
   tagText: {
-    color: colors.white,
+    color: '#FFFFFF',
     fontSize: 9,
     fontFamily: 'Inter',
     fontWeight: '700',
@@ -112,10 +136,10 @@ const getStyles = (colors) => StyleSheet.create({
     fontSize: 48,
   },
   info: {
-    padding: 20, // min 20px padding all sides
+    padding: 14,
   },
   brand: {
-    fontSize: 12, // typography.caption is 12px
+    fontSize: 11.5,
     fontFamily: 'Inter',
     color: colors.textSecondary,
     fontWeight: '700',
@@ -124,12 +148,12 @@ const getStyles = (colors) => StyleSheet.create({
     marginBottom: 4,
   },
   name: {
-    fontSize: 16, // typography.h3 is 16px
+    fontSize: 14,
     fontFamily: 'Inter',
     color: colors.textPrimary,
     fontWeight: '600',
-    lineHeight: 20,
-    height: 40, // Height bound for max 2 lines
+    lineHeight: 18,
+    height: 36,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -142,7 +166,7 @@ const getStyles = (colors) => StyleSheet.create({
     marginRight: 3,
   },
   ratingText: {
-    fontSize: 12, // typography.caption is 12px
+    fontSize: 12,
     fontFamily: 'Inter',
     color: colors.textSecondary,
     fontWeight: '600',
@@ -155,13 +179,13 @@ const getStyles = (colors) => StyleSheet.create({
     gap: 6,
   },
   price: {
-    fontSize: 18, // typography.pricePrimary is 18px
+    fontSize: 16,
     fontFamily: 'Inter',
     color: colors.textPrimary,
     fontWeight: '700',
   },
   oldPrice: {
-    fontSize: 12, // typography.priceStrike is 12px
+    fontSize: 12,
     fontFamily: 'Inter',
     color: colors.textSecondary,
     textDecorationLine: 'line-through',

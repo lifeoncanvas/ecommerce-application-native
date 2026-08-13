@@ -4,7 +4,7 @@ export const colors = {
   blue50: '#E6EBF2',
   blue200: '#6B8AB8',
   blue500: '#032757', 
-  blue500Alt: '#2952CC', 
+  blue500Alt: '#032757', 
   blue700: '#032757',
   blue900: '#010E2A',
 

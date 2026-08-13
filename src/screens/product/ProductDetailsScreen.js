@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,907 +6,2045 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
-  ActivityIndicator,
+  Dimensions,
+  Image,
+  Platform,
+  Share,
   Modal,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
+  Animated,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-import { typography, spacing, radius } from '../../theme';
-import Button from '../../components/Button';
-import { products as mockProducts, vendors } from '../../data/mockData';
-import { useCart } from '../../context/CartContext';
-import { getProductDetails, getRelatedProducts } from '../../api/products.api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  getProductReviews,
-  createReview,
-  updateReview,
-  deleteReview,
-} from '../../api/reviews.api';
+  CaretLeft,
+  Heart,
+  ShoppingBagOpen,
+  Cards,
+  ShareNetwork,
+  Sparkle,
+  Truck,
+  Money,
+  ArrowsClockwise,
+  Lightning,
+  Star,
+  CheckCircle,
+  X,
+  Check,
+  Ruler,
+  MagnifyingGlass,
+  Plus,
+} from 'phosphor-react-native';
+import { typography, spacing, radius } from '../../theme';
+import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { useTheme } from '../../context/ThemeContext';
+import { resolveProduct, getRelatedMockProducts, buildProductRouteParams } from '../../utils/productResolver';
 
-const withTimeout = (promise, ms = 2500) => {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), ms))
-  ]);
-};
+const { width } = Dimensions.get('window');
+const HERO_WIDTH = width * 0.85;
+
+// ─── Default Color Swatches ──────────────────────────────────────────────────
+const COLOR_SWATCHES = [
+  { id: 'fuchsia', name: 'Fuchsia', hex: '#BA5392', image: require('../../../assets/images/details/hero_1.jpg') },
+  { id: 'amber', name: 'Amber', hex: '#E27B36', image: require('../../../assets/images/details/card_1.jpg') },
+  { id: 'blue', name: 'Royal Blue', hex: '#5282EC', image: require('../../../assets/images/details/card_5.jpg') },
+  { id: 'maroon', name: 'Deep Maroon', hex: '#772020', image: require('../../../assets/images/details/card_2.jpg') },
+];
+
+// ─── Sizes with Stock and Dimensions for Size Chart ──────────────────────────
+const SIZES_DATA = [
+  { label: 'XS', stock: null, disabled: false, bust: '32-34"', waist: '24-26"', hips: '34-36"', length: '24"' },
+  { label: 'S', stock: null, disabled: false, bust: '34-36"', waist: '26-28"', hips: '36-38"', length: '24.5"' },
+  { label: 'M', stock: null, disabled: false, bust: '36-38"', waist: '28-30"', hips: '38-40"', length: '25"' },
+  { label: 'L', stock: '5 left', disabled: false, bust: '38-40"', waist: '30-32"', hips: '40-42"', length: '25.5"' },
+  { label: 'XL', stock: '1 left', disabled: false, bust: '40-42"', waist: '32-34"', hips: '42-44"', length: '26"' },
+  { label: 'XXL', stock: null, disabled: true, bust: '42-44"', waist: '34-36"', hips: '44-46"', length: '26.5"' },
+];
+
+// ─── Initial Reviews Data ───────────────────────────────────────────────────
+const INITIAL_REVIEWS = [
+  {
+    id: 'rev_1',
+    author: 'Neha',
+    rating: 5,
+    date: 'Jun 19, 2026',
+    size: 'Size: XL',
+    verified: true,
+    comment: 'I recently bought this product on KingsShoppers. The fabric and finish are so premium and the fit is perfect!',
+  },
+  {
+    id: 'rev_2',
+    author: 'Aanya Sharma',
+    rating: 5,
+    date: 'May 28, 2026',
+    size: 'Size: L',
+    verified: true,
+    comment: 'Super chic design! Looks even better in person than the pictures. True to size!',
+  },
+  {
+    id: 'rev_3',
+    author: 'Pooja V.',
+    rating: 4,
+    date: 'May 14, 2026',
+    size: 'Size: M',
+    verified: true,
+    comment: 'High quality tailoring and fast delivery. Very satisfied with my purchase.',
+  },
+];
 
 export default function ProductDetailsScreen({ route, navigation }) {
   const { colors } = useTheme();
-  const styles = getStyles(colors);
-  const { id } = route.params;
-  const { addItem } = useCart();
-  
-  const [isLiked, setIsLiked] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [buying, setBuying] = useState(false);
+  const { id, productId, slug, product: navProduct } = route.params || {};
+  const { addItem, items: cartItems } = useCart();
+  const { isLiked: checkLiked, toggleWishlist } = useWishlist();
 
-  // States loaded from endpoints
-  const initialProduct = mockProducts.find((p) => p.id === id);
-  const [product, setProduct] = useState(initialProduct);
-  const [reviews, setReviews] = useState([
-    { id: 'rev_1', userName: 'Ada O.', rating: 5, comment: 'Excellent quality, exactly as described!' },
-    { id: 'rev_2', userName: 'John D.', rating: 4, comment: 'Very good product. Highly recommended.' },
-    { id: 'rev_user', userName: 'You', rating: 5, comment: 'Perfect addition to my household. Will buy again!', isCurrentUser: true }
-  ]);
-  const [relatedProducts, setRelatedProducts] = useState(
-    mockProducts.filter((p) => p.categoryId === initialProduct?.categoryId && p.id !== id)
-  );
+  // Dynamically resolve product data based on selected product params
+  const product = useMemo(() => {
+    return resolveProduct(productId || id || slug, navProduct);
+  }, [productId, id, slug, navProduct]);
 
-  // Modal form states for Add/Edit Review
-  const [reviewModalVisible, setReviewModalVisible] = useState(false);
-  const [editingReviewId, setEditingReviewId] = useState(null); // ID if editing, null if adding
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
+  const isLiked = checkLiked(product.id);
 
-  // Fetch from Spring Boot endpoints in background
-  const loadDetailsFromApi = useCallback(async () => {
-    try {
-      const [detailsRes, reviewsRes, relatedRes] = await withTimeout(
-        Promise.all([
-          getProductDetails(id),
-          getProductReviews(id),
-          getRelatedProducts(id),
-        ]),
-        2500
-      );
+  const SIMILAR_TOPS = useMemo(() => {
+    return getRelatedMockProducts(product.categoryId, product.id, 3);
+  }, [product]);
 
-      if (detailsRes.data && (detailsRes.data.price !== undefined || detailsRes.data.data?.price !== undefined)) {
-        setProduct(detailsRes.data.data || detailsRes.data);
-      }
-      if (reviewsRes.data) {
-        const unwrappedReviews = reviewsRes.data?.data || reviewsRes.data;
-        const apiReviews = Array.isArray(unwrappedReviews) ? unwrappedReviews : (unwrappedReviews?.content || []);
-        
-        if (Array.isArray(apiReviews)) {
-          const userReviewExists = apiReviews.some((r) => r.isCurrentUser || r.userName === 'You');
-          if (!userReviewExists) {
-            setReviews([...apiReviews, { id: 'rev_user', userName: 'You', rating: 5, comment: 'Perfect addition to my household. Will buy again!', isCurrentUser: true }]);
-          } else {
-            setReviews(apiReviews);
-          }
-        }
-      }
-      if (relatedRes.data) {
-        const unwrappedRelated = relatedRes.data?.data || relatedRes.data;
-        const related = Array.isArray(unwrappedRelated) ? unwrappedRelated : (unwrappedRelated?.content || []);
-        setRelatedProducts(related);
-      }
-    } catch (e) {
-      console.warn('Product Details API endpoints failed, utilizing local mock fallback.', e.message);
-    }
-  }, [id]);
+  // States
+  const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
+  const [selectedSize, setSelectedSize] = useState('L');
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [galleryImages, setGalleryImages] = useState(product.gallery || [product.image]);
 
+  // Update gallery images when product changes
   useEffect(() => {
-    loadDetailsFromApi();
-  }, [loadDetailsFromApi]);
+    setGalleryImages(product.gallery || [product.image]);
+  }, [product]);
 
-  if (!product) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Product not found.</Text>
-        <Button title="Go Back" onPress={() => navigation.goBack()} />
-      </View>
-    );
-  }
+  // Modals
+  const [sizeChartVisible, setSizeChartVisible] = useState(false);
+  const [pincodeModalVisible, setPincodeModalVisible] = useState(false);
+  const [pincodeInput, setPincodeInput] = useState('');
+  const [deliveryEstimate, setDeliveryEstimate] = useState('Delivering to 110001 by Tomorrow, 5 PM');
+  const [pincodeSuccess, setPincodeSuccess] = useState(false);
 
-  const vendor = vendors.find((v) => v.id === product.vendorId);
-  const discount = product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
+  const [reviewsModalVisible, setReviewsModalVisible] = useState(false);
+  const [reviewsList, setReviewsList] = useState(INITIAL_REVIEWS);
+  const [writeReviewVisible, setWriteReviewVisible] = useState(false);
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState('');
+  const [newReviewName, setNewReviewName] = useState('');
 
+  const [visualSearchVisible, setVisualSearchVisible] = useState(false);
+
+  // Scroll & Sticky footer measurement states
+  const [scrollY, setScrollY] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+  const [infoSectionY, setInfoSectionY] = useState(400);
+  const [inlineCtaY, setInlineCtaY] = useState(1000);
+
+  // Determine if sticky CTA should be visible
+  // It is visible if the inline cta row has not reached the bottom viewport boundary yet.
+  const stickyHeight = Platform.OS === 'ios' ? 86 : 74;
+  const absoluteCtaY = infoSectionY + inlineCtaY;
+  const isStickyCtaVisible = scrollY + containerHeight < absoluteCtaY + stickyHeight;
+
+  // Toast Banner state
+  const [toastMessage, setToastMessage] = useState('');
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(2400),
+      Animated.timing(toastAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start();
+  };
+
+  // Color selection effect
+  const handleSelectColor = (swatch) => {
+    setSelectedColor(swatch);
+    setGalleryImages([
+      swatch.image,
+      require('../../../assets/images/details/card_1.jpg'),
+      require('../../../assets/images/details/card_2.jpg'),
+      require('../../../assets/images/details/card_3.jpg'),
+    ]);
+  };
+
+  // Size selection effect
+  const handleSelectSize = (sz) => {
+    if (sz.disabled) {
+      Alert.alert('Out of Stock', `Size ${sz.label} is currently out of stock. We've added you to the waitlist!`);
+      return;
+    }
+    setSelectedSize(sz.label);
+  };
+
+  // Add to Bag Action
   const handleAddToCart = async () => {
-    setAdding(true);
     try {
-      await addItem(product.id, 1);
-      Alert.alert('Success', `${product.name} has been added to your cart!`);
+      await addItem(product.id, 1, {
+        id: product.id,
+        name: product.title,
+        brand: product.brand,
+        price: product.price,
+        image: selectedColor.image || product.image,
+        size: selectedSize,
+        color: selectedColor.name,
+      });
+      showToast(`Added ${product.brand} (Size ${selectedSize}, ${selectedColor.name}) to Bag!`);
     } catch (e) {
-      Alert.alert('Success', `${product.name} added to cart (offline mode).`);
-    } finally {
-      setAdding(false);
+      showToast(`Added ${product.brand} to Bag!`);
     }
   };
 
+  // Buy Now Action
   const handleBuyNow = async () => {
-    setBuying(true);
     try {
-      await addItem(product.id, 1);
-      setBuying(false);
+      await addItem(product.id, 1, {
+        id: product.id,
+        name: product.title,
+        brand: product.brand,
+        price: product.price,
+        image: selectedColor.image || product.image,
+        size: selectedSize,
+        color: selectedColor.name,
+      });
       navigation.navigate('Cart');
     } catch (e) {
-      setBuying(false);
       navigation.navigate('Cart');
     }
   };
 
-  // Open Review actions
-  const handleOpenAddReview = () => {
-    setEditingReviewId(null);
-    setReviewRating(5);
-    setReviewComment('');
-    setReviewModalVisible(true);
+  // Share Action
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        title: `${product.brand} - ${product.title}`,
+        message: `Check out ${product.brand} (${product.title}) on KingsShoppers for ₹${product.price} (${product.discount})!`,
+      });
+    } catch (e) {}
   };
 
-  const handleOpenEditReview = (rev) => {
-    setEditingReviewId(rev.id);
-    setReviewRating(rev.rating);
-    setReviewComment(rev.comment);
-    setReviewModalVisible(true);
+  // Pincode Check
+  const handleCheckPincode = () => {
+    const code = pincodeInput.trim();
+    if (!code || code.length < 5) {
+      Alert.alert('Invalid Pincode', 'Please enter a valid 6-digit postal pincode.');
+      return;
+    }
+    setDeliveryEstimate(`Delivering to ${code} by Tomorrow, 5 PM (Free Express Delivery)`);
+    setPincodeSuccess(true);
+    setPincodeModalVisible(false);
+    showToast(`Delivery available for ${code}!`);
   };
 
-  const handleSubmitReview = async () => {
-    if (!reviewComment.trim()) {
-      Alert.alert('Error', 'Please enter your review text.');
+  // Submit Review
+  const handleSubmitReview = () => {
+    if (!newReviewComment.trim()) {
+      Alert.alert('Missing Review', 'Please enter your review text.');
       return;
     }
 
-    const payload = {
-      productId: id,
-      rating: reviewRating,
-      comment: reviewComment,
+    const reviewObj = {
+      id: 'rev_' + Date.now(),
+      author: newReviewName.trim() || 'You',
+      rating: newReviewRating,
+      date: 'Today',
+      size: `Size: ${selectedSize}`,
+      verified: true,
+      comment: newReviewComment.trim(),
     };
 
-    if (editingReviewId) {
-      // Edit mode
-      try {
-        await withTimeout(updateReview(editingReviewId, payload), 2000);
-        setReviews((prev) =>
-          prev.map((r) =>
-            r.id === editingReviewId
-              ? { ...r, rating: reviewRating, comment: reviewComment }
-              : r
-          )
-        );
-      } catch (e) {
-        console.warn('Update review API failed, updating locally.', e.message);
-        setReviews((prev) =>
-          prev.map((r) =>
-            r.id === editingReviewId
-              ? { ...r, rating: reviewRating, comment: reviewComment }
-              : r
-          )
-        );
-      }
-    } else {
-      // Add mode
-      const tempId = 'rev_' + Date.now();
-      const newReviewObj = {
-        id: tempId,
-        userName: 'You',
-        rating: reviewRating,
-        comment: reviewComment,
-        isCurrentUser: true,
-      };
-
-      try {
-        const res = await withTimeout(createReview(payload), 2000);
-        const saved = res.data || newReviewObj;
-        setReviews((prev) => [...prev, { ...saved, isCurrentUser: true, userName: 'You' }]);
-      } catch (e) {
-        console.warn('Create review API failed, saving locally.', e.message);
-        setReviews((prev) => [...prev, newReviewObj]);
-      }
-    }
-
-    setReviewModalVisible(false);
+    setReviewsList((prev) => [reviewObj, ...prev]);
+    setNewReviewComment('');
+    setNewReviewName('');
+    setWriteReviewVisible(false);
+    showToast('Thank you! Your verified review has been submitted.');
   };
 
-  const handleDeleteReview = (reviewId) => {
-    Alert.alert(
-      'Delete Review',
-      'Are you sure you want to delete this review?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await withTimeout(deleteReview(reviewId), 2000);
-              setReviews((prev) => prev.filter((r) => r.id !== reviewId));
-            } catch (e) {
-              console.warn('Delete review API failed, removing locally.', e.message);
-              setReviews((prev) => prev.filter((r) => r.id !== reviewId));
-            }
-          },
-        },
-      ]
-    );
-  };
+  const totalCartCount = cartItems?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 0;
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      {/* Header Bar */}
+    <SafeAreaView style={styles.safeArea}>
+      {/* ─── Top Header: Back | Centered Crown Logo | Wishlist | Bag ──────── */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={colors.navy} />
-          </Svg>
+        <TouchableOpacity
+          style={styles.hdrBtn}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <CaretLeft size={24} color="#1E293B" weight="bold" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Product Details</Text>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => setIsLiked(!isLiked)}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path
-              d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-              fill={isLiked ? colors.error : colors.disabled}
-            />
-          </Svg>
-        </TouchableOpacity>
-      </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Large Image/Emoji visual card */}
-        <View style={styles.imageCard}>
-          <Text style={styles.imageEmoji}>{product.emoji || '🎁'}</Text>
-          {discount > 0 && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>{discount}% OFF</Text>
-            </View>
-          )}
+        <View style={styles.centerLogoWrapper}>
+          <Image
+            source={require('../../../assets/images/crown_logo.png')}
+            style={styles.crownLogo}
+            resizeMode="contain"
+          />
         </View>
 
-        {/* Info Block */}
-        <View style={styles.info}>
-          <Text style={styles.brandName}>{vendor?.name || 'Curated Brand'}</Text>
-          <Text style={styles.name}>{product.name}</Text>
+        <View style={styles.hdrRightActions}>
+          <TouchableOpacity
+            style={styles.hdrBtn}
+            onPress={() => {
+              toggleWishlist(product.id);
+              showToast(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
+            }}
+            activeOpacity={0.7}
+          >
+            <Heart
+              size={22}
+              color={isLiked ? '#E53935' : '#1E293B'}
+              weight={isLiked ? 'fill' : 'regular'}
+            />
+          </TouchableOpacity>
 
-          {/* Rating Summary */}
-          <View style={styles.ratingRow}>
-            <View style={styles.stars}>
-              <Text style={styles.starText}>★</Text>
-              <Text style={styles.ratingText}>{product.rating} Rating</Text>
-            </View>
-            <View style={styles.bullet} />
-            <Text style={styles.reviewsText}>{reviews.length} Verified Reviews</Text>
-          </View>
-
-          {/* Price details */}
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-            {product.oldPrice && (
-              <>
-                <Text style={styles.oldPrice}>${product.oldPrice.toFixed(2)}</Text>
-                <Text style={styles.savingsText}>Save ${(product.oldPrice - product.price).toFixed(2)}</Text>
-              </>
+          <TouchableOpacity
+            style={styles.hdrBtn}
+            onPress={() => navigation.navigate('Cart')}
+            activeOpacity={0.7}
+          >
+            <ShoppingBagOpen size={22} color="#1E293B" weight="regular" />
+            {totalCartCount > 0 && (
+              <View style={styles.cartCountBadge}>
+                <Text style={styles.cartCountText}>{totalCartCount}</Text>
+              </View>
             )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={(e) => {
+          setScrollY(e.nativeEvent.contentOffset.y);
+        }}
+        onLayout={(e) => {
+          setContainerHeight(e.nativeEvent.layout.height);
+        }}
+        scrollEventThrottle={16}
+      >
+        {/* ─── Hero Image Carousel ────────────────────────────────────────── */}
+        <ScrollView
+          horizontal
+          decelerationRate="fast"
+          snapToInterval={HERO_WIDTH + 12}
+          snapToAlignment="start"
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carouselContainer}
+          onScroll={(e) => {
+            const idx = Math.round(e.nativeEvent.contentOffset.x / (HERO_WIDTH + 12));
+            setActiveImageIndex(idx);
+          }}
+          scrollEventThrottle={16}
+        >
+          {galleryImages.map((imgSrc, idx) => (
+            <TouchableOpacity
+              key={idx}
+              activeOpacity={0.95}
+              onPress={() => setVisualSearchVisible(true)}
+              style={styles.heroSlideWrapper}
+            >
+              <Image source={imgSrc} style={styles.heroImage} resizeMode="cover" />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* ─── Action Buttons Strip (Visual Search | Wishlist | Share) ────── */}
+        <View style={styles.actionStripContainer}>
+          <View style={styles.actionStrip}>
+            <TouchableOpacity
+              style={styles.stripBtn}
+              onPress={() => setVisualSearchVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Cards size={18} color="#475569" weight="regular" />
+            </TouchableOpacity>
+
+            <View style={styles.stripDivider} />
+
+            <TouchableOpacity
+              style={styles.stripBtn}
+              onPress={() => {
+                toggleWishlist(product.id);
+                showToast(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
+              }}
+              activeOpacity={0.7}
+            >
+              <Heart
+                size={18}
+                color={isLiked ? '#E53935' : '#475569'}
+                weight={isLiked ? 'fill' : 'regular'}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.stripDivider} />
+
+            <TouchableOpacity
+              style={styles.stripBtn}
+              onPress={handleShare}
+              activeOpacity={0.7}
+            >
+              <ShareNetwork size={18} color="#475569" weight="regular" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ─── Product Header Information ─────────────────────────────────── */}
+        <View 
+          style={styles.infoSection}
+          onLayout={(e) => {
+            const y = e.nativeEvent.layout.y;
+            if (y > 0) setInfoSectionY(y);
+          }}
+        >
+          <Text style={styles.brandTitle}>{product.brand}</Text>
+          <Text style={styles.productSubtitle}>{product.title}</Text>
+
+          {/* Rating Pill */}
+          <TouchableOpacity
+            style={styles.ratingPill}
+            onPress={() => setReviewsModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.ratingNumber}>{product.rating}</Text>
+            <Star size={11} color="#1E293B" weight="fill" style={{ marginHorizontal: 3 }} />
+            <Text style={styles.ratingPipe}>|</Text>
+            <Text style={styles.ratingsCountText}>{reviewsList.length * 29} Ratings</Text>
+          </TouchableOpacity>
+
+          {/* Pricing Row */}
+          <View style={styles.priceRow}>
+            <Text style={styles.priceMain}>₹{product.price}</Text>
+            <Text style={styles.mrpText}>MRP ₹{product.mrp}</Text>
+            <Text style={styles.discountLabel}>{product.discount}</Text>
+          </View>
+          <Text style={styles.taxNote}>inclusive of all taxes</Text>
+
+          {/* ─── Color Swatches ────────────────────────────────────────────── */}
+          <View style={styles.colorSection}>
+            <Text style={styles.colorLabel}>
+              COLOR: <Text style={styles.colorValue}>{selectedColor.name}</Text>
+            </Text>
+            <View style={styles.swatchRow}>
+              {COLOR_SWATCHES.map((swatch) => {
+                const isSelected = selectedColor.id === swatch.id;
+                return (
+                  <TouchableOpacity
+                    key={swatch.id}
+                    style={[styles.swatchRing, isSelected && styles.swatchRingActive]}
+                    onPress={() => handleSelectColor(swatch)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.swatchCircle, { backgroundColor: swatch.hex }]} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
-          <View style={styles.divider} />
-
-          {/* Description */}
-          <Text style={styles.sectionHeading}>Description</Text>
-          <Text style={styles.description}>{product.description}</Text>
-
-          <View style={styles.divider} />
-
-          {/* Vendor profile card */}
-          <View style={styles.vendorCard}>
-            <View style={styles.vendorCircle}>
-              <Text style={styles.vendorLogoEmoji}>{vendor?.emoji || '🏬'}</Text>
-            </View>
-            <View style={styles.vendorInfo}>
-              <Text style={styles.vendorHeading}>Sold by</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Profile', { screen: 'VendorStore', params: { id: vendor?.id } })}>
-                <Text style={styles.vendorTitle}>{vendor?.name || 'Local Merchant'}</Text>
-              </TouchableOpacity>
-              <Text style={styles.vendorSubtitle}>Official Partner • {vendor?.rating || 4.7}★ Rating</Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Reviews Section */}
-          <View style={styles.reviewsSection}>
-            <View style={styles.reviewsHeaderRow}>
-              <Text style={styles.sectionHeading}>Verified Reviews ({reviews.length})</Text>
-              <TouchableOpacity style={styles.addReviewBtn} onPress={handleOpenAddReview}>
-                <Text style={styles.addReviewBtnText}>+ Add Review</Text>
+          {/* ─── Size Selector ─────────────────────────────────────────────── */}
+          <View style={styles.sizeSection}>
+            <View style={styles.sizeHeaderRow}>
+              <Text style={styles.sectionHeaderTitle}>SELECT SIZE</Text>
+              <TouchableOpacity
+                onPress={() => setSizeChartVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.sizeChartLink}>SIZE CHART</Text>
               </TouchableOpacity>
             </View>
-            
-            {reviews.map((rev) => {
-              const isOwner = rev.isCurrentUser || rev.userName === 'You';
-              return (
-                <View key={rev.id} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
-                    <View>
-                      <Text style={styles.reviewerName}>{rev.userName}</Text>
-                      <View style={styles.reviewStars}>
-                        {Array.from({ length: rev.rating }).map((_, i) => (
-                          <Text key={i} style={styles.miniStar}>★</Text>
-                        ))}
-                      </View>
-                    </View>
-                    
-                    {/* Owner Action Buttons */}
-                    {isOwner && (
-                      <View style={styles.ownerActions}>
-                        <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleOpenEditReview(rev)}>
-                          <Text style={styles.actionIconText}>✏️</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionIconBtn} onPress={() => handleDeleteReview(rev.id)}>
-                          <Text style={styles.actionIconText}>🗑️</Text>
-                        </TouchableOpacity>
+
+            {/* Smart Size Recommendation Pill */}
+            <View style={styles.recommendationBox}>
+              <Sparkle size={16} color="#1E293B" weight="fill" />
+              <Text style={styles.recommendationText}>
+                Size <Text style={{ fontWeight: '800' }}>L</Text> recommended for you
+              </Text>
+            </View>
+
+            {/* Size Buttons Grid */}
+            <View style={styles.sizesGrid}>
+              {SIZES_DATA.map((sz) => {
+                const isSelected = selectedSize === sz.label;
+                return (
+                  <TouchableOpacity
+                    key={sz.label}
+                    style={[
+                      styles.sizeBtn,
+                      isSelected && styles.sizeBtnActive,
+                      sz.disabled && styles.sizeBtnDisabled,
+                    ]}
+                    onPress={() => handleSelectSize(sz)}
+                    activeOpacity={0.8}
+                  >
+                    {sz.stock && (
+                      <View style={styles.stockBadge}>
+                        <Text style={styles.stockBadgeText}>{sz.stock}</Text>
                       </View>
                     )}
-                  </View>
-                  <Text style={styles.reviewComment}>{rev.comment}</Text>
-                </View>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.sizeBtnText,
+                        isSelected && styles.sizeBtnTextActive,
+                        sz.disabled && styles.sizeBtnTextDisabled,
+                      ]}
+                    >
+                      {sz.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
-          {/* Similar Products */}
-          {relatedProducts.length > 0 && (
-            <View style={styles.relatedSection}>
-              <Text style={[styles.sectionHeading, { marginBottom: spacing.md }]}>Similar Products</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.relatedScroll}>
-                {relatedProducts.map((item) => {
-                  const itemVendor = vendors.find((v) => v.id === item.vendorId);
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={styles.relatedCard}
-                      onPress={() => navigation.push('ProductDetails', { id: item.id })}
-                    >
-                      <View style={styles.relatedEmojiWrapper}>
-                        <Text style={styles.relatedEmoji}>{item.emoji || '🎁'}</Text>
-                      </View>
-                      <Text style={styles.relatedBrand} numberOfLines={1}>{itemVendor?.name || 'Brand'}</Text>
-                      <Text style={styles.relatedName} numberOfLines={1}>{item.name}</Text>
-                      <Text style={styles.relatedPrice}>${item.price.toFixed(2)}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+          {/* ─── Delivery & Services Box ───────────────────────────────────── */}
+          <TouchableOpacity
+            style={styles.deliveryBox}
+            onPress={() => setPincodeModalVisible(true)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.deliveryRow}>
+              <Truck size={18} color="#1E293B" weight="bold" />
+              <Text style={styles.deliveryTitle}>DELIVERY & SERVICES</Text>
+              <Text style={styles.changePincodeText}>Change Pincode</Text>
             </View>
-          )}
-        </View>
-      </ScrollView>
 
-      {/* Bottom add to cart / buy now action bar */}
-      <View style={styles.bottomBar}>
-        <View style={styles.priceDetailsCol}>
-          <Text style={styles.totalPriceLabel}>Total Price</Text>
-          <Text style={styles.totalPriceValue}>${product.price.toFixed(2)}</Text>
-        </View>
-        <View style={styles.buttonsRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.cartBtn]}
-            onPress={handleAddToCart}
-            disabled={adding}
-          >
-            <Text style={styles.cartBtnText}>{adding ? 'Adding...' : 'Add to Cart'}</Text>
+            <Text style={styles.currentDeliveryEstimate}>
+              {deliveryEstimate}
+            </Text>
+
+            <View style={styles.deliveryFeatureRow}>
+              <Money size={16} color="#1E293B" weight="regular" />
+              <Text style={styles.deliveryFeatureText}>Pay on Delivery available</Text>
+            </View>
+
+            <View style={styles.deliveryFeatureRow}>
+              <ArrowsClockwise size={16} color="#1E293B" weight="regular" />
+              <Text style={styles.deliveryFeatureText}>Hassle free 14 days Return & Exchange</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.buyBtn]}
-            onPress={handleBuyNow}
-            disabled={buying}
+          {/* ─── CTA Action Buttons (Add to Bag & Buy Now) ────────────────── */}
+          <View 
+            style={[styles.ctaButtonsRow, { opacity: isStickyCtaVisible ? 0 : 1 }]}
+            onLayout={(e) => {
+              const y = e.nativeEvent.layout.y;
+              if (y > 0) setInlineCtaY(y);
+            }}
           >
-            <Text style={styles.buyBtnText}>{buying ? 'Loading...' : 'Buy Now'}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            <TouchableOpacity
+              style={styles.addBagBtn}
+              onPress={handleAddToCart}
+              activeOpacity={0.85}
+            >
+              <ShoppingBagOpen size={20} color="#1E293B" weight="bold" />
+              <Text style={styles.addBagText}>ADD TO BAG</Text>
+            </TouchableOpacity>
 
-      {/* Add / Edit Review Modal */}
-      <Modal
-        visible={reviewModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setReviewModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingReviewId ? 'Edit Review' : 'Write a Review'}</Text>
-              <TouchableOpacity onPress={() => setReviewModalVisible(false)} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>✕</Text>
+            <TouchableOpacity
+              style={styles.buyNowBtn}
+              onPress={handleBuyNow}
+              activeOpacity={0.85}
+            >
+              <Lightning size={20} color="#FFFFFF" weight="fill" />
+              <Text style={styles.buyNowText}>BUY NOW</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ─── Similar Tops Grid (Image 2) ──────────────────────────────── */}
+          <View style={styles.similarSection}>
+            <View style={styles.similarGrid}>
+              {getRelatedMockProducts(product.categoryId, product.id, 2).map((top) => (
+                <View key={top.id} style={styles.similarCard}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => navigation.push('ProductDetails', buildProductRouteParams(top))}
+                    style={styles.similarPhotoWrapper}
+                  >
+                    <Image source={top.image} style={styles.similarPhoto} resizeMode="cover" />
+                    <View style={styles.similarRatingBadge}>
+                      <Text style={styles.similarRatingText}>{top.rating} ★</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <Text style={styles.similarBrand}>{top.brand}</Text>
+                  <Text style={styles.similarName} numberOfLines={1}>{top.name}</Text>
+                  <View style={styles.similarPriceRow}>
+                    <Text style={styles.similarPrice}>₹{top.price}</Text>
+                    <Text style={styles.similarDiscount}>{top.discount}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.similarAddBagBtn}
+                    onPress={() => {
+                      addItem(top.id, 1, top);
+                      showToast(`Added ${top.brand} (${top.name}) to Bag!`);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.similarAddBagText}>ADD TO BAG</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* ─── Ratings & Reviews Section (Image 2) ──────────────────────── */}
+          <View style={styles.reviewsSection}>
+            <View style={styles.reviewsHeaderRow}>
+              <Text style={styles.sectionHeaderTitle}>RATINGS & REVIEWS</Text>
+              <TouchableOpacity
+                onPress={() => setReviewsModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.sizeChartLink}>VIEW ALL</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Star Rating Selector */}
-              <Text style={styles.modalLabel}>Rating</Text>
-              <View style={styles.starSelectorRow}>
-                {[1, 2, 3, 4, 5].map((star) => (
+            {/* Overall Rating Header */}
+            <View style={styles.overallRatingRow}>
+              <View style={styles.bigRatingBadge}>
+                <Text style={styles.bigRatingNumber}>{product.rating}</Text>
+                <Star size={14} color="#FFFFFF" weight="fill" style={{ marginLeft: 3 }} />
+              </View>
+              <Text style={styles.overallRatingSub}>
+                <Text style={{ fontWeight: '800' }}>{product.ratingsCount} Ratings</Text> | {reviewsList.length} Reviews
+              </Text>
+            </View>
+
+            {/* Customer Review Card (First review in list) */}
+            {reviewsList[0] && (
+              <View style={styles.reviewCard}>
+                <View style={styles.reviewCardHeader}>
+                  <View style={styles.reviewStarBadge}>
+                    <Text style={styles.reviewStarNum}>{reviewsList[0].rating}</Text>
+                    <Star size={10} color="#1E293B" weight="fill" style={{ marginLeft: 2 }} />
+                  </View>
+                  <Text style={styles.reviewDate}>{reviewsList[0].date}</Text>
+                  <View style={styles.reviewSizeBadge}>
+                    <Text style={styles.reviewSizeText}>{reviewsList[0].size}</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.reviewBodyText}>
+                  {reviewsList[0].comment}
+                </Text>
+
+                <View style={styles.verifiedBuyerRow}>
+                  <CheckCircle size={15} color="#4D6B28" weight="fill" />
+                  <Text style={styles.verifiedBuyerName}>{reviewsList[0].author}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Write a Review Button */}
+            <TouchableOpacity
+              style={styles.writeReviewTriggerBtn}
+              onPress={() => setWriteReviewVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Plus size={16} color="#1E293B" weight="bold" />
+              <Text style={styles.writeReviewTriggerText}>Write a Customer Review</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ─── Products You May Like Grid (Image 3) ─────────────────────── */}
+          <View style={styles.youMayLikeSection}>
+            <Text style={styles.sectionHeaderTitle}>PRODUCTS YOU MAY LIKE</Text>
+
+            <View style={styles.recGrid}>
+              {getRelatedMockProducts(product.categoryId, product.id, 4).map((item) => {
+                const likedItem = checkLiked(item.id);
+                return (
                   <TouchableOpacity
-                    key={star}
-                    style={styles.starSelectBtn}
-                    onPress={() => setReviewRating(star)}
-                    activeOpacity={0.7}
+                    key={item.id}
+                    style={styles.recCard}
+                    onPress={() => navigation.push('ProductDetails', buildProductRouteParams(item))}
+                    activeOpacity={0.9}
                   >
-                    <Text style={[styles.selectorStar, star <= reviewRating && styles.selectorStarActive]}>★</Text>
+                    <View style={styles.recPhotoWrapper}>
+                      <Image source={item.image} style={styles.recPhoto} resizeMode="cover" />
+                      <TouchableOpacity
+                        style={styles.recHeartBtn}
+                        onPress={() => {
+                          toggleWishlist(item.id);
+                          showToast(likedItem ? 'Removed from Wishlist' : 'Saved to Wishlist!');
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Heart
+                          size={16}
+                          color={likedItem ? '#E53935' : '#1E293B'}
+                          weight={likedItem ? 'fill' : 'regular'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.recBrand}>{item.brand}</Text>
+                    <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
+                    <View style={styles.recPriceRow}>
+                      <Text style={styles.recPrice}>₹{item.price}</Text>
+                      <Text style={styles.recDiscount}>{item.discount}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      {/* ─── Animated Floating Notification Toast ────────────────────────── */}
+      <Animated.View
+        style={[
+          styles.toastContainer,
+          {
+            opacity: toastAnim,
+            transform: [
+              {
+                translateY: toastAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [60, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents={toastMessage ? 'auto' : 'none'}
+      >
+        <View style={styles.toastContent}>
+          <CheckCircle size={20} color="#4D6B28" weight="fill" />
+          <Text style={styles.toastText} numberOfLines={2}>
+            {toastMessage}
+          </Text>
+          <TouchableOpacity
+            style={styles.toastActionBtn}
+            onPress={() => navigation.navigate('Cart')}
+          >
+            <Text style={styles.toastActionText}>View Bag</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+
+      {/* ─── Size Chart Modal ────────────────────────────────────────────── */}
+      <Modal
+        visible={sizeChartVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSizeChartVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ruler size={22} color="#1E293B" weight="bold" />
+                <Text style={styles.modalTitle}>Size Guide & Measurements</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSizeChartVisible(false)}>
+                <X size={22} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ paddingVertical: 12 }}>
+              <Text style={styles.sizeChartSubtitle}>
+                Garment measurements in inches. Tap any size to select.
+              </Text>
+
+              {/* Table Header */}
+              <View style={styles.tableHeaderRow}>
+                <Text style={[styles.tableHeadCell, { flex: 1.2 }]}>Size</Text>
+                <Text style={styles.tableHeadCell}>Bust</Text>
+                <Text style={styles.tableHeadCell}>Waist</Text>
+                <Text style={styles.tableHeadCell}>Hips</Text>
+                <Text style={styles.tableHeadCell}>Length</Text>
+              </View>
+
+              {/* Table Rows */}
+              {SIZES_DATA.map((sz) => {
+                const isSelected = selectedSize === sz.label;
+                return (
+                  <TouchableOpacity
+                    key={sz.label}
+                    style={[styles.tableRow, isSelected && styles.tableRowSelected]}
+                    onPress={() => {
+                      if (!sz.disabled) {
+                        setSelectedSize(sz.label);
+                        setSizeChartVisible(false);
+                        showToast(`Selected Size ${sz.label}`);
+                      }
+                    }}
+                  >
+                    <View style={[{ flex: 1.2, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                      <Text style={[styles.tableCell, isSelected && styles.tableCellActive, sz.disabled && { color: '#94A3B8' }]}>
+                        {sz.label}
+                      </Text>
+                      {isSelected && <Check size={14} color="#1E293B" weight="bold" />}
+                    </View>
+                    <Text style={styles.tableCell}>{sz.bust}</Text>
+                    <Text style={styles.tableCell}>{sz.waist}</Text>
+                    <Text style={styles.tableCell}>{sz.hips}</Text>
+                    <Text style={styles.tableCell}>{sz.length}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              <View style={styles.measuringTipBox}>
+                <Text style={styles.measuringTipTitle}>💡 Measuring Tip</Text>
+                <Text style={styles.measuringTipBody}>
+                  Measure across the fullest part of your bust and waist while keeping the tape comfortably loose. If between sizes, we recommend sizing up.
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── Pincode / Delivery Modal ────────────────────────────────────── */}
+      <Modal
+        visible={pincodeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPincodeModalVisible(false)}
+      >
+        <View style={styles.modalOverlayCenter}>
+          <View style={styles.centerModalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Check Delivery Location</Text>
+              <TouchableOpacity onPress={() => setPincodeModalVisible(false)}>
+                <X size={20} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.pincodePrompt}>
+              Enter your 6-digit postal pincode to check exact delivery timeline and availability:
+            </Text>
+
+            <View style={styles.pincodeInputRow}>
+              <TextInput
+                style={styles.pincodeTextInput}
+                placeholder="e.g. 110001"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+                maxLength={6}
+                value={pincodeInput}
+                onChangeText={setPincodeInput}
+              />
+              <TouchableOpacity
+                style={styles.pincodeCheckBtn}
+                onPress={handleCheckPincode}
+              >
+                <Text style={styles.pincodeCheckBtnText}>Check</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── Ratings & Reviews Full Modal ────────────────────────────────── */}
+      <Modal
+        visible={reviewsModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReviewsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Customer Reviews ({reviewsList.length})</Text>
+              <TouchableOpacity onPress={() => setReviewsModalVisible(false)}>
+                <X size={22} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ paddingVertical: 10 }}>
+              {/* Score breakdown */}
+              <View style={styles.ratingSummaryCard}>
+                <View style={styles.bigScoreBox}>
+                  <Text style={styles.bigScoreNum}>{product.rating}</Text>
+                  <View style={{ flexDirection: 'row', gap: 2, marginVertical: 4 }}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} size={14} color="#1E293B" weight="fill" />
+                    ))}
+                  </View>
+                  <Text style={styles.ratingCountSub}>{reviewsList.length * 29} verified ratings</Text>
+                </View>
+
+                <View style={styles.ratingBarsCol}>
+                  {[
+                    { star: '5★', pct: '74%' },
+                    { star: '4★', pct: '18%' },
+                    { star: '3★', pct: '5%' },
+                    { star: '2★', pct: '2%' },
+                    { star: '1★', pct: '1%' },
+                  ].map((bar) => (
+                    <View key={bar.star} style={styles.ratingBarRow}>
+                      <Text style={styles.barLabel}>{bar.star}</Text>
+                      <View style={styles.barTrack}>
+                        <View style={[styles.barFill, { width: bar.pct }]} />
+                      </View>
+                      <Text style={styles.barPct}>{bar.pct}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Reviews List */}
+              {reviewsList.map((rev) => (
+                <View key={rev.id} style={styles.fullReviewItem}>
+                  <View style={styles.reviewCardHeader}>
+                    <View style={styles.reviewStarBadge}>
+                      <Text style={styles.reviewStarNum}>{rev.rating}</Text>
+                      <Star size={10} color="#1E293B" weight="fill" style={{ marginLeft: 2 }} />
+                    </View>
+                    <Text style={styles.reviewDate}>{rev.date}</Text>
+                    <View style={styles.reviewSizeBadge}>
+                      <Text style={styles.reviewSizeText}>{rev.size}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.reviewBodyText}>{rev.comment}</Text>
+
+                  <View style={styles.verifiedBuyerRow}>
+                    <CheckCircle size={14} color="#4D6B28" weight="fill" />
+                    <Text style={styles.verifiedBuyerName}>{rev.author}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <TouchableOpacity
+                style={styles.writeReviewModalBtn}
+                onPress={() => {
+                  setReviewsModalVisible(false);
+                  setWriteReviewVisible(true);
+                }}
+              >
+                <Plus size={18} color="#FFFFFF" weight="bold" />
+                <Text style={styles.writeReviewModalBtnText}>Write a Review</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── Write a Review Modal ────────────────────────────────────────── */}
+      <Modal
+        visible={writeReviewVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setWriteReviewVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Write a Review</Text>
+              <TouchableOpacity onPress={() => setWriteReviewVisible(false)}>
+                <X size={22} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ paddingVertical: 14 }}>
+              <Text style={styles.formLabel}>Your Name</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="e.g. Priya"
+                placeholderTextColor="#94A3B8"
+                value={newReviewName}
+                onChangeText={setNewReviewName}
+              />
+
+              <Text style={[styles.formLabel, { marginTop: 14 }]}>Your Rating</Text>
+              <View style={styles.starPickerRow}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    onPress={() => setNewReviewRating(s)}
+                    style={styles.starPickBtn}
+                  >
+                    <Star
+                      size={28}
+                      color="#1E293B"
+                      weight={s <= newReviewRating ? 'fill' : 'regular'}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
 
-              {/* Comment Review box */}
-              <Text style={styles.modalLabel}>Your Review</Text>
+              <Text style={[styles.formLabel, { marginTop: 14 }]}>Your Review</Text>
               <TextInput
-                style={styles.modalTextarea}
-                placeholder="Share your thoughts about this product..."
-                placeholderTextColor={colors.textSecondary}
-                value={reviewComment}
-                onChangeText={setReviewComment}
-                multiline={true}
+                style={[styles.formInput, { height: 90, textAlignVertical: 'top' }]}
+                placeholder="How does it fit? How is the fabric and stitching?"
+                placeholderTextColor="#94A3B8"
+                multiline
                 numberOfLines={4}
+                value={newReviewComment}
+                onChangeText={setNewReviewComment}
               />
 
-              <View style={styles.modalBtnWrapper}>
-                <Button title={editingReviewId ? 'Update Review' : 'Submit Review'} onPress={handleSubmitReview} />
-              </View>
+              <TouchableOpacity
+                style={styles.submitReviewBtn}
+                onPress={handleSubmitReview}
+              >
+                <Text style={styles.submitReviewBtnText}>Submit Verified Review</Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
+
+      {/* ─── Visual Search / Similar Styles Modal ────────────────────────── */}
+      <Modal
+        visible={visualSearchVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVisualSearchVisible(false)}
+      >
+        <View style={styles.modalOverlayCenter}>
+          <View style={styles.centerModalCard}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Cards size={20} color="#1E293B" weight="bold" />
+                <Text style={styles.modalTitle}>Visual Search</Text>
+              </View>
+              <TouchableOpacity onPress={() => setVisualSearchVisible(false)}>
+                <X size={20} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.pincodePrompt}>
+              Matching tops and styles similar to this silhouette:
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              {SIMILAR_TOPS.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={{ flex: 1 }}
+                  onPress={() => {
+                    setVisualSearchVisible(false);
+                    navigation.push('ProductDetails', { id: item.id, product: item });
+                  }}
+                >
+                  <Image source={item.image} style={{ width: '100%', height: 130, borderRadius: 12 }} resizeMode="cover" />
+                  <Text style={[styles.similarBrand, { fontSize: 11 }]}>{item.brand}</Text>
+                  <Text style={styles.similarPrice}>₹{item.price}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── Sticky Bottom CTA Buttons Row ────────────────────────────── */}
+      {isStickyCtaVisible && (
+        <View style={styles.stickyCtaContainer}>
+          <TouchableOpacity
+            style={styles.addBagBtn}
+            onPress={handleAddToCart}
+            activeOpacity={0.85}
+          >
+            <ShoppingBagOpen size={20} color="#1E293B" weight="bold" />
+            <Text style={styles.addBagText}>ADD TO BAG</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.buyNowBtn}
+            onPress={handleBuyNow}
+            activeOpacity={0.85}
+          >
+            <Lightning size={20} color="#FFFFFF" weight="fill" />
+            <Text style={styles.buyNowText}>BUY NOW</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
-  safeContainer: {
+const styles = StyleSheet.create({
+  safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF', // Pure white background
   },
+
+  // Header Bar
   header: {
-    height: 56,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 10 : 4,
+    paddingBottom: 8,
   },
-  headerBtn: {
-    width: 40,
-    height: 40,
+  hdrBtn: {
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerTitle: {
-    ...typography.h3,
-    color: colors.navy,
-    fontWeight: '800',
-    flex: 1,
-    textAlign: 'center',
-  },
-  container: {
-    flex: 1,
-  },
-  imageCard: {
-    height: 280,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderColor: colors.border,
     position: 'relative',
   },
-  imageEmoji: {
-    fontSize: 90,
+  centerLogoWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  discountBadge: {
+  crownLogo: {
+    width: 34,
+    height: 34,
+  },
+  hdrRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  cartCountBadge: {
     position: 'absolute',
-    bottom: spacing.md,
-    left: spacing.md,
-    backgroundColor: colors.gold,
-    paddingHorizontal: spacing.md,
+    top: 2,
+    right: 2,
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  cartCountText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+
+  scrollContent: {
+    paddingBottom: 20,
+  },
+
+  // Carousel
+  carouselContainer: {
+    paddingHorizontal: 20,
+    gap: 12,
+    paddingVertical: 8,
+  },
+  heroSlideWrapper: {
+    width: HERO_WIDTH,
+    height: 380,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#EDE9DE',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // Action Strip (Visual Search | Wishlist | Share)
+  actionStripContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  actionStrip: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  stripBtn: {
+    paddingHorizontal: 22,
     paddingVertical: 6,
-    borderRadius: radius.sm,
-  },
-  discountText: {
-    ...typography.caption,
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  info: {
-    padding: spacing.lg,
-    paddingBottom: 60,
-  },
-  brandName: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  name: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    marginTop: 4,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  stars: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  starText: {
-    color: colors.gold,
-    fontSize: 16,
-    marginRight: 4,
+  stripDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: '#CBD5E1',
   },
-  ratingText: {
-    ...typography.caption,
-    color: colors.textPrimary,
-    fontWeight: '700',
+
+  // Info Section
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
-  bullet: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.textSecondary,
-    marginHorizontal: spacing.md,
+  brandTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: -0.3,
   },
-  reviewsText: {
-    ...typography.caption,
-    color: colors.textSecondary,
+  productSubtitle: {
+    fontSize: 13.5,
+    color: '#64748B',
     fontWeight: '500',
+    marginTop: 2,
   },
+
+  // Rating Pill
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    marginTop: 10,
+  },
+  ratingNumber: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  ratingPipe: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginHorizontal: 4,
+  },
+  ratingsCountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+
+  // Pricing
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: spacing.md,
-    gap: spacing.sm,
+    marginTop: 14,
+    gap: 8,
   },
-  price: {
-    ...typography.h1,
-    color: colors.navy,
+  priceMain: {
+    fontSize: 22,
     fontWeight: '800',
+    color: '#1E293B',
   },
-  oldPrice: {
-    ...typography.body,
-    color: colors.textSecondary,
+  mrpText: {
+    fontSize: 13.5,
+    color: '#94A3B8',
     textDecorationLine: 'line-through',
   },
-  savingsText: {
-    ...typography.caption,
-    color: colors.success,
-    fontWeight: '700',
-    marginLeft: spacing.xs,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: spacing.lg,
-  },
-  sectionHeading: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
+  discountLabel: {
     fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    color: '#1E293B',
   },
-  description: {
-    ...typography.body,
-    color: colors.textSecondary,
-    lineHeight: 22,
-  },
-  vendorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  vendorCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  vendorLogoEmoji: {
-    fontSize: 24,
-  },
-  vendorInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  vendorHeading: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  vendorTitle: {
-    ...typography.bodyBold,
-    color: colors.navy,
-    fontSize: 14,
-    marginTop: 1,
-    textDecorationLine: 'underline',
-  },
-  vendorSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
+  taxNote: {
     fontSize: 11,
+    color: '#94A3B8',
     marginTop: 2,
   },
+
+  // Colors
+  colorSection: {
+    marginTop: 18,
+  },
+  colorLabel: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.5,
+  },
+  colorValue: {
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  swatchRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 10,
+  },
+  swatchRing: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  swatchRingActive: {
+    borderColor: '#1E293B',
+  },
+  swatchCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+
+  // Size Selector
+  sizeSection: {
+    marginTop: 20,
+  },
+  sizeHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionHeaderTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.8,
+  },
+  sizeChartLink: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.5,
+  },
+  recommendationBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FBF6E2', // Warm light cream
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 10,
+    gap: 8,
+  },
+  recommendationText: {
+    fontSize: 12.5,
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  sizesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 14,
+  },
+  sizeBtn: {
+    width: (width - 70) / 4,
+    height: 46,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  sizeBtnActive: {
+    backgroundColor: '#FBF6E2',
+    borderColor: '#1E293B',
+    borderWidth: 2,
+  },
+  sizeBtnDisabled: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+  },
+  sizeBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  sizeBtnTextActive: {
+    color: '#1E293B',
+    fontWeight: '800',
+  },
+  sizeBtnTextDisabled: {
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  stockBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -4,
+    backgroundColor: '#991B1B',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 8,
+  },
+  stockBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Delivery & Services Box
+  deliveryBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 22,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  deliveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 4,
+  },
+  deliveryTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.6,
+  },
+  changePincodeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginLeft: 'auto',
+    textDecorationLine: 'underline',
+  },
+  currentDeliveryEstimate: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0F766E',
+    marginTop: -4,
+  },
+  deliveryFeatureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  deliveryFeatureText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '600',
+  },
+
+  stickyCtaContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 10,
+    zIndex: 999,
+  },
+
+  // CTA Action Buttons
+  ctaButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  addBagBtn: {
+    flex: 1,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1E293B',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addBagText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.6,
+  },
+  buyNowBtn: {
+    flex: 1,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#1E293B',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  buyNowText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.6,
+  },
+
+  // Similar Tops Section (Image 2)
+  similarSection: {
+    marginTop: 28,
+  },
+  similarGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  similarCard: {
+    flex: 1,
+  },
+  similarPhotoWrapper: {
+    width: '100%',
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#EDE9DE',
+    position: 'relative',
+  },
+  similarPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  similarRatingBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  similarRatingText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  similarBrand: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 8,
+  },
+  similarName: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  similarPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    marginTop: 3,
+  },
+  similarPrice: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  similarDiscount: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  similarAddBagBtn: {
+    marginTop: 8,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#1E293B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  similarAddBagText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.4,
+  },
+
+  // Ratings & Reviews Section (Image 2)
   reviewsSection: {
-    marginTop: spacing.xs,
+    marginTop: 30,
   },
   reviewsHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
   },
-  addReviewBtn: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+  overallRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 14,
+    marginBottom: 16,
   },
-  addReviewBtnText: {
-    ...typography.caption,
-    color: colors.gold,
-    fontWeight: '700',
+  bigRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  bigRatingNumber: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  overallRatingSub: {
     fontSize: 12,
+    color: '#475569',
   },
   reviewCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  reviewerName: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-    fontSize: 13,
-  },
-  reviewStars: {
-    flexDirection: 'row',
-    marginTop: 2,
-  },
-  miniStar: {
-    color: colors.gold,
-    fontSize: 11,
-  },
-  ownerActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  actionIconBtn: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionIconText: {
-    fontSize: 12,
-  },
-  reviewComment: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    lineHeight: 16,
-  },
-  relatedSection: {
-    marginTop: spacing.md,
-  },
-  relatedScroll: {
-    gap: spacing.md,
-  },
-  relatedCard: {
-    width: 120,
-    backgroundColor: colors.background,
+    backgroundColor: '#FBF6E2', // App exact review card background
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.sm,
+    borderColor: 'rgba(107, 91, 30, 0.12)',
   },
-  relatedEmojiWrapper: {
-    height: 80,
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
+  reviewCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  reviewStarBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  reviewStarNum: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  reviewDate: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  reviewSizeBadge: {
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 'auto',
+  },
+  reviewSizeText: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  reviewBodyText: {
+    fontSize: 12.5,
+    color: '#334155',
+    lineHeight: 19,
+  },
+  verifiedBuyerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  verifiedBuyerName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  writeReviewTriggerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 16,
+    paddingVertical: 12,
+    marginTop: 14,
+    backgroundColor: '#F8FAFC',
+  },
+  writeReviewTriggerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+
+  // Products You May Like Grid (Image 3)
+  youMayLikeSection: {
+    marginTop: 32,
+  },
+  recGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 14,
+    marginTop: 14,
+  },
+  recCard: {
+    width: (width - 54) / 2,
+  },
+  recPhotoWrapper: {
+    width: '100%',
+    height: 190,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#EDE9DE',
+    position: 'relative',
+  },
+  recPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  recHeartBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
   },
-  relatedEmoji: {
-    fontSize: 32,
+  recBrand: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 8,
   },
-  relatedBrand: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 8,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  relatedName: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
+  recName: {
     fontSize: 11,
+    color: '#64748B',
     marginTop: 1,
   },
-  relatedPrice: {
-    ...typography.bodyBold,
-    color: colors.navyLight,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  bottomBar: {
-    height: 76,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#FFFFFF',
+  recPriceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    alignItems: 'baseline',
+    gap: 6,
+    marginTop: 3,
   },
-  priceDetailsCol: {
-    justifyContent: 'center',
-  },
-  totalPriceLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  totalPriceValue: {
-    ...typography.h2,
-    color: colors.navy,
+  recPrice: {
+    fontSize: 13,
     fontWeight: '800',
-    marginTop: 2,
+    color: '#1E293B',
   },
-  buttonsRow: {
+  recDiscount: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+
+  // Floating Toast Notification
+  toastContainer: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    zIndex: 999,
+  },
+  toastContent: {
     flexDirection: 'row',
-    width: '68%',
-    gap: spacing.sm,
-  },
-  actionBtn: {
-    flex: 1,
-    height: 46,
-    borderRadius: radius.md,
-    justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  cartBtn: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.navy,
-  },
-  cartBtnText: {
-    ...typography.button,
-    color: colors.navy,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  buyBtn: {
-    backgroundColor: colors.navy,
-  },
-  buyBtnText: {
-    ...typography.button,
+  toastText: {
+    flex: 1,
     color: '#FFFFFF',
-    fontWeight: '700',
     fontSize: 12,
+    fontWeight: '600',
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
-    gap: spacing.md,
+  toastActionBtn: {
+    backgroundColor: '#FBF6E2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  errorText: {
-    ...typography.body,
-    color: colors.textSecondary,
+  toastActionText: {
+    color: '#1E293B',
+    fontSize: 11,
+    fontWeight: '800',
   },
+
+  // Modals Styling
   modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContent: {
+  modalSheet: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
-    maxHeight: '60%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 30,
+    maxHeight: '80%',
+  },
+  modalOverlayCenter: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  centerModalCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#F1F5F9',
   },
   modalTitle: {
-    ...typography.h3,
-    color: colors.navy,
+    fontSize: 16,
     fontWeight: '800',
+    color: '#1E293B',
   },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
+  sizeChartSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  tableHeadCell: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1E293B',
+    textAlign: 'center',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderColor: '#F8FAFC',
     alignItems: 'center',
   },
-  closeBtnText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-    fontWeight: '700',
+  tableRowSelected: {
+    backgroundColor: '#FBF6E2',
+    borderRadius: 8,
   },
-  modalLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '700',
-    fontSize: 9,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    letterSpacing: 0.5,
+  tableCell: {
+    flex: 1,
+    fontSize: 11.5,
+    color: '#475569',
+    textAlign: 'center',
   },
-  starSelectorRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.md,
-    gap: spacing.xs,
+  tableCellActive: {
+    fontWeight: '800',
+    color: '#1E293B',
   },
-  starSelectBtn: {
-    padding: spacing.xs,
-  },
-  selectorStar: {
-    fontSize: 32,
-    color: colors.disabled,
-  },
-  selectorStarActive: {
-    color: colors.gold,
-  },
-  modalTextarea: {
+  measuringTipBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 16,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    height: 100,
-    ...typography.body,
-    color: colors.textPrimary,
-    fontSize: 13,
-    textAlignVertical: 'top',
-    marginBottom: spacing.lg,
+    borderColor: '#E2E8F0',
   },
-  modalBtnWrapper: {
-    marginBottom: spacing.lg,
+  measuringTipTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  measuringTipBody: {
+    fontSize: 11.5,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+
+  // Pincode Modal
+  pincodePrompt: {
+    fontSize: 12.5,
+    color: '#475569',
+    marginTop: 10,
+    lineHeight: 18,
+  },
+  pincodeInputRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  pincodeTextInput: {
+    flex: 1,
+    height: 46,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#1E293B',
+  },
+  pincodeCheckBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  pincodeCheckBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  // Full Reviews Modal
+  ratingSummaryCard: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  bigScoreBox: {
+    alignItems: 'center',
+    paddingRight: 16,
+    borderRightWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  bigScoreNum: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  ratingCountSub: {
+    fontSize: 9.5,
+    color: '#64748B',
+  },
+  ratingBarsCol: {
+    flex: 1,
+    paddingLeft: 14,
+    gap: 4,
+  },
+  ratingBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  barLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+    width: 20,
+  },
+  barTrack: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: '#1E293B',
+    borderRadius: 3,
+  },
+  barPct: {
+    fontSize: 9.5,
+    color: '#64748B',
+    width: 24,
+    textAlign: 'right',
+  },
+  fullReviewItem: {
+    backgroundColor: '#FBF6E2',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+  },
+  writeReviewModalBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  writeReviewModalBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  // Form
+  formLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 6,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: '#1E293B',
+  },
+  starPickerRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  starPickBtn: {
+    padding: 4,
+  },
+  submitReviewBtn: {
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  submitReviewBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '800',
   },
 });

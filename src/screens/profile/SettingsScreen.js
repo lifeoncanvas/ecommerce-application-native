@@ -9,10 +9,16 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { typography, spacing, radius } from '../../theme';
 import { getSettings, updateSettings } from '../../api/profile.api';
 import { useTheme } from '../../context/ThemeContext';
+import {
+  CaretLeft,
+  Bell,
+  Moon,
+  ShieldCheck,
+  EnvelopeSimpleOpen,
+} from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -40,7 +46,6 @@ export default function SettingsScreen({ navigation }) {
       const data = res.data || {};
       if (data.pushEnabled !== undefined) setPushEnabled(data.pushEnabled);
       if (data.darkMode !== undefined && data.darkMode !== isDarkMode) {
-        // Sync context theme with remote profile preference
         toggleDarkMode();
       }
       if (data.twoFactor !== undefined) setTwoFactor(data.twoFactor);
@@ -83,9 +88,7 @@ export default function SettingsScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={colors.navy} />
-          </Svg>
+          <CaretLeft size={24} color={colors.navy} weight="bold" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={styles.headerBtn} />
@@ -96,11 +99,14 @@ export default function SettingsScreen({ navigation }) {
           <ActivityIndicator size="large" color={colors.navy} />
         </View>
       ) : (
-        <ScrollView style={styles.scroll}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {/* Account preferences */}
           <Text style={styles.sectionTitle}>App Preferences</Text>
           <View style={styles.sectionCard}>
             <View style={styles.settingRow}>
+              <View style={[styles.settingIconWrapper, { backgroundColor: '#EFF6FF' }]}>
+                <Bell size={20} color="#3B82F6" weight="regular" />
+              </View>
               <View style={styles.textCol}>
                 <Text style={styles.settingTitle}>Push Notifications</Text>
                 <Text style={styles.settingDesc}>Receive real-time alerts about orders & sales</Text>
@@ -108,14 +114,18 @@ export default function SettingsScreen({ navigation }) {
               <Switch
                 value={pushEnabled}
                 onValueChange={(val) => handleToggle('push', val, setPushEnabled)}
-                trackColor={{ false: colors.border, true: colors.navy }}
-                thumbColor={pushEnabled ? colors.gold : '#FFFFFF'}
+                trackColor={{ false: '#CBD5E1', true: '#4A9E86' }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#CBD5E1"
               />
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.settingRow}>
+              <View style={[styles.settingIconWrapper, { backgroundColor: '#F8FAFC' }]}>
+                <Moon size={20} color="#475569" weight="regular" />
+              </View>
               <View style={styles.textCol}>
                 <Text style={styles.settingTitle}>Dark Mode</Text>
                 <Text style={styles.settingDesc}>Toggle screen colors to sleek dark theme</Text>
@@ -123,8 +133,9 @@ export default function SettingsScreen({ navigation }) {
               <Switch
                 value={isDarkMode}
                 onValueChange={(val) => handleToggle('dark', val, null)}
-                trackColor={{ false: colors.border, true: colors.navy }}
-                thumbColor={isDarkMode ? colors.gold : '#FFFFFF'}
+                trackColor={{ false: '#CBD5E1', true: '#4A9E86' }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#CBD5E1"
               />
             </View>
           </View>
@@ -133,6 +144,9 @@ export default function SettingsScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Security & Communications</Text>
           <View style={styles.sectionCard}>
             <View style={styles.settingRow}>
+              <View style={[styles.settingIconWrapper, { backgroundColor: '#ECFDF5' }]}>
+                <ShieldCheck size={20} color="#10B981" weight="regular" />
+              </View>
               <View style={styles.textCol}>
                 <Text style={styles.settingTitle}>Two-Factor Authentication</Text>
                 <Text style={styles.settingDesc}>Secure sign-ins with SMS code verification</Text>
@@ -140,14 +154,18 @@ export default function SettingsScreen({ navigation }) {
               <Switch
                 value={twoFactor}
                 onValueChange={(val) => handleToggle('2fa', val, setTwoFactor)}
-                trackColor={{ false: colors.border, true: colors.navy }}
-                thumbColor={twoFactor ? colors.gold : '#FFFFFF'}
+                trackColor={{ false: '#CBD5E1', true: '#4A9E86' }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#CBD5E1"
               />
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.settingRow}>
+              <View style={[styles.settingIconWrapper, { backgroundColor: '#FFF7ED' }]}>
+                <EnvelopeSimpleOpen size={20} color="#F97316" weight="regular" />
+              </View>
               <View style={styles.textCol}>
                 <Text style={styles.settingTitle}>Email Promotions</Text>
                 <Text style={styles.settingDesc}>Receive promotional codes & recommendations</Text>
@@ -155,8 +173,9 @@ export default function SettingsScreen({ navigation }) {
               <Switch
                 value={promoEmails}
                 onValueChange={(val) => handleToggle('promo', val, setPromoEmails)}
-                trackColor={{ false: colors.border, true: colors.navy }}
-                thumbColor={promoEmails ? colors.gold : '#FFFFFF'}
+                trackColor={{ false: '#CBD5E1', true: '#4A9E86' }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#CBD5E1"
               />
             </View>
           </View>
@@ -169,7 +188,7 @@ export default function SettingsScreen({ navigation }) {
 const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F8FAFC',
   },
   header: {
     height: 52,
@@ -191,6 +210,7 @@ const getStyles = (colors) => StyleSheet.create({
     ...typography.h3,
     color: colors.textPrimary,
     fontWeight: '800',
+    fontSize: 17,
   },
   loadingWrapper: {
     flex: 1,
@@ -200,31 +220,45 @@ const getStyles = (colors) => StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  scrollContent: {
     padding: spacing.lg,
-    backgroundColor: colors.background,
   },
   sectionTitle: {
     ...typography.caption,
     color: colors.textSecondary,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: spacing.sm,
     marginTop: spacing.md,
   },
   sectionCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
+  },
+  settingIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
   },
   textCol: {
     flex: 1,
@@ -233,7 +267,7 @@ const getStyles = (colors) => StyleSheet.create({
   settingTitle: {
     ...typography.bodyBold,
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: 13.5,
   },
   settingDesc: {
     ...typography.caption,
@@ -243,6 +277,6 @@ const getStyles = (colors) => StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: '#F1F5F9',
   },
 });

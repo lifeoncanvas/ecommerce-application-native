@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { CaretLeft, Plus, X, ChatCenteredText, FileText } from 'phosphor-react-native';
 import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useTheme } from '../../context/ThemeContext';
@@ -119,13 +119,11 @@ export default function SupportScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={colors.navy} />
-          </Svg>
+          <CaretLeft size={24} color={colors.navy} weight="bold" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Help & Support</Text>
         <TouchableOpacity style={styles.headerBtn} onPress={() => setModalVisible(true)}>
-          <Text style={styles.addBtnText}>➕</Text>
+          <Plus size={22} color={colors.navy} weight="bold" />
         </TouchableOpacity>
       </View>
 
@@ -138,23 +136,28 @@ export default function SupportScreen({ navigation }) {
           data={tickets}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.reqId}>Ticket: #{item.id}</Text>
-                <Text style={[styles.statusTag, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-              </View>
+          renderItem={({ item }) => {
+            const statusColor = getStatusColor(item.status);
+            return (
+              <View style={[styles.card, { borderLeftColor: statusColor, borderLeftWidth: 4 }]}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.reqId}>Ticket: #{item.id}</Text>
+                  <View style={[styles.statusPill, { backgroundColor: statusColor + '15' }]}>
+                    <Text style={[styles.statusText, { color: statusColor }]}>{item.status}</Text>
+                  </View>
+                </View>
 
-              <Text style={styles.ticketSubject}>{item.subject}</Text>
-              <Text style={styles.metaText}>Category: {item.category} • Date: {item.date}</Text>
-              
-              <Text style={styles.sectionLabel}>Query Message</Text>
-              <Text style={styles.detailText}>{item.description}</Text>
-            </View>
-          )}
+                <Text style={styles.ticketSubject}>{item.subject}</Text>
+                <Text style={styles.metaText}>Category: {item.category} • Date: {item.date}</Text>
+                
+                <Text style={styles.sectionLabel}>Query Message</Text>
+                <Text style={styles.detailText}>{item.description}</Text>
+              </View>
+            );
+          }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>☎️</Text>
+              <ChatCenteredText size={48} color={colors.grey400} weight="regular" />
               <Text style={styles.emptyText}>No Active Support Tickets</Text>
             </View>
           }
@@ -173,19 +176,22 @@ export default function SupportScreen({ navigation }) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Open Support Case</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalCloseText}>✕</Text>
+                <X size={20} color={colors.textSecondary} weight="bold" />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalForm} contentContainerStyle={styles.modalFormContent}>
               <Text style={styles.fieldLabel}>Subject / Title</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={subject}
-                onChangeText={setSubject}
-                placeholder="Briefly state your concern"
-                placeholderTextColor={colors.textSecondary}
-              />
+              <View style={styles.modalInputWrapper}>
+                <FileText size={18} color="#94A3B8" weight="regular" style={{ marginRight: 10 }} />
+                <TextInput
+                  style={styles.modalInput}
+                  value={subject}
+                  onChangeText={setSubject}
+                  placeholder="Briefly state your concern"
+                  placeholderTextColor={colors.textSecondary}
+                />
+              </View>
 
               <Text style={styles.fieldLabel}>Category</Text>
               <View style={styles.categoriesRow}>
@@ -201,15 +207,17 @@ export default function SupportScreen({ navigation }) {
               </View>
 
               <Text style={styles.fieldLabel}>Detailed Description</Text>
-              <TextInput
-                style={[styles.modalInput, styles.modalTextarea]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Provide order numbers, payment references, or screenshots description..."
-                placeholderTextColor={colors.textSecondary}
-                multiline={true}
-                numberOfLines={5}
-              />
+              <View style={styles.modalTextareaWrapper}>
+                <TextInput
+                  style={[styles.modalInput, styles.modalTextarea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Provide order numbers, payment references, or details..."
+                  placeholderTextColor={colors.textSecondary}
+                  multiline={true}
+                  numberOfLines={5}
+                />
+              </View>
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -371,15 +379,50 @@ const getStyles = (colors) => StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: -4,
   },
-  modalInput: {
-    height: 46,
+  modalInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  modalInput: {
+    flex: 1,
+    height: 46,
     ...typography.body,
     color: colors.textPrimary,
+  },
+  modalTextareaWrapper: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusText: {
+    ...typography.caption,
+    fontWeight: '800',
+    fontSize: 10,
+    textTransform: 'uppercase',
   },
   categoriesRow: {
     flexDirection: 'row',

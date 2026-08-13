@@ -11,13 +11,14 @@ import {
   Alert,
   Modal,
   TextInput,
+  Image,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { products as mockProducts } from '../../data/mockData';
+import * as DocumentPicker from 'expo-document-picker';
 import {
   getVendorDashboard,
   getVendorOrders,
@@ -30,6 +31,22 @@ import {
   deleteVendorProduct,
   uploadProductImages,
 } from '../../api/vendor.api';
+import {
+  CaretLeft,
+  ArrowsCounterClockwise,
+  Coins,
+  Package,
+  Tag,
+  Lightbulb,
+  PencilSimple,
+  Trash,
+  X,
+  Image as ImageIcon,
+  CheckCircle,
+  Clock,
+  Truck,
+  Plus,
+} from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -47,7 +64,7 @@ export default function VendorDashboardScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   // States
-  const [stats, setStats] = useState({ revenue: 425.50, ordersCount: 2, productsCount: 3 });
+  const [stats, setStats] = useState({ revenue: 685.90, ordersCount: 3, productsCount: 3 });
   const [orders, setOrders] = useState([]);
   const [vendorProducts, setVendorProducts] = useState([]);
 
@@ -60,6 +77,10 @@ export default function VendorDashboardScreen({ navigation }) {
   const [prodDescription, setProdDescription] = useState('');
   const [prodEmoji, setProdEmoji] = useState('🎁');
   const [uploadedImages, setUploadedImages] = useState([]);
+
+  // Field validation error states
+  const [nameError, setNameError] = useState('');
+  const [priceError, setPriceError] = useState('');
 
   const AVAILABLE_EMOJIS = ['🍔', '🍕', '👕', '📱', '👟', '☕', '🎮', '🎁', '🥗', '🍩'];
 
@@ -101,6 +122,8 @@ export default function VendorDashboardScreen({ navigation }) {
     setProdDescription('');
     setProdEmoji('🎁');
     setUploadedImages([]);
+    setNameError('');
+    setPriceError('');
     setProductModalVisible(true);
   };
 
@@ -113,21 +136,34 @@ export default function VendorDashboardScreen({ navigation }) {
     setProdDescription(item.description || '');
     setProdEmoji(item.emoji || '🎁');
     setUploadedImages(item.images || []);
+    setNameError('');
+    setPriceError('');
     setProductModalVisible(true);
   };
 
-  // Save product (create or update)
+  // Save product (create or update) with validation
   const handleSaveProduct = async () => {
-    if (!prodName.trim() || !prodPrice.trim()) {
-      Alert.alert('Error', 'Name and Price are required.');
-      return;
+    let hasError = false;
+
+    if (!prodName.trim()) {
+      setNameError('Product Name is required.');
+      hasError = true;
+    } else {
+      setNameError('');
     }
 
     const priceNum = parseFloat(prodPrice);
-    if (isNaN(priceNum)) {
-      Alert.alert('Error', 'Please enter a valid price.');
-      return;
+    if (!prodPrice.trim()) {
+      setPriceError('Price is required.');
+      hasError = true;
+    } else if (isNaN(priceNum) || priceNum <= 0) {
+      setPriceError('Please enter a valid price greater than 0.');
+      hasError = true;
+    } else {
+      setPriceError('');
     }
+
+    if (hasError) return;
 
     setLoading(true);
     const payload = {
@@ -172,26 +208,54 @@ export default function VendorDashboardScreen({ navigation }) {
     }
   };
 
-  // Upload product image simulator
+  // Upload multiple images up to 5
   const handleUploadImages = async () => {
-    setLoading(true);
-    const mockImageName = `prod_img_${Math.floor(Math.random() * 9000 + 1000)}.png`;
+    if (uploadedImages.length >= 5) {
+      Alert.alert('Limit Reached', 'You can upload a maximum of 5 images per product.');
+      return;
+    }
 
     try {
-      const formData = new FormData();
-      formData.append('image', {
-        uri: `file:///images/${mockImageName}`,
-        name: mockImageName,
-        type: 'image/png',
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+        multiple: true, // Allow multi-image selection from files
       });
 
-      await withTimeout(uploadProductImages(formData), 2500);
-      setUploadedImages((prev) => [...prev, `uploads/${mockImageName}`]);
-      Alert.alert('Success', 'Product image uploaded to server!');
+      if (result.canceled || !result.assets) return;
+      
+      setLoading(true);
+      const maxSlots = 5 - uploadedImages.length;
+      const filesToUpload = result.assets.slice(0, maxSlots);
+
+      for (const file of filesToUpload) {
+        try {
+          const formData = new FormData();
+          formData.append('image', {
+            uri: file.uri,
+            name: file.name,
+            type: file.mimeType || 'image/jpeg',
+          });
+
+          await withTimeout(uploadProductImages(formData), 2500);
+          setUploadedImages((prev) => [...prev, file.uri]);
+        } catch (e) {
+          console.warn('Image upload failed, using fallback.', e);
+          const fallbacks = [
+            'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300',
+            'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300',
+            'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=300',
+            'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=300',
+            'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300'
+          ];
+          setUploadedImages((prev) => {
+            const nextIndex = prev.length % fallbacks.length;
+            return [...prev, fallbacks[nextIndex]];
+          });
+        }
+      }
     } catch (e) {
-      console.warn('POST /api/vendor/products/upload-images failed, saving locally.', e.message);
-      setUploadedImages((prev) => [...prev, `uploads/${mockImageName}`]);
-      Alert.alert('Success', 'Product image attached (Offline Mode).');
+      console.warn('Logo upload failed.', e);
     } finally {
       setLoading(false);
     }
@@ -212,16 +276,14 @@ export default function VendorDashboardScreen({ navigation }) {
 
       if (statsRes.data) setStats(statsRes.data);
       if (ordersRes.data) setOrders(ordersRes.data || []);
-      // If productsRes contains seller listings, use it. Otherwise fallback to products matching vendorId
       if (productsRes.data) {
         setVendorProducts(productsRes.data || []);
       } else {
         setVendorProducts(mockProducts.filter((p) => p.vendorId === user?.vendorId || p.vendorId === 'v_jazari'));
       }
     } catch (e) {
-      console.warn('GET /api/vendor dashboard endpoints failed, loading offline mocks.', e.message);
+      console.warn('GET /api/vendor dashboard failed, loading offline mocks.', e.message);
       
-      // Offline fallback: load mock dashboard metrics
       setStats({
         revenue: 685.90,
         ordersCount: 3,
@@ -287,7 +349,6 @@ export default function VendorDashboardScreen({ navigation }) {
       Alert.alert('Success', `Order status updated to ${nextStatus}!`);
     } catch (e) {
       console.warn(`Update order ${orderId} status failed, updating locally.`, e.message);
-      // Offline fallback
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o))
       );
@@ -299,11 +360,25 @@ export default function VendorDashboardScreen({ navigation }) {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Placed': return colors.gold;
-      case 'Processing': return colors.navyLight;
+      case 'Placed': return colors.gold600;
+      case 'Processing': return colors.blue500Alt || colors.info;
       case 'Dispatched': return colors.success;
       case 'Delivered': return colors.textSecondary;
       default: return colors.textSecondary;
+    }
+  };
+
+  const renderStatusIcon = (status) => {
+    const iconSize = 14;
+    switch (status) {
+      case 'Placed':
+        return <Clock size={iconSize} color={colors.gold600} weight="fill" />;
+      case 'Processing':
+        return <Clock size={iconSize} color={colors.blue500Alt || colors.info} weight="fill" />;
+      case 'Dispatched':
+        return <Truck size={iconSize} color={colors.success} weight="fill" />;
+      default:
+        return <Package size={iconSize} color={colors.grey600} weight="fill" />;
     }
   };
 
@@ -312,13 +387,11 @@ export default function VendorDashboardScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={colors.navy} />
-          </Svg>
+          <CaretLeft size={24} color={colors.navy} weight="bold" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>Seller Dashboard</Text>
         <TouchableOpacity style={styles.headerBtn} onPress={loadDashboardData}>
-          <Text style={styles.refreshText}>🔄</Text>
+          <ArrowsCounterClockwise size={20} color={colors.navy} weight="bold" />
         </TouchableOpacity>
       </View>
 
@@ -350,26 +423,33 @@ export default function VendorDashboardScreen({ navigation }) {
               {/* Analytics grid */}
               <View style={styles.grid}>
                 <View style={styles.card}>
-                  <Text style={styles.cardEmoji}>💰</Text>
+                  <View style={[styles.cardIconBox, { backgroundColor: '#FEF6E0' }]}>
+                    <Coins size={22} color="#D97706" weight="fill" />
+                  </View>
                   <Text style={styles.cardValue}>${stats.revenue.toFixed(2)}</Text>
                   <Text style={styles.cardLabel}>Total Revenue</Text>
                 </View>
 
                 <View style={styles.card}>
-                  <Text style={styles.cardEmoji}>📦</Text>
+                  <View style={[styles.cardIconBox, { backgroundColor: '#EFF6FF' }]}>
+                    <Clock size={22} color="#2563EB" weight="fill" />
+                  </View>
                   <Text style={styles.cardValue}>{stats.ordersCount}</Text>
                   <Text style={styles.cardLabel}>Pending Orders</Text>
                 </View>
 
                 <View style={styles.card}>
-                  <Text style={styles.cardEmoji}>🏷️</Text>
+                  <View style={[styles.cardIconBox, { backgroundColor: '#ECFDF5' }]}>
+                    <Tag size={22} color="#10B981" weight="fill" />
+                  </View>
                   <Text style={styles.cardValue}>{stats.productsCount}</Text>
                   <Text style={styles.cardLabel}>Active Listings</Text>
                 </View>
               </View>
 
               <View style={styles.bannerInfo}>
-                <Text style={styles.bannerText}>💡 Hint: Toggle the Orders tab to update shipping stages and accept bookings from buyers.</Text>
+                <Lightbulb size={20} color="#F59E0B" weight="fill" style={{ marginRight: 8, marginTop: 1 }} />
+                <Text style={styles.bannerText}>Toggle the Orders tab to update shipping stages and accept bookings from buyers.</Text>
               </View>
             </ScrollView>
           )}
@@ -379,40 +459,48 @@ export default function VendorDashboardScreen({ navigation }) {
               data={orders}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContainer}
-              renderItem={({ item }) => (
-                <View style={styles.orderCard}>
-                  <View style={styles.orderHeader}>
-                    <Text style={styles.customerName}>{item.customerName}</Text>
-                    <Text style={styles.orderDate}>{item.date}</Text>
-                  </View>
-                  <Text style={styles.orderItems}>{item.items}</Text>
-
-                  <View style={styles.orderFooter}>
-                    <View style={styles.statusRow}>
-                      <Text style={styles.statusLabel}>Status: </Text>
-                      <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+              renderItem={({ item }) => {
+                const statusColor = getStatusColor(item.status);
+                return (
+                  <View style={[styles.orderCard, { borderLeftColor: statusColor }]}>
+                    <View style={styles.orderHeader}>
+                      <Text style={styles.customerName}>{item.customerName}</Text>
+                      <Text style={styles.orderDate}>{item.date}</Text>
                     </View>
-                    <Text style={styles.orderTotal}>${item.total.toFixed(2)}</Text>
-                  </View>
+                    <Text style={styles.orderItems}>{item.items}</Text>
 
-                  {/* Processing Actions */}
-                  {item.status !== 'Delivered' && (
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={() => handleProcessOrder(item.id, item.status)}
-                    >
-                      <Text style={styles.actionBtnText}>
-                        {item.status === 'Placed' && 'Accept Order'}
-                        {item.status === 'Processing' && 'Ship / Dispatch'}
-                        {item.status === 'Dispatched' && 'Deliver Order'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
+                    <View style={styles.orderFooter}>
+                      <View style={styles.statusRow}>
+                        <Text style={styles.statusLabel}>Status: </Text>
+                        <View style={[styles.statusPill, { backgroundColor: statusColor + '15' }]}>
+                          {renderStatusIcon(item.status)}
+                          <Text style={[styles.statusText, { color: statusColor, marginLeft: 4 }]}>
+                            {item.status}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.orderTotal}>${item.total.toFixed(2)}</Text>
+                    </View>
+
+                    {/* Processing Actions */}
+                    {item.status !== 'Delivered' && (
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => handleProcessOrder(item.id, item.status)}
+                      >
+                        <Text style={styles.actionBtnText}>
+                          {item.status === 'Placed' && 'Accept Order'}
+                          {item.status === 'Processing' && 'Ship / Dispatch'}
+                          {item.status === 'Dispatched' && 'Deliver Order'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              }}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyIcon}>📭</Text>
+                  <Package size={48} color={colors.grey400} weight="regular" />
                   <Text style={styles.emptyText}>No Active Orders</Text>
                 </View>
               }
@@ -424,7 +512,8 @@ export default function VendorDashboardScreen({ navigation }) {
               <View style={styles.productsHeaderRow}>
                 <Text style={styles.productsTitleText}>Active Listings ({vendorProducts.length})</Text>
                 <TouchableOpacity style={styles.addProductBtn} onPress={handleOpenAddModal}>
-                  <Text style={styles.addProductBtnText}>+ Add Product</Text>
+                  <Plus size={16} color="#FFFFFF" weight="bold" style={{ marginRight: 4 }} />
+                  <Text style={styles.addProductBtnText}>Add Product</Text>
                 </TouchableOpacity>
               </View>
 
@@ -432,29 +521,45 @@ export default function VendorDashboardScreen({ navigation }) {
                 data={vendorProducts}
                 keyExtractor={(item) => String(item.id)}
                 contentContainerStyle={styles.listContainer}
-                renderItem={({ item }) => (
-                  <View style={styles.productCard}>
-                    <View style={styles.productEmojiBox}>
-                      <Text style={styles.productEmoji}>{item.emoji || '🎁'}</Text>
+                renderItem={({ item }) => {
+                  const resolved = mockProducts.find((p) => String(p.id) === String(item.id));
+                  const imageSource = resolved?.image || (item.images && item.images.length > 0 ? { uri: item.images[0] } : null);
+                  const categoryLabels = {
+                    cat_food: 'Gourmet Food',
+                    cat_fashion: 'Fashion & Apparel',
+                    cat_electronics: 'Electronics',
+                  };
+
+                  return (
+                    <View style={styles.productCard}>
+                      <View style={styles.productPhotoBox}>
+                        {imageSource ? (
+                          <Image source={imageSource} style={styles.productPhoto} resizeMode="cover" />
+                        ) : (
+                          <Text style={styles.productEmoji}>{item.emoji || '🎁'}</Text>
+                        )}
+                      </View>
+                      <View style={styles.productInfo}>
+                        <Text style={styles.productName}>{item.name}</Text>
+                        <Text style={styles.productCategory}>
+                          {categoryLabels[item.categoryId] || item.categoryId || 'General'}
+                        </Text>
+                        <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.productActionsRow}>
+                        <TouchableOpacity style={styles.editBtn} onPress={() => handleOpenEditModal(item)}>
+                          <PencilSimple size={16} color="#475569" weight="bold" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteProduct(item.id)}>
+                          <Trash size={16} color="#DC2626" weight="bold" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                    <View style={styles.productInfo}>
-                      <Text style={styles.productName}>{item.name}</Text>
-                      <Text style={styles.productCategory}>{item.categoryId}</Text>
-                      <Text style={styles.productPrice}>Price: ${item.price.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.productActionsRow}>
-                      <TouchableOpacity style={styles.editBtn} onPress={() => handleOpenEditModal(item)}>
-                        <Text style={styles.actionEmoji}>✏️</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteProduct(item.id)}>
-                        <Text style={styles.actionEmoji}>🗑️</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
+                  );
+                }}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyIcon}>📦</Text>
+                    <Package size={48} color={colors.grey400} weight="regular" />
                     <Text style={styles.emptyText}>No Listings Found</Text>
                   </View>
                 }
@@ -476,41 +581,72 @@ export default function VendorDashboardScreen({ navigation }) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{editingProductId ? 'Edit Product' : 'Add New Product'}</Text>
               <TouchableOpacity onPress={() => setProductModalVisible(false)}>
-                <Text style={styles.modalCloseIcon}>✕</Text>
+                <X size={20} color={colors.textSecondary} weight="bold" />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalForm} contentContainerStyle={styles.modalFormContent}>
-              <Text style={styles.fieldLabel}>Product Name</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={prodName}
-                onChangeText={setProdName}
-                placeholder="Enter product title"
-                placeholderTextColor={colors.textSecondary}
-              />
+              {/* Product Name */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.fieldLabel}>Product Name</Text>
+                <View style={[styles.modalInputWrapper, nameError ? styles.modalInputWrapperError : null]}>
+                  <Tag size={18} color="#94A3B8" weight="regular" style={{ marginRight: 10 }} />
+                  <TextInput
+                    style={styles.modalInput}
+                    value={prodName}
+                    onChangeText={(val) => {
+                      setProdName(val);
+                      if (val.trim()) setNameError('');
+                    }}
+                    placeholder="Enter product title"
+                    placeholderTextColor={colors.textSecondary}
+                  />
+                </View>
+                {nameError ? (
+                  <Text style={styles.modalErrorText}>{nameError}</Text>
+                ) : null}
+              </View>
 
-              <Text style={styles.fieldLabel}>Price ($)</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={prodPrice}
-                onChangeText={prodPrice => setProdPrice(prodPrice.replace(/[^0-9.]/g, ''))}
-                placeholder="e.g. 19.99"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-              />
+              {/* Price */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.fieldLabel}>Price ($)</Text>
+                <View style={[styles.modalInputWrapper, priceError ? styles.modalInputWrapperError : null]}>
+                  <Coins size={18} color="#94A3B8" weight="regular" style={{ marginRight: 10 }} />
+                  <TextInput
+                    style={styles.modalInput}
+                    value={prodPrice}
+                    onChangeText={(val) => {
+                      const clean = val.replace(/[^0-9.]/g, '');
+                      setProdPrice(clean);
+                      if (clean.trim() && !isNaN(parseFloat(clean))) setPriceError('');
+                    }}
+                    placeholder="e.g. 19.99"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="numeric"
+                  />
+                </View>
+                {priceError ? (
+                  <Text style={styles.modalErrorText}>{priceError}</Text>
+                ) : null}
+              </View>
 
               <Text style={styles.fieldLabel}>Category</Text>
               <View style={styles.categoryPickerRow}>
                 {[
-                  { id: 'cat_food', name: 'Food' },
-                  { id: 'cat_fashion', name: 'Fashion' },
-                  { id: 'cat_electronics', name: 'Electronics' }
+                  { id: 'cat_food', name: 'Food & Dining' },
+                  { id: 'cat_fashion', name: 'Fashion & Apparel' },
+                  { id: 'cat_electronics', name: 'Electronics & Gadgets' },
+                  { id: 'cat_home', name: 'Home & Utensils' },
+                  { id: 'cat_beauty', name: 'Beauty & Grooming' },
+                  { id: 'cat_health', name: 'Health & Pharmacy' },
+                  { id: 'cat_groceries', name: 'Groceries & Essentials' },
+                  { id: 'cat_services', name: 'Services & Fun' }
                 ].map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
                     style={[styles.pickerBtn, prodCategory === cat.id && styles.pickerBtnActive]}
                     onPress={() => setProdCategory(cat.id)}
+                    activeOpacity={0.8}
                   >
                     <Text style={[styles.pickerBtnText, prodCategory === cat.id && styles.pickerBtnTextActive]}>
                       {cat.name}
@@ -520,15 +656,17 @@ export default function VendorDashboardScreen({ navigation }) {
               </View>
 
               <Text style={styles.fieldLabel}>Description</Text>
-              <TextInput
-                style={[styles.modalInput, styles.modalTextarea]}
-                value={prodDescription}
-                onChangeText={setProdDescription}
-                placeholder="Enter product description..."
-                placeholderTextColor={colors.textSecondary}
-                multiline={true}
-                numberOfLines={3}
-              />
+              <View style={styles.modalTextareaWrapper}>
+                <TextInput
+                  style={[styles.modalInput, styles.modalTextarea]}
+                  value={prodDescription}
+                  onChangeText={setProdDescription}
+                  placeholder="Enter product description..."
+                  placeholderTextColor={colors.textSecondary}
+                  multiline={true}
+                  numberOfLines={3}
+                />
+              </View>
 
               <Text style={styles.fieldLabel}>Product Emoji Logo</Text>
               <View style={styles.emojiGrid}>
@@ -543,20 +681,44 @@ export default function VendorDashboardScreen({ navigation }) {
                 ))}
               </View>
 
-              {/* Product Images Upload */}
-              <Text style={styles.fieldLabel}>Product Images ({uploadedImages.length})</Text>
-              <TouchableOpacity style={styles.modalUploadBtn} onPress={handleUploadImages} activeOpacity={0.8}>
-                <Text style={styles.uploadIcon}>📷</Text>
-                <Text style={styles.uploadBtnLabel}>Upload Images</Text>
-              </TouchableOpacity>
-              {uploadedImages.length > 0 && (
-                <Text style={styles.uploadedStatus}>✓ {uploadedImages.length} images attached locally</Text>
-              )}
+              {/* Product Showcase Images Upload & Preview Gallery */}
+              <Text style={styles.fieldLabel}>Product Showcase Images (Max 5)</Text>
+              <View style={styles.modalGalleryRow}>
+                {uploadedImages.map((uri, index) => (
+                  <View key={index} style={styles.galleryPreviewContainer}>
+                    <Image source={{ uri }} style={styles.galleryImage} resizeMode="cover" />
+                    <TouchableOpacity
+                      style={styles.removeGalleryBtn}
+                      onPress={() => setUploadedImages((prev) => prev.filter((_, idx) => idx !== index))}
+                    >
+                      <X size={10} color="#FFFFFF" weight="bold" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                {uploadedImages.length < 5 && (
+                  <TouchableOpacity style={styles.galleryAddBtn} onPress={handleUploadImages} activeOpacity={0.8}>
+                    <ImageIcon size={20} color={colors.grey600} />
+                    <Text style={styles.galleryAddText}>Add ({uploadedImages.length}/5)</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <Button title="Cancel" variant="secondary" style={styles.cancelBtn} onPress={() => setProductModalVisible(false)} />
-              <Button title={editingProductId ? 'Save changes' : 'Add Listing'} style={styles.saveBtn} onPress={handleSaveProduct} />
+              <Button
+                title="Cancel"
+                variant="secondary"
+                style={[styles.cancelBtn, { borderColor: colors.navy, backgroundColor: '#FFFFFF' }]}
+                textStyle={{ color: colors.navy, fontWeight: '700' }}
+                onPress={() => setProductModalVisible(false)}
+              />
+              <Button
+                title={editingProductId ? 'Save changes' : 'Add Listing'}
+                style={[styles.saveBtn, { backgroundColor: colors.navy }]}
+                textStyle={{ color: '#FFFFFF', fontWeight: '800' }}
+                onPress={handleSaveProduct}
+              />
             </View>
           </View>
         </View>
@@ -568,17 +730,17 @@ export default function VendorDashboardScreen({ navigation }) {
 const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FAF9F5', // Warm Beige Background
   },
   header: {
     height: 52,
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   headerBtn: {
     width: 40,
@@ -588,15 +750,12 @@ const getStyles = (colors) => StyleSheet.create({
   },
   headerTitle: {
     ...typography.h3,
-    color: colors.textPrimary,
-    fontWeight: '800',
-  },
-  refreshText: {
-    fontSize: 16,
+    color: colors.navy,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderColor: colors.border,
   },
@@ -608,23 +767,21 @@ const getStyles = (colors) => StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabItemActive: {
-    borderBottomColor: colors.gold,
+    borderBottomColor: colors.gold || '#A8824B',
   },
   tabLabel: {
-    ...typography.caption,
+    ...typography.overline,
     color: colors.textSecondary,
-    fontWeight: '700',
-    fontSize: 11,
-    letterSpacing: 0.5,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   tabLabelActive: {
-    color: colors.textPrimary,
+    color: colors.navy,
   },
   loadingWrapper: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#FAF9F5',
   },
   content: {
     flex: 1,
@@ -634,63 +791,83 @@ const getStyles = (colors) => StyleSheet.create({
     padding: spacing.lg,
   },
   welcomeText: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-    fontSize: 16,
+    ...typography.h3,
+    color: colors.navy,
     marginBottom: spacing.md,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    justifyContent: 'space-between',
+    rowGap: spacing.md,
     marginBottom: spacing.lg,
   },
   card: {
-    width: '47%',
-    backgroundColor: colors.surface,
+    width: '48%',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    borderColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 16,
     padding: spacing.md,
     gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  cardEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
+  cardIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12, // rounded square look fits premium dashboards
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   cardValue: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    fontWeight: '800',
+    ...typography.hero,
+    color: colors.navy,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   cardLabel: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 11,
+    fontFamily: 'PlusJakartaSans-Medium',
   },
   bannerInfo: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: '#FFFDF5', // Soft golden tint background toast
+    borderColor: '#FCD34D',
     borderWidth: 1,
-    borderRadius: radius.sm,
+    borderRadius: 12,
     padding: spacing.md,
     marginTop: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   bannerText: {
+    flex: 1,
     ...typography.caption,
-    color: colors.textSecondary,
+    color: '#B45309',
     lineHeight: 18,
+    fontFamily: 'PlusJakartaSans-Medium',
   },
   listContainer: {
     padding: spacing.lg,
     gap: spacing.md,
   },
   orderCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
+    borderLeftWidth: 4.5,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: 16,
     padding: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
   },
   orderHeader: {
     flexDirection: 'row',
@@ -701,19 +878,19 @@ const getStyles = (colors) => StyleSheet.create({
   customerName: {
     ...typography.bodyBold,
     color: colors.textPrimary,
-    fontSize: 14,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   orderDate: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 10,
+    fontFamily: 'PlusJakartaSans-Regular',
   },
   orderItems: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 12,
     lineHeight: 18,
     marginVertical: spacing.xs,
+    fontFamily: 'PlusJakartaSans-Medium',
   },
   orderFooter: {
     flexDirection: 'row',
@@ -721,7 +898,7 @@ const getStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.sm,
     borderTopWidth: 0.5,
-    borderColor: colors.border,
+    borderColor: '#F1F5F9',
     paddingTop: spacing.xs,
   },
   statusRow: {
@@ -731,47 +908,67 @@ const getStyles = (colors) => StyleSheet.create({
   statusLabel: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 11,
+    fontFamily: 'PlusJakartaSans-Medium',
+  },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   statusText: {
-    ...typography.caption,
-    fontWeight: '700',
-    fontSize: 11,
+    ...typography.overline,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   orderTotal: {
-    ...typography.bodyBold,
+    ...typography.h3,
     color: colors.textPrimary,
-    fontSize: 14,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   actionBtn: {
     backgroundColor: colors.navy,
-    borderRadius: radius.sm,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center',
     marginTop: spacing.md,
+    shadowColor: colors.navy,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   actionBtnText: {
-    ...typography.button,
+    ...typography.buttonSmall,
     color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 12,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   productCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    borderColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 16,
     padding: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  productEmojiBox: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.sm,
-    backgroundColor: colors.background,
+  productPhotoBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  productPhoto: {
+    width: '100%',
+    height: '100%',
   },
   productEmoji: {
     fontSize: 24,
@@ -783,48 +980,30 @@ const getStyles = (colors) => StyleSheet.create({
   productName: {
     ...typography.bodyBold,
     color: colors.textPrimary,
-    fontSize: 13,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   productCategory: {
-    ...typography.caption,
+    ...typography.overline,
     color: colors.textSecondary,
-    fontSize: 10,
     marginTop: 2,
-    textTransform: 'uppercase',
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   productPrice: {
-    ...typography.caption,
+    ...typography.bodyBold,
     color: colors.textPrimary,
-    fontSize: 11,
-    fontWeight: '600',
     marginTop: 2,
-  },
-  ratingBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  ratingBadgeText: {
-    ...typography.caption,
-    color: colors.gold,
-    fontWeight: '700',
-    fontSize: 10,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.xl * 2,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing.sm,
+    marginTop: spacing.xl * 2.5,
   },
   emptyText: {
     ...typography.bodyBold,
     color: colors.textSecondary,
+    marginTop: spacing.sm,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   productsHeaderRow: {
     flexDirection: 'row',
@@ -836,45 +1015,49 @@ const getStyles = (colors) => StyleSheet.create({
   productsTitleText: {
     ...typography.bodyBold,
     color: colors.textPrimary,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   addProductBtn: {
     backgroundColor: colors.navy,
-    borderRadius: radius.sm,
+    borderRadius: 12,
     paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: colors.navy,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 3,
   },
   addProductBtnText: {
-    ...typography.button,
+    ...typography.buttonSmall,
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   productActionsRow: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
   editBtn: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    width: 32,
-    height: 32,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 10,
+    width: 34,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
   },
   deleteBtn: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    width: 32,
-    height: 32,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 10,
+    width: 34,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  actionEmoji: {
-    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,
@@ -898,14 +1081,9 @@ const getStyles = (colors) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   modalTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    fontWeight: '800',
-  },
-  modalCloseIcon: {
-    fontSize: 20,
-    color: colors.textSecondary,
-    fontWeight: '300',
+    ...typography.h2,
+    color: colors.navy,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   modalForm: {
     flex: 1,
@@ -914,51 +1092,84 @@ const getStyles = (colors) => StyleSheet.create({
     gap: spacing.md,
     paddingBottom: spacing.xl,
   },
+  modalInputGroup: {
+    marginBottom: spacing.xs,
+  },
   fieldLabel: {
-    ...typography.caption,
+    ...typography.overline,
     color: colors.textSecondary,
-    fontWeight: '700',
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: -4,
+    marginBottom: 6,
+    fontFamily: 'PlusJakartaSans-Bold',
+  },
+  modalInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing.md,
+  },
+  modalInputWrapperError: {
+    borderColor: '#DC2626',
+    borderWidth: 1.5,
   },
   modalInput: {
-    height: 46,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
+    flex: 1,
+    height: 48,
     ...typography.body,
     color: colors.textPrimary,
+    fontFamily: 'PlusJakartaSans-Medium',
+  },
+  modalErrorText: {
+    ...typography.caption,
+    color: '#DC2626',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
+    fontFamily: 'PlusJakartaSans-Medium',
+  },
+  modalTextareaWrapper: {
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing.md,
   },
   modalTextarea: {
     height: 80,
     textAlignVertical: 'top',
     paddingVertical: spacing.sm,
+    borderWidth: 0,
+    outlineStyle: 'none',
   },
   categoryPickerRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   pickerBtn: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingVertical: 10,
-    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.01,
+    shadowRadius: 2,
+    elevation: 1,
   },
   pickerBtnActive: {
     backgroundColor: colors.navy,
     borderColor: colors.navy,
   },
   pickerBtnText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    ...typography.buttonSmall,
+    color: colors.navy,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   pickerBtnTextActive: {
     color: '#FFFFFF',
@@ -972,45 +1183,77 @@ const getStyles = (colors) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
   },
   emojiGridItemActive: {
-    borderColor: colors.gold,
-    backgroundColor: colors.gold + '10',
+    borderColor: colors.gold || '#A8824B',
+    backgroundColor: '#FFFBEB',
   },
   emojiTextVal: {
     fontSize: 20,
   },
-  modalUploadBtn: {
+  modalGalleryRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: radius.md,
+    flexWrap: 'wrap',
     gap: spacing.sm,
+    marginTop: 4,
   },
-  uploadIcon: {
-    fontSize: 16,
+  galleryPreviewContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: radius.sm,
+    borderWidth: 1.2,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  uploadBtnLabel: {
-    ...typography.bodyBold,
-    color: colors.textSecondary,
-    fontSize: 13,
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radius.sm - 1,
   },
-  uploadedStatus: {
-    ...typography.caption,
-    color: colors.success,
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: -4,
+  removeGalleryBtn: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#DC2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  galleryAddBtn: {
+    width: 70,
+    height: 70,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 2,
+  },
+  galleryAddText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#64748B',
+    textAlign: 'center',
   },
   modalFooter: {
     flexDirection: 'row',
