@@ -1,6 +1,8 @@
 package com.ecommerce.app.service;
 
 import com.ecommerce.app.dto.RegisterRequest;
+import com.ecommerce.app.dto.LoginRequest;
+import com.ecommerce.app.dto.ResetPasswordRequest;
 import com.ecommerce.app.model.EmailVerificationOtp;
 import com.ecommerce.app.model.User;
 import com.ecommerce.app.repository.EmailVerificationOtpRepository;
@@ -97,6 +99,51 @@ public class AuthService {
         }
 
         generateAndSendOtp(user);
+    }
+
+    public String loginUser(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid credentials");
+        }
+
+        if (!user.isEmailVerified()) {
+            throw new RuntimeException("Email not verified");
+        }
+
+        return "mock-jwt-token-for-" + user.getEmail();
+    }
+
+    public void requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        generateAndSendOtp(user);
+    }
+
+    public void resetPassword(String email, String token, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        EmailVerificationOtp otpEntity = otpRepository.findTopByUserOrderByCreatedAtDesc(user)
+                .orElseThrow(() -> new RuntimeException("OTP not found"));
+
+        if (otpEntity.isExpired()) {
+            throw new RuntimeException("OTP has expired");
+        }
+
+        if (!otpEntity.getOtp().equals(token)) {
+            otpEntity.incrementAttempts();
+            otpRepository.save(otpEntity);
+            throw new RuntimeException("Invalid OTP");
+        }
+
+        otpEntity.setVerified(true);
+        otpRepository.save(otpEntity);
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     private String generateRandomOtp() {

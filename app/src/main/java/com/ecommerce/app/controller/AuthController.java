@@ -3,12 +3,17 @@ package com.ecommerce.app.controller;
 import com.ecommerce.app.dto.ApiResponse;
 import com.ecommerce.app.dto.RegisterRequest;
 import com.ecommerce.app.dto.VerifyEmailRequest;
+import com.ecommerce.app.dto.LoginRequest;
+import com.ecommerce.app.dto.ForgotPasswordRequest;
+import com.ecommerce.app.dto.ResetPasswordRequest;
+import com.ecommerce.app.dto.VerifyOtpRequest;
 import com.ecommerce.app.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,6 +45,60 @@ public class AuthController {
 
     @PostMapping("/resend-email-otp")
     public ResponseEntity<ApiResponse> resendEmailOtp(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            authService.resendOtp(email);
+            return ResponseEntity.ok(new ApiResponse("Verification code resent to your email"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            String token = authService.loginUser(request);
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            // Assuming simple token return for now
+            return ResponseEntity.ok(Map.of("data", response));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        try {
+            authService.requestPasswordReset(request.getEmail());
+            return ResponseEntity.ok(new ApiResponse("Password reset code sent to your email"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            authService.resetPassword(request.getEmail(), request.getToken(), request.getNewPassword());
+            return ResponseEntity.ok(new ApiResponse("Password reset successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse> verifyOtp(@RequestBody VerifyOtpRequest request) {
+        try {
+            authService.verifyEmail(request.getEmail(), request.getOtp());
+            return ResponseEntity.ok(new ApiResponse("Email verified successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse> resendOtp(@RequestBody Map<String, String> request) {
         try {
             String email = request.get("email");
             authService.resendOtp(email);

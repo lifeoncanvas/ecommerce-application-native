@@ -31,7 +31,7 @@ export const resendOtp = (email) =>
 export const forgotPassword = (email) =>
   client.post('/auth/forgot-password', { email });
 
-export const resetPassword = (token, newPassword) =>
-  client.post('/auth/reset-password', { token, newPassword });
+export const resetPassword = (email, token, newPassword) =>
+  client.post('/auth/reset-password', { email, token, newPassword });
 
 export const logout = () => client.post('/auth/logout');
