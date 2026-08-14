@@ -15,6 +15,7 @@ import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { getOrderDetails, cancelOrder } from '../../api/orders.api';
 import { useTheme } from '../../context/ThemeContext';
+import { CURRENCY } from '../../utils/currency';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -56,9 +57,9 @@ export default function OrderDetailsScreen({ route, navigation }) {
         matchedOrder = {
           id: orderId,
           date: 'Jan 15, 2026',
-          totalAmount: 129.99,
+          totalAmount: 1290,
           status: 'Delivered',
-          items: [{ id: 'p_redemp_1', name: 'Vintage Leather Jacket', price: 129.99, quantity: 1, emoji: '🧥' }],
+          items: [{ id: 'p_redemp_1', name: 'Vintage Leather Jacket', price: 1290, quantity: 1, emoji: '🧥' }],
           paymentMethod: 'Stripe Card',
           paymentReference: 'ch_stripe_8312984129',
           address: '123 Main St, New York, NY 10001',
@@ -222,9 +223,9 @@ export default function OrderDetailsScreen({ route, navigation }) {
               </View>
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.itemQty}>Qty: {item.quantity} • ${item.price.toFixed(2)}</Text>
+                <Text style={styles.itemQty}>Qty: {item.quantity} • {CURRENCY.format(item.price)}</Text>
               </View>
-              <Text style={styles.itemTotal}>${(item.price * item.quantity).toFixed(2)}</Text>
+              <Text style={styles.itemTotal}>{CURRENCY.format(item.price * item.quantity)}</Text>
             </View>
           ))}
         </View>
@@ -255,23 +256,23 @@ export default function OrderDetailsScreen({ route, navigation }) {
           <Text style={styles.cardTitle}>Price Breakdown</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Subtotal</Text>
-            <Text style={styles.detailVal}>${subtotal.toFixed(2)}</Text>
+            <Text style={styles.detailVal}>{CURRENCY.format(subtotal)}</Text>
           </View>
           {discount > 0 && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Coupon discount</Text>
-              <Text style={styles.discountVal}>-${discount.toFixed(2)}</Text>
+              <Text style={styles.discountVal}>-{CURRENCY.format(discount)}</Text>
             </View>
           )}
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Shipping fees</Text>
             <Text style={styles.detailVal}>
-              {order.shippingCost === 0 || !order.shippingCost ? 'FREE' : `$${order.shippingCost.toFixed(2)}`}
+              {order.shippingCost === 0 || !order.shippingCost ? 'FREE' : CURRENCY.format(order.shippingCost)}
             </Text>
           </View>
           <View style={[styles.detailRow, styles.grandTotalRow]}>
             <Text style={styles.grandLabel}>Grand Total</Text>
-            <Text style={styles.grandVal}>${order.totalAmount.toFixed(2)}</Text>
+            <Text style={styles.grandVal}>{CURRENCY.format(order.totalAmount)}</Text>
           </View>
         </View>
       </ScrollView>

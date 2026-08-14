@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 10,
-    fontFamily: 'Inter-Regular',
     color: GOLD,
     opacity: 0.4,
     letterSpacing: 1,

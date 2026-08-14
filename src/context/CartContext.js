@@ -48,10 +48,10 @@ export const CartProvider = ({ children }) => {
       const product = customProductData || products.find((p) => p.id === productId) || { id: productId, name: 'Product', price: 999 };
 
       setLocalItems((prev) => {
-        const existing = prev.find((item) => item.id === productId);
+        const existing = prev.find((item) => String(item.id) === String(productId));
         if (existing) {
           return prev.map((item) =>
-            item.id === productId ? { ...item, quantity: item.quantity + quantity } : item
+            String(item.id) === String(productId) ? { ...item, quantity: item.quantity + quantity } : item
           );
         }
         return [
@@ -61,9 +61,16 @@ export const CartProvider = ({ children }) => {
             name: product.name || product.title || 'Product',
             brand: product.brand || 'Vero Moda',
             price: Number(product.price) || 999,
+            oldPrice: product.oldPrice || product.mrp || null,
+            discount: product.discount || null,
+            badges: product.badges || ['Fast delivery', 'Trendy'],
             image: product.image,
-            size: customProductData?.size || 'L',
-            color: customProductData?.color || 'Fuchsia',
+            size: customProductData?.size || (customProductData?.isBooking ? '' : 'L'),
+            color: customProductData?.color || (customProductData?.isBooking ? '' : 'Fuchsia'),
+            colorHex: customProductData?.colorHex || (customProductData?.isBooking ? '' : '#BA5392'),
+            isBooking: !!customProductData?.isBooking,
+            bookingDay: customProductData?.bookingDay || null,
+            bookingTimeSlot: customProductData?.bookingTimeSlot || null,
             quantity: quantity,
           },
         ];

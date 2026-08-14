@@ -41,7 +41,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { resolveProduct, getRelatedMockProducts, buildProductRouteParams } from '../../utils/productResolver';
 
 const { width } = Dimensions.get('window');
-const HERO_WIDTH = width * 0.85;
+const HERO_WIDTH = width;
 
 // ─── Default Color Swatches ──────────────────────────────────────────────────
 const COLOR_SWATCHES = [
@@ -104,6 +104,33 @@ export default function ProductDetailsScreen({ route, navigation }) {
   }, [productId, id, slug, navProduct]);
 
   const isLiked = checkLiked(product.id);
+
+  const isBooking = product.categoryId === 'cat_services' || product.categoryId === 'cat_food';
+
+  const days = useMemo(() => {
+    const arr = [];
+    const dateNames = ['Today', 'Tomorrow'];
+    for (let i = 0; i < 4; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const label = i < 2 ? dateNames[i] : d.toLocaleDateString('en-US', { weekday: 'short' });
+      const value = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      arr.push({ label, value });
+    }
+    return arr;
+  }, []);
+
+  const slots = [
+    '10:00 AM - 11:30 AM',
+    '12:00 PM - 01:30 PM',
+    '02:00 PM - 03:30 PM',
+    '04:00 PM - 05:30 PM',
+    '06:00 PM - 07:30 PM',
+    '08:00 PM - 09:30 PM',
+  ];
+
+  const [selectedBookingDay, setSelectedBookingDay] = useState(days[0]?.value || 'Today');
+  const [selectedBookingSlot, setSelectedBookingSlot] = useState(slots[1]);
 
   const SIMILAR_TOPS = useMemo(() => {
     return getRelatedMockProducts(product.categoryId, product.id, 3);
@@ -189,13 +216,21 @@ export default function ProductDetailsScreen({ route, navigation }) {
         name: product.title,
         brand: product.brand,
         price: product.price,
-        image: selectedColor.image || product.image,
-        size: selectedSize,
-        color: selectedColor.name,
+        image: product.image,
+        size: isBooking ? '' : selectedSize,
+        color: isBooking ? '' : selectedColor.name,
+        colorHex: isBooking ? '' : selectedColor.hex,
+        isBooking: isBooking,
+        bookingDay: isBooking ? selectedBookingDay : null,
+        bookingTimeSlot: isBooking ? selectedBookingSlot : null,
       });
-      showToast(`Added ${product.brand} (Size ${selectedSize}, ${selectedColor.name}) to Bag!`);
+      if (isBooking) {
+        showToast(`Added booking for ${product.brand} (${selectedBookingDay} @ ${selectedBookingSlot})!`);
+      } else {
+        showToast(`Added ${product.brand} (Size ${selectedSize}, ${selectedColor.name}) to Bag!`);
+      }
     } catch (e) {
-      showToast(`Added ${product.brand} to Bag!`);
+      showToast(isBooking ? `Added booking for ${product.brand}!` : `Added ${product.brand} to Bag!`);
     }
   };
 
@@ -207,9 +242,13 @@ export default function ProductDetailsScreen({ route, navigation }) {
         name: product.title,
         brand: product.brand,
         price: product.price,
-        image: selectedColor.image || product.image,
-        size: selectedSize,
-        color: selectedColor.name,
+        image: product.image,
+        size: isBooking ? '' : selectedSize,
+        color: isBooking ? '' : selectedColor.name,
+        colorHex: isBooking ? '' : selectedColor.hex,
+        isBooking: isBooking,
+        bookingDay: isBooking ? selectedBookingDay : null,
+        bookingTimeSlot: isBooking ? selectedBookingSlot : null,
       });
       navigation.navigate('Cart');
     } catch (e) {
@@ -338,12 +377,12 @@ export default function ProductDetailsScreen({ route, navigation }) {
         <ScrollView
           horizontal
           decelerationRate="fast"
-          snapToInterval={HERO_WIDTH + 12}
+          snapToInterval={HERO_WIDTH}
           snapToAlignment="start"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.carouselContainer}
           onScroll={(e) => {
-            const idx = Math.round(e.nativeEvent.contentOffset.x / (HERO_WIDTH + 12));
+            const idx = Math.round(e.nativeEvent.contentOffset.x / HERO_WIDTH);
             setActiveImageIndex(idx);
           }}
           scrollEventThrottle={16}
@@ -431,82 +470,126 @@ export default function ProductDetailsScreen({ route, navigation }) {
           </View>
           <Text style={styles.taxNote}>inclusive of all taxes</Text>
 
-          {/* ─── Color Swatches ────────────────────────────────────────────── */}
-          <View style={styles.colorSection}>
-            <Text style={styles.colorLabel}>
-              COLOR: <Text style={styles.colorValue}>{selectedColor.name}</Text>
-            </Text>
-            <View style={styles.swatchRow}>
-              {COLOR_SWATCHES.map((swatch) => {
-                const isSelected = selectedColor.id === swatch.id;
-                return (
-                  <TouchableOpacity
-                    key={swatch.id}
-                    style={[styles.swatchRing, isSelected && styles.swatchRingActive]}
-                    onPress={() => handleSelectColor(swatch)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={[styles.swatchCircle, { backgroundColor: swatch.hex }]} />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* ─── Size Selector ─────────────────────────────────────────────── */}
-          <View style={styles.sizeSection}>
-            <View style={styles.sizeHeaderRow}>
-              <Text style={styles.sectionHeaderTitle}>SELECT SIZE</Text>
-              <TouchableOpacity
-                onPress={() => setSizeChartVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.sizeChartLink}>SIZE CHART</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Smart Size Recommendation Pill */}
-            <View style={styles.recommendationBox}>
-              <Sparkle size={16} color="#1E293B" weight="fill" />
-              <Text style={styles.recommendationText}>
-                Size <Text style={{ fontWeight: '800' }}>L</Text> recommended for you
-              </Text>
-            </View>
-
-            {/* Size Buttons Grid */}
-            <View style={styles.sizesGrid}>
-              {SIZES_DATA.map((sz) => {
-                const isSelected = selectedSize === sz.label;
-                return (
-                  <TouchableOpacity
-                    key={sz.label}
-                    style={[
-                      styles.sizeBtn,
-                      isSelected && styles.sizeBtnActive,
-                      sz.disabled && styles.sizeBtnDisabled,
-                    ]}
-                    onPress={() => handleSelectSize(sz)}
-                    activeOpacity={0.8}
-                  >
-                    {sz.stock && (
-                      <View style={styles.stockBadge}>
-                        <Text style={styles.stockBadgeText}>{sz.stock}</Text>
-                      </View>
-                    )}
-                    <Text
-                      style={[
-                        styles.sizeBtnText,
-                        isSelected && styles.sizeBtnTextActive,
-                        sz.disabled && styles.sizeBtnTextDisabled,
-                      ]}
+          {/* ─── Color & Size Selection OR Booking Slots Selector ────────── */}
+          {isBooking ? (
+            <View style={styles.bookingSection}>
+              {/* Day Selector */}
+              <Text style={styles.sectionHeaderTitle}>SELECT DATE</Text>
+              <View style={styles.daySelectorRow}>
+                {days.map((d) => {
+                  const isSelected = selectedBookingDay === d.value;
+                  return (
+                    <TouchableOpacity
+                      key={d.value}
+                      style={[styles.dayCard, isSelected && styles.dayCardActive]}
+                      onPress={() => setSelectedBookingDay(d.value)}
+                      activeOpacity={0.8}
                     >
-                      {sz.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Text style={[styles.dayLabel, isSelected && styles.dayLabelActive]}>{d.label}</Text>
+                      <Text style={[styles.dayValue, isSelected && styles.dayValueActive]}>{d.value}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Time Slots Selector */}
+              <Text style={[styles.sectionHeaderTitle, { marginTop: 20 }]}>AVAILABLE TIME SLOTS</Text>
+              <View style={styles.slotsGrid}>
+                {slots.map((s) => {
+                  const isSelected = selectedBookingSlot === s;
+                  return (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.slotBtn, isSelected && styles.slotBtnActive]}
+                      onPress={() => setSelectedBookingSlot(s)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.slotText, isSelected && styles.slotTextActive]}>{s}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-          </View>
+          ) : (
+            <>
+              {/* ─── Color Swatches ────────────────────────────────────────────── */}
+              <View style={styles.colorSection}>
+                <Text style={styles.colorLabel}>
+                  COLOR: <Text style={styles.colorValue}>{selectedColor.name}</Text>
+                </Text>
+                <View style={styles.swatchRow}>
+                  {COLOR_SWATCHES.map((swatch) => {
+                    const isSelected = selectedColor.id === swatch.id;
+                    return (
+                      <TouchableOpacity
+                        key={swatch.id}
+                        style={[styles.swatchRing, isSelected && styles.swatchRingActive]}
+                        onPress={() => handleSelectColor(swatch)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.swatchCircle, { backgroundColor: swatch.hex }]} />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* ─── Size Selector ─────────────────────────────────────────────── */}
+              <View style={styles.sizeSection}>
+                <View style={styles.sizeHeaderRow}>
+                  <Text style={styles.sectionHeaderTitle}>SELECT SIZE</Text>
+                  <TouchableOpacity
+                    onPress={() => setSizeChartVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.sizeChartLink}>SIZE CHART</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Smart Size Recommendation Pill */}
+                <View style={styles.recommendationBox}>
+                  <Sparkle size={16} color="#1E293B" weight="fill" />
+                  <Text style={styles.recommendationText}>
+                    Size <Text style={{ fontWeight: '800' }}>L</Text> recommended for you
+                  </Text>
+                </View>
+
+                {/* Size Buttons Grid */}
+                <View style={styles.sizesGrid}>
+                  {SIZES_DATA.map((sz) => {
+                    const isSelected = selectedSize === sz.label;
+                    return (
+                      <TouchableOpacity
+                        key={sz.label}
+                        style={[
+                          styles.sizeBtn,
+                          isSelected && styles.sizeBtnActive,
+                          sz.disabled && styles.sizeBtnDisabled,
+                        ]}
+                        onPress={() => handleSelectSize(sz)}
+                        activeOpacity={0.8}
+                      >
+                        {sz.stock && (
+                          <View style={styles.stockBadge}>
+                            <Text style={styles.stockBadgeText}>{sz.stock}</Text>
+                          </View>
+                        )}
+                        <Text
+                          style={[
+                            styles.sizeBtnText,
+                            isSelected && styles.sizeBtnTextActive,
+                            sz.disabled && styles.sizeBtnTextDisabled,
+                          ]}
+                        >
+                          {sz.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </>
+          )}
 
           {/* ─── Delivery & Services Box ───────────────────────────────────── */}
           <TouchableOpacity
@@ -549,7 +632,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
               activeOpacity={0.85}
             >
               <ShoppingBagOpen size={20} color="#1E293B" weight="bold" />
-              <Text style={styles.addBagText}>ADD TO BAG</Text>
+              <Text style={styles.addBagText}>{isBooking ? 'ADD TO BOOKINGS' : 'ADD TO BAG'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -558,7 +641,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
               activeOpacity={0.85}
             >
               <Lightning size={20} color="#FFFFFF" weight="fill" />
-              <Text style={styles.buyNowText}>BUY NOW</Text>
+              <Text style={styles.buyNowText}>{isBooking ? 'BOOK NOW' : 'BUY NOW'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -1053,7 +1136,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
             activeOpacity={0.85}
           >
             <ShoppingBagOpen size={20} color="#1E293B" weight="bold" />
-            <Text style={styles.addBagText}>ADD TO BAG</Text>
+            <Text style={styles.addBagText}>{isBooking ? 'ADD TO BOOKINGS' : 'ADD TO BAG'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1062,7 +1145,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
             activeOpacity={0.85}
           >
             <Lightning size={20} color="#FFFFFF" weight="fill" />
-            <Text style={styles.buyNowText}>BUY NOW</Text>
+            <Text style={styles.buyNowText}>{isBooking ? 'BOOK NOW' : 'BUY NOW'}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -1130,21 +1213,16 @@ const styles = StyleSheet.create({
 
   // Carousel
   carouselContainer: {
-    paddingHorizontal: 20,
-    gap: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 0,
+    gap: 0,
+    paddingVertical: 0,
   },
   heroSlideWrapper: {
     width: HERO_WIDTH,
-    height: 380,
-    borderRadius: 20,
+    height: 400,
+    borderRadius: 0,
     overflow: 'hidden',
     backgroundColor: '#EDE9DE',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
   heroImage: {
     width: '100%',
@@ -2045,6 +2123,89 @@ const styles = StyleSheet.create({
   submitReviewBtnText: {
     color: '#FFFFFF',
     fontSize: 13.5,
+    fontWeight: '800',
+  },
+  bookingSection: {
+    marginTop: 20,
+    backgroundColor: '#FAF9F5',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 168, 76, 0.15)',
+  },
+  daySelectorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    gap: 8,
+  },
+  dayCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  dayCardActive: {
+    borderColor: '#C9A84C',
+    backgroundColor: '#FAF6EC',
+    borderWidth: 1.5,
+  },
+  dayLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dayLabelActive: {
+    color: '#A8824B',
+    fontWeight: '800',
+  },
+  dayValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 4,
+  },
+  dayValueActive: {
+    color: '#1E293B',
+  },
+  slotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  slotBtn: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  slotBtnActive: {
+    borderColor: '#C9A84C',
+    backgroundColor: '#FAF6EC',
+    borderWidth: 1.5,
+  },
+  slotText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  slotTextActive: {
+    color: '#A8824B',
     fontWeight: '800',
   },
 });

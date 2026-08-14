@@ -30,54 +30,8 @@ import { useWishlist } from '../../context/WishlistContext';
 import { useTheme } from '../../context/ThemeContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
 
-// Default initial items matching design (Image 2)
-const DEFAULT_CART_ITEMS = [
-  {
-    id: 'cart_item_1',
-    name: 'Polka-Dot Mesh Asymmetric Top',
-    brand: 'Vero Moda',
-    price: 790,
-    oldPrice: null,
-    discount: null,
-    colorName: 'Beige Dot',
-    colorHex: '#E8DFD3',
-    size: 'M',
-    quantity: 1,
-    image: require('../../../assets/images/cart/cart_1.jpg'),
-    badges: ['Fast delivery', 'Best selling', 'Trendy'],
-    selected: true,
-  },
-  {
-    id: 'cart_item_2',
-    name: 'Bow Lounge Set',
-    brand: 'Fashion Redemption',
-    price: 1190,
-    oldPrice: null,
-    discount: null,
-    colorName: 'Rose Pink',
-    colorHex: '#F4C2C2',
-    size: 'M',
-    quantity: 1,
-    image: require('../../../assets/images/cart/cart_2.jpg'),
-    badges: ['New-in', 'Trendy'],
-    selected: true,
-  },
-  {
-    id: 'cart_item_3',
-    name: 'Adjustable Buckle Totes Bag',
-    brand: 'Kings Leather',
-    price: 763,
-    oldPrice: 1090,
-    discount: '30%OFF',
-    colorName: 'Crimson',
-    colorHex: '#772020',
-    size: 'One-Size',
-    quantity: 1,
-    image: require('../../../assets/images/cart/cart_3.jpg'),
-    badges: ['Fast delivery'],
-    selected: true,
-  },
-];
+// Default initial items removed per user instruction
+const DEFAULT_CART_ITEMS = [];
 
 export default function CartScreen({ navigation }) {
   const { colors } = useTheme();
@@ -100,6 +54,7 @@ export default function CartScreen({ navigation }) {
 
   // Local state for removed items to allow immediate optimistic UI updates
   const [removedCartIds, setRemovedCartIds] = useState([]);
+  const [activeCartTab, setActiveCartTab] = useState('products');
 
   // Load removed default cart items on mount
   useEffect(() => {
@@ -137,12 +92,15 @@ export default function CartScreen({ navigation }) {
         oldPrice: ci.oldPrice || 2499,
         discount: ci.discount || '60%OFF',
         colorName: ci.color || 'Fuchsia',
-        colorHex: '#BA5392',
+        colorHex: ci.colorHex || '#BA5392',
         size: ci.size || 'L',
         quantity: ci.quantity || 1,
         image: ci.image || require('../../../assets/images/details/hero_1.jpg'),
         badges: ['Fast delivery', 'Trendy'],
         selected: selectedMap[ci.id] !== false,
+        isBooking: !!ci.isBooking,
+        bookingDay: ci.bookingDay || null,
+        bookingTimeSlot: ci.bookingTimeSlot || null,
       }));
 
     return [
@@ -163,19 +121,30 @@ export default function CartScreen({ navigation }) {
     }));
   };
 
-  // Toggle select all
-  const allSelected = allCartItems.length > 0 && allCartItems.every((item) => selectedMap[item.id] !== false);
+  // Get items matching the active tab
+  const activeItems = useMemo(() => {
+    return allCartItems.filter((item) => {
+      if (activeCartTab === 'products') {
+        return !item.isBooking;
+      } else {
+        return !!item.isBooking;
+      }
+    });
+  }, [allCartItems, activeCartTab]);
+
+  // Toggle select all inside active tab
+  const allSelected = activeItems.length > 0 && activeItems.every((item) => selectedMap[item.id] !== false);
   const toggleSelectAll = () => {
     const nextState = !allSelected;
-    const newMap = {};
-    allCartItems.forEach((item) => {
+    const newMap = { ...selectedMap };
+    activeItems.forEach((item) => {
       newMap[item.id] = nextState;
     });
     setSelectedMap(newMap);
   };
 
-  // Calculate totals for selected items
-  const selectedItems = allCartItems.filter((i) => selectedMap[i.id] !== false);
+  // Calculate totals for selected items in active tab
+  const selectedItems = activeItems.filter((i) => selectedMap[i.id] !== false);
   const selectedCount = selectedItems.length;
 
   const totalPrice = selectedItems.reduce(
@@ -244,7 +213,17 @@ export default function CartScreen({ navigation }) {
           activeOpacity={0.9}
           style={styles.photoContainer}
         >
-          <Image source={item.image} style={styles.productPhoto} resizeMode="cover" />
+          {item.image ? (
+            typeof item.image === 'number' ? (
+              <Image source={item.image} style={styles.productPhoto} resizeMode="cover" />
+            ) : (
+              <Image source={{ uri: item.image }} style={styles.productPhoto} resizeMode="cover" />
+            )
+          ) : (
+            <View style={[styles.productPhoto, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#F1F5F9' }]}>
+              <Text style={{ fontSize: 24 }}>🎁</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         {/* Product Info */}
@@ -258,21 +237,29 @@ export default function CartScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
 
-          {/* Color & Size Dropdown Pill */}
-          <TouchableOpacity
-            style={styles.variantPill}
-            onPress={() => {
-              setVariantModalItem(item);
-              setEditSize(item.size);
-              setEditQty(item.quantity);
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.colorSquare, { backgroundColor: item.colorHex || '#BA5392' }]} />
-            <Text style={styles.variantSlash}>/</Text>
-            <Text style={styles.variantText}>{item.size}</Text>
-            <CaretDown size={12} color="#1E293B" weight="bold" />
-          </TouchableOpacity>
+          {/* Color & Size Dropdown Pill OR Booking Slot Badge */}
+          {item.isBooking ? (
+            <View style={styles.bookingSlotBadge}>
+              <Text style={styles.bookingSlotText}>
+                📅 {item.bookingDay} • 🕒 {item.bookingTimeSlot}
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.variantPill}
+              onPress={() => {
+                setVariantModalItem(item);
+                setEditSize(item.size);
+                setEditQty(item.quantity);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.colorSquare, { backgroundColor: item.colorHex || '#BA5392' }]} />
+              <Text style={styles.variantSlash}>/</Text>
+              <Text style={styles.variantText}>{item.size}</Text>
+              <CaretDown size={12} color="#1E293B" weight="bold" />
+            </TouchableOpacity>
+          )}
 
           {/* Pricing Row */}
           <View style={styles.priceRow}>
@@ -371,20 +358,44 @@ export default function CartScreen({ navigation }) {
         </View>
       </View>
 
-      {/* ─── Top Free Shipping Banner ─────────────────────────────────────── */}
-      <View style={styles.topShippingBanner}>
-        <Text style={styles.topShippingBannerText}>Free shipping on the order.</Text>
+      {/* ─── Cart Navigation Tabs ─────────────────────────────────────────── */}
+      <View style={styles.cartTabsContainer}>
+        <TouchableOpacity
+          style={[styles.cartTabBtn, activeCartTab === 'products' && styles.cartTabBtnActive]}
+          onPress={() => setActiveCartTab('products')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.cartTabText, activeCartTab === 'products' && styles.cartTabTextActive]}>
+            Shopping Bag ({allCartItems.filter(i => !i.isBooking).length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.cartTabBtn, activeCartTab === 'bookings' && styles.cartTabBtnActive]}
+          onPress={() => setActiveCartTab('bookings')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.cartTabText, activeCartTab === 'bookings' && styles.cartTabTextActive]}>
+            My Bookings ({allCartItems.filter(i => i.isBooking).length})
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* ─── Top Free Shipping Banner ─────────────────────────────────────── */}
+      {activeCartTab === 'products' && (
+        <View style={styles.topShippingBanner}>
+          <Text style={styles.topShippingBannerText}>Free shipping on the order.</Text>
+        </View>
+      )}
 
       {/* ─── Cart Items List ──────────────────────────────────────────────── */}
       <FlatList
-        data={allCartItems}
+        data={activeItems}
         keyExtractor={(item) => item.id}
         renderItem={renderCartRow}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListFooterComponent={
-          allCartItems.length > 0 ? (
+          activeItems.length > 0 ? (
             <View style={styles.footerContainer}>
               {/* Ticked Items Order Summary Breakdown Card */}
               <View style={styles.orderSummaryCard}>
@@ -405,7 +416,7 @@ export default function CartScreen({ navigation }) {
                 )}
 
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Delivery Fee</Text>
+                  <Text style={styles.summaryLabel}>{activeCartTab === 'products' ? 'Delivery Fee' : 'Booking Fee'}</Text>
                   <Text style={[styles.summaryValue, { color: '#16A34A', fontWeight: '800' }]}>FREE</Text>
                 </View>
 
@@ -419,10 +430,12 @@ export default function CartScreen({ navigation }) {
 
               {/* Free Shipping & Security Info */}
               <View style={styles.footerFeatures}>
-                <View style={styles.featureRow}>
-                  <Truck size={20} color="#1E293B" weight="regular" />
-                  <Text style={styles.featureText}>Free Shipping for orders ₹990</Text>
-                </View>
+                {activeCartTab === 'products' && (
+                  <View style={styles.featureRow}>
+                    <Truck size={20} color="#1E293B" weight="regular" />
+                    <Text style={styles.featureText}>Free Shipping for orders ₹990</Text>
+                  </View>
+                )}
 
                 <View style={styles.featureRow}>
                   <ShieldCheck size={20} color="#1E293B" weight="regular" />
@@ -437,22 +450,30 @@ export default function CartScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🛍️</Text>
-            <Text style={styles.emptyTitle}>Your Bag is Empty</Text>
-            <Text style={styles.emptySubtitle}>Explore our latest collections and add items to your bag.</Text>
+            <Text style={styles.emptyIcon}>{activeCartTab === 'products' ? '🛍️' : '📅'}</Text>
+            <Text style={styles.emptyTitle}>
+              {activeCartTab === 'products' ? 'Your Bag is Empty' : 'No Bookings Found'}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {activeCartTab === 'products'
+                ? 'Explore our latest collections and add items to your bag.'
+                : 'Explore services, restaurants & fast food, and book slots!'}
+            </Text>
             <TouchableOpacity
               style={styles.shopNowBtn}
-              onPress={() => navigation.navigate('Home')}
+              onPress={() => navigation.navigate(activeCartTab === 'products' ? 'Home' : 'Categories')}
               activeOpacity={0.8}
             >
-              <Text style={styles.shopNowText}>Shop Now</Text>
+              <Text style={styles.shopNowText}>
+                {activeCartTab === 'products' ? 'Shop Now' : 'Explore Services'}
+              </Text>
             </TouchableOpacity>
           </View>
         }
       />
 
       {/* ─── Sticky Bottom Checkout Bar (Image 2) ────────────────────────── */}
-      {allCartItems.length > 0 && (
+      {activeItems.length > 0 && (
         <View style={styles.stickyCheckoutBar}>
           {/* Select All Checkbox */}
           <TouchableOpacity
@@ -491,6 +512,7 @@ export default function CartScreen({ navigation }) {
               navigation.navigate('Checkout', {
                 totalAmount: totalPrice,
                 selectedItems: selectedItems,
+                isBooking: activeCartTab === 'bookings',
               });
             }}
             activeOpacity={0.85}
@@ -1083,5 +1105,48 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13.5,
     fontWeight: '800',
+  },
+  cartTabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: '#FAF9F5',
+  },
+  cartTabBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderColor: 'transparent',
+  },
+  cartTabBtnActive: {
+    borderColor: '#A8824B',
+  },
+  cartTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    letterSpacing: 0.3,
+  },
+  cartTabTextActive: {
+    color: '#1E293B',
+    fontWeight: '800',
+  },
+  bookingSlotBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAF6EC',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 168, 76, 0.2)',
+    alignSelf: 'flex-start',
+  },
+  bookingSlotText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#A8824B',
   },
 });

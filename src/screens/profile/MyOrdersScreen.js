@@ -69,9 +69,9 @@ export default function MyOrdersScreen({ navigation }) {
       const demoDeliveredOrder = {
         id: 'ORD-984321',
         date: 'Jan 23, 2026',
-        totalAmount: 129.99,
+        totalAmount: 1290,
         status: 'Delivered',
-        items: [{ id: 'p_redemp_1', name: 'DISHWA FASHION Kurtas', price: 129.99, quantity: 1, emoji: '👗', size: 'S' }],
+        items: [{ id: 'p_redemp_1', name: 'DISHWA FASHION Kurtas', price: 1290, quantity: 1, emoji: '👗', size: 'S' }],
         paymentMethod: 'Stripe Card',
         statusSubtext: 'On Thu, 23 Jan, 1:57 PM'
       };

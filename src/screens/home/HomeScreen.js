@@ -354,15 +354,7 @@ export default function HomeScreen({ navigation }) {
             />
           </TouchableOpacity>
 
-          {/* Translucent Add Button on bottom right */}
-          <TouchableOpacity
-            style={styles.gridAddBtn}
-            onPress={() => navigation.navigate('ProductDetails', buildProductRouteParams(item))}
-            activeOpacity={0.85}
-          >
-            <ShoppingBagOpen size={13} color="#222" weight="bold" style={{ marginRight: 4 }} />
-            <Text style={styles.gridAddText}>Add</Text>
-          </TouchableOpacity>
+
         </View>
 
         {/* Info Row Below Photo */}

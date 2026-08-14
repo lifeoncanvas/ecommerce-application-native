@@ -23,6 +23,7 @@ import {
   getSearchHistory,
 } from '../../api/products.api';
 import { buildProductRouteParams } from '../../utils/productResolver';
+import { CURRENCY } from '../../utils/currency';
 
 const withTimeout = (promise, ms = 2500) => {
   return Promise.race([
@@ -145,12 +146,12 @@ export default function SearchScreen({ navigation }) {
       items = items.filter((p) => p.vendorId === selectedVendorId);
     }
     if (priceRange !== 'all') {
-      if (priceRange === 'under20') {
-        items = items.filter((p) => p.price < 20);
-      } else if (priceRange === '20to100') {
-        items = items.filter((p) => p.price >= 20 && p.price <= 100);
-      } else if (priceRange === 'over100') {
-        items = items.filter((p) => p.price > 100);
+      if (priceRange === 'under400') {
+        items = items.filter((p) => p.price < 400);
+      } else if (priceRange === '400to800') {
+        items = items.filter((p) => p.price >= 400 && p.price <= 800);
+      } else if (priceRange === 'over800') {
+        items = items.filter((p) => p.price > 800);
       }
     }
 
@@ -188,7 +189,7 @@ export default function SearchScreen({ navigation }) {
           <Text style={styles.itemBrand}>{vendor?.name || 'Brand'}</Text>
           <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
           <View style={styles.ratingPriceRow}>
-            <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+            <Text style={styles.itemPrice}>{CURRENCY.format(item.price)}</Text>
             <View style={styles.bullet} />
             <Text style={styles.starText}>★</Text>
             <Text style={styles.ratingText}>{item.rating}</Text>
@@ -377,9 +378,9 @@ export default function SearchScreen({ navigation }) {
               <View style={styles.filterPillsRow}>
                 {[
                   { id: 'all', label: 'All Prices' },
-                  { id: 'under20', label: 'Under $20' },
-                  { id: '20to100', label: '$20 to $100' },
-                  { id: 'over100', label: 'Over $100' },
+                  { id: 'under400', label: 'Under ₹400' },
+                  { id: '400to800', label: '₹400 - ₹800' },
+                  { id: 'over800', label: 'Over ₹800' },
                 ].map((item) => (
                   <TouchableOpacity
                     key={item.id}

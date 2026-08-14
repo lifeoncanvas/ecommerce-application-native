@@ -101,6 +101,14 @@ export default function WishlistScreen({ navigation }) {
 
   // Local state for removed items to allow immediate optimistic UI updates
   const [removedIds, setRemovedIds] = useState([]);
+  const [activeWishlistTab, setActiveWishlistTab] = useState('products');
+
+  const isBookingItem = (item) => {
+    if (item.categoryId) {
+      return item.categoryId === 'cat_food' || item.categoryId === 'cat_services';
+    }
+    return false;
+  };
 
   // Load removed default items on mount
   useEffect(() => {
@@ -149,6 +157,13 @@ export default function WishlistScreen({ navigation }) {
     return [...defaultFiltered, ...contextMapped];
   }, [removedIds, contextWishlist]);
 
+  const filteredWishlistItems = useMemo(() => {
+    return activeWishlistItems.filter((item) => {
+      const isBook = isBookingItem(item);
+      return activeWishlistTab === 'products' ? !isBook : isBook;
+    });
+  }, [activeWishlistItems, activeWishlistTab]);
+
   // Remove from Wishlist
   const handleRemoveWishlist = async (itemId, itemName) => {
     const updatedRemovedIds = [...removedIds, itemId];
@@ -175,7 +190,7 @@ export default function WishlistScreen({ navigation }) {
     showToast(`Added ${item.name} to your Bag!`);
   };
 
-  const totalCartCount = cartItems?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 3;
+  const totalCartCount = cartItems?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 0;
 
   const renderWishlistCard = ({ item }) => {
     return (
@@ -291,9 +306,31 @@ export default function WishlistScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {/* ─── Wishlist Navigation Tabs ────────────────────────────────────── */}
+      <View style={styles.wishlistTabsContainer}>
+        <TouchableOpacity
+          style={[styles.wishlistTabBtn, activeWishlistTab === 'products' && styles.wishlistTabBtnActive]}
+          onPress={() => setActiveWishlistTab('products')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.wishlistTabText, activeWishlistTab === 'products' && styles.wishlistTabTextActive]}>
+            Products ({activeWishlistItems.filter(i => !isBookingItem(i)).length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.wishlistTabBtn, activeWishlistTab === 'services' && styles.wishlistTabBtnActive]}
+          onPress={() => setActiveWishlistTab('services')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.wishlistTabText, activeWishlistTab === 'services' && styles.wishlistTabTextActive]}>
+            Services ({activeWishlistItems.filter(i => isBookingItem(i)).length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* ─── Wishlist Items Grid ─────────────────────────────────────────── */}
       <FlatList
-        data={activeWishlistItems}
+        data={filteredWishlistItems}
         numColumns={2}
         keyExtractor={(item) => item.id}
         renderItem={renderWishlistCard}
@@ -301,7 +338,7 @@ export default function WishlistScreen({ navigation }) {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListFooterComponent={
-          activeWishlistItems.length > 0 ? (
+          filteredWishlistItems.length > 0 ? (
             <View style={styles.forYouSection}>
               <Text style={styles.forYouTitle}>For you</Text>
               <View style={styles.forYouGrid}>
@@ -329,17 +366,23 @@ export default function WishlistScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>❤️</Text>
-            <Text style={styles.emptyTitle}>Your Wishlist is Empty</Text>
+            <Text style={styles.emptyIcon}>{activeWishlistTab === 'products' ? '❤️' : '📅'}</Text>
+            <Text style={styles.emptyTitle}>
+              {activeWishlistTab === 'products' ? 'Your Wishlist is Empty' : 'No Services Saved'}
+            </Text>
             <Text style={styles.emptySubtitle}>
-              Explore our trending collections and save your favorite styles here.
+              {activeWishlistTab === 'products'
+                ? 'Explore our trending collections and save your favorite styles here.'
+                : 'Explore services, restaurants & fast food, and save your favorites here.'}
             </Text>
             <TouchableOpacity
               style={styles.shopNowBtn}
-              onPress={() => navigation.navigate('Home')}
+              onPress={() => navigation.navigate(activeWishlistTab === 'products' ? 'Home' : 'Categories')}
               activeOpacity={0.8}
             >
-              <Text style={styles.shopNowText}>Start Shopping</Text>
+              <Text style={styles.shopNowText}>
+                {activeWishlistTab === 'products' ? 'Start Shopping' : 'Explore Services'}
+              </Text>
             </TouchableOpacity>
           </View>
         }
@@ -676,6 +719,32 @@ const styles = StyleSheet.create({
   toastBagText: {
     color: '#1E293B',
     fontSize: 11,
+    fontWeight: '800',
+  },
+  wishlistTabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: '#FAF9F5',
+  },
+  wishlistTabBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderColor: 'transparent',
+  },
+  wishlistTabBtnActive: {
+    borderColor: '#A8824B',
+  },
+  wishlistTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    letterSpacing: 0.3,
+  },
+  wishlistTabTextActive: {
+    color: '#1E293B',
     fontWeight: '800',
   },
 });

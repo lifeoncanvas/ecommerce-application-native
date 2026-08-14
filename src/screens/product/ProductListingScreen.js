@@ -237,7 +237,13 @@ export default function ProductListingScreen({ route, navigation }) {
 
   // Filter products by selected category, gender, brand, size, price, and sort
   const displayedProducts = useMemo(() => {
-    let items = RICH_LISTING_CATALOG;
+    let items = ALL_FEED_PRODUCTS.filter((p) => p.categoryId === categoryId);
+    if (items.length === 0) {
+      items = RICH_LISTING_CATALOG.filter((p) => p.categoryId === categoryId);
+    }
+    if (items.length === 0) {
+      items = RICH_LISTING_CATALOG;
+    }
 
     if (selectedSubCatId !== 'all') {
       items = items.filter((p) => p.subcat === selectedSubCatId);

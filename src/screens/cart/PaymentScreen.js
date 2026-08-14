@@ -16,6 +16,7 @@ import Button from '../../components/Button';
 import { useCart } from '../../context/CartContext';
 import { createOrder } from '../../api/orders.api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CURRENCY } from '../../utils/currency';
 import { useTheme } from '../../context/ThemeContext';
 import {
   processStripePayment,
@@ -35,7 +36,7 @@ const withTimeout = (promise, ms = 2500) => {
 export default function PaymentScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const { addressId, shippingRateId, totalAmount } = route?.params || {};
+  const { addressId, shippingRateId, totalAmount, isBooking, selectedItems } = route?.params || {};
   const { clear, items } = useCart();
   
   const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe', 'paypal', 'espees'
@@ -140,7 +141,7 @@ export default function PaymentScreen({ route, navigation }) {
       setLoading(false);
       sendLocalNotification(
         'Order Placed Successfully! 📦',
-        `Your order #${mockOrderId} has been created. Total: $${totalAmount.toFixed(2)}`
+        `Your order #${mockOrderId} has been created. Total: ${CURRENCY.format(totalAmount)}`
       );
       Alert.alert(
         'Order Confirmed! 🎉',
@@ -148,7 +149,12 @@ export default function PaymentScreen({ route, navigation }) {
         [
           {
             text: 'View Receipt',
-            onPress: () => navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount })
+            onPress: () => navigation.navigate('OrderSuccess', {
+              orderId: mockOrderId,
+              totalAmount,
+              isBooking,
+              selectedItems,
+            })
           }
         ]
       );
@@ -161,7 +167,7 @@ export default function PaymentScreen({ route, navigation }) {
       setLoading(false);
       sendLocalNotification(
         'Order Placed (Offline) 📦',
-        `Your order #${mockOrderId} has been saved locally. Total: $${totalAmount.toFixed(2)}`
+        `Your order #${mockOrderId} has been saved locally. Total: ${CURRENCY.format(totalAmount)}`
       );
       Alert.alert(
         'Order Confirmed! 🎉',
@@ -169,7 +175,12 @@ export default function PaymentScreen({ route, navigation }) {
         [
           {
             text: 'View Receipt',
-            onPress: () => navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount })
+            onPress: () => navigation.navigate('OrderSuccess', {
+              orderId: mockOrderId,
+              totalAmount,
+              isBooking,
+              selectedItems,
+            })
           }
         ]
       );
@@ -328,7 +339,7 @@ export default function PaymentScreen({ route, navigation }) {
         {/* Pricing Summary card */}
         <View style={styles.priceSummary}>
           <Text style={styles.priceSummaryLabel}>Final Amount to Pay</Text>
-          <Text style={styles.priceSummaryValue}>${totalAmount.toFixed(2)}</Text>
+          <Text style={styles.priceSummaryValue}>{CURRENCY.format(totalAmount)}</Text>
         </View>
       </ScrollView>
 
@@ -340,7 +351,7 @@ export default function PaymentScreen({ route, navigation }) {
             <Text style={styles.loadingText}>Processing Payment...</Text>
           </View>
         ) : (
-          <Button title={`Pay Now $${totalAmount.toFixed(2)}`} onPress={handlePayment} />
+          <Button title={`Pay Now ${CURRENCY.format(totalAmount)}`} onPress={handlePayment} />
         )}
       </View>
     </SafeAreaView>

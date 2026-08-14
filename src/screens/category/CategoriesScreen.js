@@ -15,9 +15,11 @@ import { CaretLeft, ShoppingBagOpen, CaretRight, Star } from 'phosphor-react-nat
 import { typography, spacing, radius } from '../../theme';
 import { categories as mockCategories, products as mockProducts, vendors } from '../../data/mockData';
 import { getCategories, getCategoryDetails, getCategoryProducts } from '../../api/products.api';
+import { CURRENCY } from '../../utils/currency';
 import { useTheme } from '../../context/ThemeContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
 import { useTabBarVisibility } from '../../context/TabBarVisibilityContext';
+import { useCart } from '../../context/CartContext';
 
 const { width } = Dimensions.get('window');
 
@@ -58,6 +60,7 @@ const SUBCAT_IMAGES = {
     { id: 'sub_serv_2', name: 'Arcade & Bowling', image: require('../../../assets/images/categories/cat_4.jpg') },
     { id: 'sub_serv_3', name: 'Spa & Salon', image: require('../../../assets/images/products/product_3.jpg') },
     { id: 'sub_serv_4', name: 'Carwash Spa', image: require('../../../assets/images/vendors/vendor_8.jpg') },
+    { id: 'sub_food_1', name: 'Restaurants', image: require('../../../assets/images/categories/cat_1.jpg') },
   ],
 };
 
@@ -218,6 +221,8 @@ export default function CategoriesScreen({ navigation }) {
   const { handleScrollForTabBar } = useTabBarVisibility();
   const [activeCategoryId, setActiveCategoryId] = useState('cat_food');
   const [loading, setLoading] = useState(false);
+  const { items: cartItems } = useCart();
+  const totalCartCount = cartItems?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 0;
 
   const activeCategory = CATEGORY_TABS.find((c) => c.id === activeCategoryId) || CATEGORY_TABS[0];
   const subcategories = SUBCAT_IMAGES[activeCategoryId] || SUBCAT_IMAGES.cat_food;
@@ -255,6 +260,11 @@ export default function CategoriesScreen({ navigation }) {
           onPress={() => navigation.navigate('Cart')}
         >
           <ShoppingBagOpen size={24} color="#1E293B" weight="regular" />
+          {totalCartCount > 0 && (
+            <View style={styles.cartCountBadge}>
+              <Text style={styles.cartCountText}>{totalCartCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -349,7 +359,7 @@ export default function CategoriesScreen({ navigation }) {
                 </Text>
                 <View style={styles.priceRatingRow}>
                   <Text style={styles.prodPrice}>
-                    ${Number(prod.price).toFixed(2)}
+                    {CURRENCY.format(prod.price)}
                   </Text>
                   <View style={styles.ratingBadge}>
                     <Star size={11} color="#F59E0B" weight="fill" style={{ marginRight: 3 }} />
@@ -593,5 +603,22 @@ const styles = StyleSheet.create({
   },
   arrowContainer: {
     paddingLeft: 8,
+  },
+  cartCountBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#E11D48',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  cartCountText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
   },
 });
