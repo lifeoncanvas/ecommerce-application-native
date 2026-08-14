@@ -30,7 +30,7 @@ export const IS_OFFLINE = false;
 
 // Android uses 10.0.2.2 for localhost, iOS uses localhost
 const LOCAL_IP = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-export const BASE_URL = `http://${LOCAL_IP}:8080/api`;
+export const BASE_URL = `http://${LOCAL_IP}:8084/api`;
 
 const client = axios.create({
   baseURL: BASE_URL,

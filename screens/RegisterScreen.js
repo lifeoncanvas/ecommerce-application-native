@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 
-const BASE_URL = 'http://10.0.2.2:8080/api/auth'; // Adjust if testing on physical device
+const BASE_URL = 'http://localhost:8084/api/auth'; // Adjust if testing on physical device
 
 export default function RegisterScreen({ navigation }) {
     const [fullName, setFullName] = useState('');
