@@ -19,6 +19,13 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { products as mockProducts } from '../../data/mockData';
 import * as DocumentPicker from 'expo-document-picker';
+import { getMyStore } from '../../api/stores.api';
+import {
+  getStoreProducts,
+  createMyStoreProduct,
+  updateProduct as updateStoreProductApi,
+  deleteProduct as deleteStoreProductApi,
+} from '../../api/products.api';
 import {
   getVendorDashboard,
   getVendorOrders,
@@ -26,9 +33,6 @@ import {
   acceptVendorOrder,
   dispatchVendorOrder,
   deliverVendorOrder,
-  createVendorProduct,
-  updateVendorProduct,
-  deleteVendorProduct,
   uploadProductImages,
 } from '../../api/vendor.api';
 import {
@@ -62,6 +66,7 @@ export default function VendorDashboardScreen({ navigation }) {
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'orders', 'products'
   const [loading, setLoading] = useState(false);
+  const [storeInfo, setStoreInfo] = useState(null);
 
   // States
   const [stats, setStats] = useState({ revenue: 685.90, ordersCount: 3, productsCount: 3 });
@@ -82,7 +87,7 @@ export default function VendorDashboardScreen({ navigation }) {
   const [nameError, setNameError] = useState('');
   const [priceError, setPriceError] = useState('');
 
-  const AVAILABLE_EMOJIS = ['🍔', '🍕', '👕', '📱', '👟', '☕', '🎮', '🎁', '🥗', '🍩'];
+  const AVAILABLE_EMOJIS = ['👟', '👕', '🎒', '📱', '🍔', '🍕', '☕', '🎮', '🎁', '🥗', '🍩'];
 
   // Delete product listing
   const handleDeleteProduct = (productId) => {
@@ -97,9 +102,9 @@ export default function VendorDashboardScreen({ navigation }) {
           onPress: async () => {
             setLoading(true);
             try {
-              await withTimeout(deleteVendorProduct(productId), 2000);
+              await withTimeout(deleteStoreProductApi(productId), 2000);
               setVendorProducts((prev) => prev.filter((p) => p.id !== productId));
-              Alert.alert('Success', 'Listing deleted successfully!');
+              Alert.alert('Success', 'Listing deleted successfully from database!');
             } catch (e) {
               console.warn('DELETE api failed, updating locally.', e.message);
               setVendorProducts((prev) => prev.filter((p) => p.id !== productId));
@@ -135,7 +140,7 @@ export default function VendorDashboardScreen({ navigation }) {
     setProdCategory(item.categoryId || 'cat_food');
     setProdDescription(item.description || '');
     setProdEmoji(item.emoji || '🎁');
-    setUploadedImages(item.images || []);
+    setUploadedImages(item.imageUrl ? [item.imageUrl] : item.images || []);
     setNameError('');
     setPriceError('');
     setProductModalVisible(true);
@@ -169,29 +174,29 @@ export default function VendorDashboardScreen({ navigation }) {
     const payload = {
       name: prodName,
       price: priceNum,
-      categoryId: prodCategory,
+      categoryId: 2, // Default or parsed category
       description: prodDescription,
       emoji: prodEmoji,
-      images: uploadedImages,
-      vendorId: user?.vendorId || 'v_jazari',
+      imageUrl: uploadedImages[0] || null,
+      stockQuantity: 20
     };
 
     try {
       if (editingProductId) {
-        await withTimeout(updateVendorProduct(editingProductId, payload), 2000);
+        await withTimeout(updateStoreProductApi(editingProductId, payload), 2000);
         setVendorProducts((prev) =>
           prev.map((p) => (p.id === editingProductId ? { ...p, ...payload } : p))
         );
-        Alert.alert('Success', 'Product updated successfully!');
+        Alert.alert('Success', 'Product updated successfully in store database!');
       } else {
-        const res = await withTimeout(createVendorProduct(payload), 2000);
-        const newId = res.data?.id || `p_mock_${Date.now()}`;
-        setVendorProducts((prev) => [{ ...payload, id: newId }, ...prev]);
-        Alert.alert('Success', 'Product added successfully!');
+        const res = await withTimeout(createMyStoreProduct(payload, user?.email || 'nike@store.com'), 2500);
+        const createdItem = res.data || { ...payload, id: `p_mock_${Date.now()}` };
+        setVendorProducts((prev) => [createdItem, ...prev]);
+        Alert.alert('Success', 'New product added to store database!');
       }
       setProductModalVisible(false);
     } catch (e) {
-      console.warn('POST/PUT vendor product failed, saving locally.', e.message);
+      console.warn('POST/PUT product failed, saving locally.', e.message);
       if (editingProductId) {
         setVendorProducts((prev) =>
           prev.map((p) => (p.id === editingProductId ? { ...p, ...payload } : p))
@@ -219,7 +224,7 @@ export default function VendorDashboardScreen({ navigation }) {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'image/*',
         copyToCacheDirectory: true,
-        multiple: true, // Allow multi-image selection from files
+        multiple: true,
       });
 
       if (result.canceled || !result.assets) return;
@@ -261,29 +266,27 @@ export default function VendorDashboardScreen({ navigation }) {
     }
   };
 
-  // Fetch Dashboard Stats, Orders, and Listings
+  // Fetch Dashboard Stats, Store info, and Store Products
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, ordersRes, productsRes] = await withTimeout(
-        Promise.all([
-          getVendorDashboard(),
-          getVendorOrders(),
-          getVendorProducts(user?.vendorId || 'v_jazari'),
-        ]),
-        2500
-      );
-
-      if (statsRes.data) setStats(statsRes.data);
-      if (ordersRes.data) setOrders(ordersRes.data || []);
-      if (productsRes.data) {
-        setVendorProducts(productsRes.data || []);
-      } else {
-        setVendorProducts(mockProducts.filter((p) => p.vendorId === user?.vendorId || p.vendorId === 'v_jazari'));
+      const email = user?.email || 'nike@store.com';
+      const storeRes = await withTimeout(getMyStore(email), 2500);
+      let loadedStore = storeRes.data;
+      if (loadedStore) {
+        setStoreInfo(loadedStore);
+        const storeProductsRes = await withTimeout(getStoreProducts(loadedStore.id), 2500);
+        if (storeProductsRes.data && storeProductsRes.data.length > 0) {
+          setVendorProducts(storeProductsRes.data);
+          setStats({
+            revenue: 12850.00,
+            ordersCount: 5,
+            productsCount: storeProductsRes.data.length
+          });
+        }
       }
     } catch (e) {
-      console.warn('GET /api/vendor dashboard failed, loading offline mocks.', e.message);
-      
+      console.warn('GET store/products failed, loading offline mocks.', e.message);
       setStats({
         revenue: 685.90,
         ordersCount: 3,
@@ -294,26 +297,18 @@ export default function VendorDashboardScreen({ navigation }) {
         {
           id: 'v_ord_1',
           customerName: 'Obinna K.',
-          items: '1x Spicy Shawarma, 1x Fresh Orange Juice',
-          total: 18.50,
+          items: '1x Air Max 2026, 1x Nike Dri-FIT T-Shirt',
+          total: 10498.00,
           status: 'Placed',
           date: 'Today, 11:20 AM'
         },
         {
           id: 'v_ord_2',
           customerName: 'Halima S.',
-          items: '2x Jollof Rice Premium, 1x Grilled Chicken Wing',
-          total: 34.00,
+          items: '1x Nike Heritage Backpack',
+          total: 2499.00,
           status: 'Processing',
           date: 'Yesterday, 6:15 PM'
-        },
-        {
-          id: 'v_ord_3',
-          customerName: 'Chidi A.',
-          items: '1x Jazari special Platter',
-          total: 45.00,
-          status: 'Dispatched',
-          date: 'Jan 22, 2026'
         }
       ]);
 
@@ -326,6 +321,7 @@ export default function VendorDashboardScreen({ navigation }) {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
 
   // Handle order processing stages
   const handleProcessOrder = async (orderId, currentStatus) => {
