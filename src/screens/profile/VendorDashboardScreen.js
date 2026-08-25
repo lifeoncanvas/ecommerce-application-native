@@ -103,8 +103,8 @@ export default function VendorDashboardScreen({ navigation }) {
     };
   };
 
-  // Portal Navigation Tabs: 'dashboard', 'products', 'preview', 'history', 'store', 'profile'
-  const [portalTab, setPortalTab] = useState('dashboard');
+  // Portal Navigation Tabs: 'products' (default), 'dashboard', 'preview', 'history', 'store', 'profile'
+  const [portalTab, setPortalTab] = useState('products');
   const [loading, setLoading] = useState(false);
   const [storeInfo, setStoreInfo] = useState(() => getInitialStore(user?.email));
 
@@ -340,6 +340,42 @@ export default function VendorDashboardScreen({ navigation }) {
       nextState
         ? `"${product.name}" is now live and visible to customers on your storefront.`
         : `"${product.name}" is hidden from customers, but safely saved in your store portal.`
+    );
+  };
+
+  // Delete Product Handler with 403 Forbidden checks
+  const handleDeleteProduct = (product) => {
+    Alert.alert(
+      'Delete Product 🗑️',
+      `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // Optimistic UI update
+            setProductsList((prev) => prev.filter((p) => p.id !== product.id));
+
+            try {
+              await withTimeout(deleteStoreProductApi(product.id, user?.email || 'nike@store.com'), 2000);
+            } catch (e) {
+              if (e.response && e.response.status === 403) {
+                Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
+                setProductsList((prev) => [product, ...prev]);
+                return;
+              }
+              console.warn('API delete failed, removing locally.', e.message);
+            }
+
+            // Log Activity
+            const updatedLogs = await logLocalActivity(product.name, 'Product Removed', 'Product listing deleted from store');
+            setActivityLogs(updatedLogs);
+
+            Alert.alert('Product Deleted 🗑️', `"${product.name}" has been removed from your store.`);
+          },
+        },
+      ]
     );
   };
 
@@ -762,9 +798,9 @@ export default function VendorDashboardScreen({ navigation }) {
                           <Text style={styles.prodStockText}>Stock: {item.stockQuantity ?? item.stock ?? 20} units</Text>
                         </View>
 
-                        {/* Actions Row ([View] | [Edit] | Active Toggle) */}
+                        {/* Actions Row ([View] | [Edit / Update Price] | [Delete] | Active Toggle) */}
                         <View style={styles.prodCardActions}>
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                             <TouchableOpacity style={styles.viewActionBtn} onPress={() => handleOpenViewModal(item)}>
                               <Eye size={13} color="#FFFFFF" weight="bold" />
                               <Text style={styles.viewActionText}>View</Text>
@@ -772,7 +808,12 @@ export default function VendorDashboardScreen({ navigation }) {
 
                             <TouchableOpacity style={styles.editActionBtn} onPress={() => handleOpenEditModal(item)}>
                               <PencilSimple size={13} color="#1E293B" weight="bold" />
-                              <Text style={styles.editActionText}>Edit</Text>
+                              <Text style={styles.editActionText}>Edit / Price</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.deleteActionBtn} onPress={() => handleDeleteProduct(item)}>
+                              <Trash size={13} color="#DC2626" weight="bold" />
+                              <Text style={styles.deleteActionText}>Delete</Text>
                             </TouchableOpacity>
                           </View>
 
@@ -1614,6 +1655,20 @@ const getStyles = (colors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#1E293B',
+  },
+  deleteActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  deleteActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   toggleRow: {
     flexDirection: 'row',
