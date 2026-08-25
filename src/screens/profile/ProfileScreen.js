@@ -231,6 +231,28 @@ export default function ProfileScreen({ navigation }) {
                   {points >= 500 ? 'Platinum Member' : points >= 200 ? 'Gold Member' : 'Loyalty Member'}
                 </Text>
               </View>
+
+              {/* Store Owner Quick Portal Shortcut Button */}
+              {(user?.isVendor || user?.role === 'STORE_OWNER' || user?.email?.includes('@store.com') || user?.email?.includes('@vendor.com')) && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#1E293B',
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    marginTop: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => navigation.navigate('VendorDashboard')}
+                  activeOpacity={0.85}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
+                    🏬 Open Store Portal
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
           

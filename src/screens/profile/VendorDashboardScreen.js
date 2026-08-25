@@ -570,6 +570,7 @@ export default function VendorDashboardScreen({ navigation }) {
           {[
             { key: 'dashboard', label: 'Dashboard', Icon: House },
             { key: 'products', label: `My Products (${productsList.length})`, Icon: Package },
+            { key: 'add_product', label: '+ Add Product ➕', Icon: Plus, isAction: true },
             { key: 'preview', label: 'Live Customer View 👁️', Icon: Eye },
             { key: 'history', label: 'Change History', Icon: History },
             { key: 'store', label: 'My Store Info', Icon: Storefront },
@@ -580,12 +581,18 @@ export default function VendorDashboardScreen({ navigation }) {
             return (
               <TouchableOpacity
                 key={item.key}
-                style={[styles.navItem, isActive && styles.navItemActive]}
-                onPress={() => setPortalTab(item.key)}
+                style={[styles.navItem, isActive && styles.navItemActive, item.isAction && { backgroundColor: '#10B981' }]}
+                onPress={() => {
+                  if (item.isAction) {
+                    handleOpenAddModal();
+                  } else {
+                    setPortalTab(item.key);
+                  }
+                }}
                 activeOpacity={0.8}
               >
-                <TabIcon size={16} color={isActive ? '#FFFFFF' : '#94A3B8'} weight={isActive ? 'fill' : 'regular'} />
-                <Text style={[styles.navItemText, isActive && styles.navItemTextActive]}>
+                <TabIcon size={16} color={item.isAction ? '#FFFFFF' : (isActive ? '#FFFFFF' : '#94A3B8')} weight={isActive || item.isAction ? 'fill' : 'regular'} />
+                <Text style={[styles.navItemText, (isActive || item.isAction) && styles.navItemTextActive]}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
