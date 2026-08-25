@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,14 @@ import {
   TextInput,
   Image,
   Switch,
+  Platform,
 } from 'react-native';
 import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { products as mockProducts, categories as mockCategories } from '../../data/mockData';
-import * as DocumentPicker from 'expo-document-picker';
+// expo-document-picker removed - using Platform-safe file picker instead
 import { getMyStore } from '../../api/stores.api';
 import {
   getStoreProducts,
@@ -420,29 +421,46 @@ export default function VendorDashboardScreen({ navigation }) {
     setViewProductModalVisible(true);
   };
 
-  // Upload Product Images
+  // Upload Product Images — Platform-safe (works on both Web and Native)
   const handlePickImages = async () => {
     if (uploadedImages.length >= 5) {
       Alert.alert('Image Limit', 'You can attach up to 5 photos per product.');
       return;
     }
 
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'image/*',
-        copyToCacheDirectory: true,
-        multiple: true,
-      });
-
-      if (result.canceled || !result.assets) return;
-
-      const newUris = result.assets.map((a) => a.uri);
-      setUploadedImages((prev) => [...prev, ...newUris].slice(0, 5));
-    } catch (e) {
-      console.warn('Image picker error:', e);
-      const fallbackUrl = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400';
-      setUploadedImages((prev) => [...prev, fallbackUrl].slice(0, 5));
+    if (Platform.OS === 'web') {
+      // Web: Create a hidden file input and trigger it
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.multiple = true;
+      input.onchange = (e) => {
+        const files = Array.from(e.target.files || []);
+        const urls = files.map((f) => URL.createObjectURL(f));
+        setUploadedImages((prev) => [...prev, ...urls].slice(0, 5));
+      };
+      input.click();
+      return;
     }
+
+    // Native: Prompt for image URL (since expo-image-picker may not be available)
+    Alert.prompt(
+      'Add Product Image',
+      'Paste an image URL (e.g. from Unsplash):',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add',
+          onPress: (url) => {
+            if (url && url.trim()) {
+              setUploadedImages((prev) => [...prev, url.trim()].slice(0, 5));
+            }
+          },
+        },
+      ],
+      'plain-text',
+      ''
+    );
   };
 
   const handleRemoveImage = (index) => {
