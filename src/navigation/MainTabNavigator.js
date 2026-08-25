@@ -53,6 +53,8 @@ function HomeStack() {
       <HomeStackNav.Screen name="ProductListing" component={ProductListingScreen} />
       <HomeStackNav.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <HomeStackNav.Screen name="Search" component={SearchScreen} />
+      <HomeStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
+      <HomeStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
     </HomeStackNav.Navigator>
   );
 }

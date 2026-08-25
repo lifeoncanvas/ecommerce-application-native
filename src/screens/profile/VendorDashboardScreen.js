@@ -864,7 +864,7 @@ export default function VendorDashboardScreen({ navigation }) {
           {/* ─── 4. CHANGE HISTORY LOG VIEW ───────────────────────────────── */}
           {portalTab === 'history' && (
             <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
-              <Text style={sectionHeadingStyle}>CHANGE HISTORY LOG</Text>
+              <Text style={styles.sectionHeading}>CHANGE HISTORY LOG</Text>
               <Text style={styles.historySub}>
                 Audit timeline of every price change, new listing, and status toggle for {storeInfo.name}.
               </Text>
@@ -896,7 +896,7 @@ export default function VendorDashboardScreen({ navigation }) {
           {/* ─── 5. MY STORE INFO VIEW ────────────────────────────────────── */}
           {portalTab === 'store' && (
             <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
-              <Text style={sectionHeadingStyle}>STORE DETAILS</Text>
+              <Text style={styles.sectionHeading}>STORE DETAILS</Text>
 
               <View style={styles.storeCard}>
                 <View style={styles.storeHeaderRow}>
@@ -940,7 +940,7 @@ export default function VendorDashboardScreen({ navigation }) {
           {/* ─── 6. ACCOUNT PROFILE VIEW ─────────────────────────────────── */}
           {portalTab === 'profile' && (
             <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
-              <Text style={sectionHeadingStyle}>STORE OWNER ACCOUNT</Text>
+              <Text style={styles.sectionHeading}>STORE OWNER ACCOUNT</Text>
 
               <View style={styles.profileBox}>
                 <Text style={styles.profileName}>{user?.fullName || user?.name || 'Store Owner'}</Text>
@@ -1213,14 +1213,6 @@ export default function VendorDashboardScreen({ navigation }) {
     </SafeAreaView>
   );
 }
-
-const sectionHeadingStyle = {
-  fontSize: 11,
-  fontWeight: '800',
-  color: '#64748B',
-  letterSpacing: 0.8,
-  marginBottom: 10,
-};
 
 const getStyles = (colors) => StyleSheet.create({
   container: {

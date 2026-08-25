@@ -466,7 +466,13 @@ export default function HomeScreen({ navigation }) {
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
-            onPress={() => navigation.navigate('VendorDashboard')}
+            onPress={() => {
+              try {
+                navigation.navigate('VendorDashboard');
+              } catch (e) {
+                navigation.navigate('Profile', { screen: 'VendorDashboard' });
+              }
+            }}
             activeOpacity={0.85}
           >
             <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
