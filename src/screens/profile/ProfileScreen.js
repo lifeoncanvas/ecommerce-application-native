@@ -23,7 +23,7 @@ import {
   ChartLineUp
 } from 'phosphor-react-native';
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileScreen({ navigation, route }) {
   const { user, logout } = useAuth();
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -31,6 +31,18 @@ export default function ProfileScreen({ navigation }) {
   const [points, setPoints] = useState(250);
   const [orderCount, setOrderCount] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
+
+  // Auto-open Vendor Dashboard if this is a vendor login
+  useEffect(() => {
+    const isVendor = user?.isVendor || user?.role === 'STORE_OWNER' ||
+      user?.email?.includes('@store.com') || user?.email?.includes('@vendor.com');
+    if (isVendor && route?.params?.openVendorDashboard) {
+      const timer = setTimeout(() => {
+        navigation.navigate('VendorDashboard');
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [route?.params?.openVendorDashboard, user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,6 +77,8 @@ export default function ProfileScreen({ navigation }) {
       isMounted = false;
     };
   }, [user]);
+
+
 
   const sections = [
     {

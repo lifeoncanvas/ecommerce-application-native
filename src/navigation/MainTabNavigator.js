@@ -219,19 +219,24 @@ function CustomAnimatedTabBar({ state, descriptors, navigation }) {
   );
 }
 
-export default function MainTabNavigator() {
+export default function MainTabNavigator({ isVendor }) {
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomAnimatedTabBar {...props} />}
       screenOptions={{
         headerShown: false,
       }}
+      initialRouteName={isVendor ? 'Profile' : 'Home'}
     >
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Categories" component={CategoriesStack} />
       <Tab.Screen name="Wishlist" component={WishlistStack} />
       <Tab.Screen name="Cart" component={CartStack} />
-      <Tab.Screen name="Profile" component={ProfileStack} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStack}
+        initialParams={isVendor ? { openVendorDashboard: true } : undefined}
+      />
     </Tab.Navigator>
   );
 }

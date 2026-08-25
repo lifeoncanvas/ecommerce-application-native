@@ -70,6 +70,8 @@ export default function LoginScreen({ route, navigation }) {
     
     try {
       await login(identifier, password);
+      // Navigation is handled automatically by RootNavigator
+      // when user state changes after login
     } catch (e) {
       setGeneralError(e.message || 'Login failed. Please check credentials.');
     } finally {

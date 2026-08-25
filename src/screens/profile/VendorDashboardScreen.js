@@ -385,10 +385,10 @@ export default function VendorDashboardScreen({ navigation }) {
     setProdName('');
     setProdPrice('');
     setProdDiscountPrice('');
-    setProdCategory(storeInfo.id === 2 ? 'cat_food' : storeInfo.id === 3 ? 'cat_electronics' : 'cat_fashion');
+    setProdCategory((storeInfo?.id === 2 ? 'cat_food' : storeInfo?.id === 3 ? 'cat_electronics' : 'cat_fashion'));
     setProdDescription('');
     setProdStock('20');
-    setProdEmoji(storeInfo.id === 2 ? '🍔' : storeInfo.id === 3 ? '📱' : '👟');
+    setProdEmoji((storeInfo?.id === 2 ? '🍔' : storeInfo?.id === 3 ? '📱' : '👟'));
     setProdActive(true);
     setUploadedImages([]);
     setNameError('');
@@ -475,7 +475,7 @@ export default function VendorDashboardScreen({ navigation }) {
     const stockNum = parseInt(prodStock, 10) || 0;
 
     const payload = {
-      storeId: storeInfo.id,
+      storeId: storeInfo?.id,
       name: prodName.trim(),
       price: priceNum,
       discountPrice: discountNum,
@@ -546,10 +546,10 @@ export default function VendorDashboardScreen({ navigation }) {
 
   // Open Edit Store Modal
   const handleOpenEditStore = () => {
-    setEditStoreName(storeInfo.name);
-    setEditStoreDesc(storeInfo.description || '');
-    setEditStorePhone(storeInfo.phone || '');
-    setEditStoreAddress(storeInfo.address || '');
+    setEditStoreName((storeInfo?.name || 'My Store'));
+    setEditStoreDesc((storeInfo?.description || '') || '');
+    setEditStorePhone(storeInfo?.phone || '');
+    setEditStoreAddress(storeInfo?.address || '');
     setEditStoreModalVisible(true);
   };
 
@@ -587,7 +587,7 @@ export default function VendorDashboardScreen({ navigation }) {
         </TouchableOpacity>
 
         <View style={styles.hdrTitleCol}>
-          <Text style={styles.hdrStoreTitle} numberOfLines={1}>{storeInfo.name}</Text>
+          <Text style={styles.hdrStoreTitle} numberOfLines={1}>{storeInfo?.name || 'My Store'}</Text>
           <Text style={styles.hdrSubtitle}>Private Vendor Management Portal</Text>
         </View>
 
@@ -649,9 +649,9 @@ export default function VendorDashboardScreen({ navigation }) {
             <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
               {/* Welcome Card */}
               <View style={styles.welcomeBanner}>
-                <Text style={styles.welcomeTitle}>Welcome, {storeInfo.name} 👋</Text>
+                <Text style={styles.welcomeTitle}>Welcome, {(storeInfo?.name || 'My Store')} 👋</Text>
                 <Text style={styles.welcomeSubtitle}>
-                  You are managing <Text style={{ fontWeight: '800', color: '#1E293B' }}>{storeInfo.name}</Text>. Only your store's products are displayed here.
+                  You are managing <Text style={{ fontWeight: '800', color: '#1E293B' }}>{(storeInfo?.name || 'My Store')}</Text>. Only your store's products are displayed here.
                 </Text>
               </View>
 
@@ -712,7 +712,7 @@ export default function VendorDashboardScreen({ navigation }) {
               <View style={styles.quickActionsRow}>
                 <TouchableOpacity style={styles.quickAddBtn} onPress={handleOpenAddModal} activeOpacity={0.85}>
                   <Plus size={18} color="#FFFFFF" weight="bold" />
-                  <Text style={styles.quickAddBtnText}>+ Add Product to {storeInfo.name}</Text>
+                  <Text style={styles.quickAddBtnText}>+ Add Product to {(storeInfo?.name || 'My Store')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -728,7 +728,7 @@ export default function VendorDashboardScreen({ navigation }) {
                 <View style={styles.searchWrapper}>
                   <TextInput
                     style={styles.searchInput}
-                    placeholder={`Search in ${storeInfo.name}...`}
+                    placeholder={`Search in ${(storeInfo?.name || 'My Store')}...`}
                     placeholderTextColor="#94A3B8"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
@@ -835,7 +835,7 @@ export default function VendorDashboardScreen({ navigation }) {
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
                     <Package size={48} color="#94A3B8" />
-                    <Text style={styles.emptyTitle}>No Products Found for {storeInfo.name}</Text>
+                    <Text style={styles.emptyTitle}>No Products Found for {(storeInfo?.name || 'My Store')}</Text>
                     <Text style={styles.emptySub}>Click "+ Add Product" above to create your store's first listing.</Text>
                   </View>
                 }
@@ -851,7 +851,7 @@ export default function VendorDashboardScreen({ navigation }) {
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={styles.previewNoticeTitle}>Live Customer View Preview</Text>
                   <Text style={styles.previewNoticeSub}>
-                    This is exactly how buyers view <Text style={{ fontWeight: '800' }}>{storeInfo.name}</Text> in the e-commerce app. Inactive products are hidden here.
+                    This is exactly how buyers view <Text style={{ fontWeight: '800' }}>{(storeInfo?.name || 'My Store')}</Text> in the e-commerce app. Inactive products are hidden here.
                   </Text>
                 </View>
               </View>
@@ -863,12 +863,12 @@ export default function VendorDashboardScreen({ navigation }) {
                     <Storefront size={28} color="#1E293B" weight="bold" />
                   </View>
                   <View style={styles.customerStoreInfo}>
-                    <Text style={styles.customerStoreName}>{storeInfo.name}</Text>
+                    <Text style={styles.customerStoreName}>{(storeInfo?.name || 'My Store')}</Text>
                     <View style={styles.ratingRow}>
                       <Star size={14} color="#F59E0B" weight="fill" />
-                      <Text style={styles.ratingText}>{storeInfo.rating || 4.8} (120+ Shopper Reviews)</Text>
+                      <Text style={styles.ratingText}>{storeInfo?.rating || 4.8} (120+ Shopper Reviews)</Text>
                     </View>
-                    <Text style={styles.customerStoreDesc}>{storeInfo.description}</Text>
+                    <Text style={styles.customerStoreDesc}>{(storeInfo?.description || '')}</Text>
                   </View>
                 </View>
 
@@ -907,7 +907,7 @@ export default function VendorDashboardScreen({ navigation }) {
             <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.sectionHeading}>CHANGE HISTORY LOG</Text>
               <Text style={styles.historySub}>
-                Audit timeline of every price change, new listing, and status toggle for {storeInfo.name}.
+                Audit timeline of every price change, new listing, and status toggle for {(storeInfo?.name || 'My Store')}.
               </Text>
 
               <View style={styles.historyTimeline}>
@@ -941,28 +941,28 @@ export default function VendorDashboardScreen({ navigation }) {
 
               <View style={styles.storeCard}>
                 <View style={styles.storeHeaderRow}>
-                  <Text style={styles.storeCardTitle}>{storeInfo.name}</Text>
+                  <Text style={styles.storeCardTitle}>{(storeInfo?.name || 'My Store')}</Text>
                   <TouchableOpacity style={styles.storeEditBtn} onPress={handleOpenEditStore}>
                     <PencilSimple size={16} color="#1E293B" weight="bold" />
                     <Text style={styles.storeEditBtnText}>Edit Store Info</Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.storeDesc}>{storeInfo.description}</Text>
+                <Text style={styles.storeDesc}>{(storeInfo?.description || '')}</Text>
 
                 <View style={styles.storeDetailRow}>
                   <Text style={styles.storeDetailLabel}>Category:</Text>
-                  <Text style={styles.storeDetailVal}>{storeInfo.category || 'General'}</Text>
+                  <Text style={styles.storeDetailVal}>{storeInfo?.category || 'General'}</Text>
                 </View>
 
                 <View style={styles.storeDetailRow}>
                   <Text style={styles.storeDetailLabel}>Address:</Text>
-                  <Text style={styles.storeDetailVal}>{storeInfo.address || 'Not set'}</Text>
+                  <Text style={styles.storeDetailVal}>{storeInfo?.address || 'Not set'}</Text>
                 </View>
 
                 <View style={styles.storeDetailRow}>
                   <Text style={styles.storeDetailLabel}>Contact Phone:</Text>
-                  <Text style={styles.storeDetailVal}>{storeInfo.phone || 'Not set'}</Text>
+                  <Text style={styles.storeDetailVal}>{storeInfo?.phone || 'Not set'}</Text>
                 </View>
 
                 <TouchableOpacity
@@ -986,7 +986,7 @@ export default function VendorDashboardScreen({ navigation }) {
               <View style={styles.profileBox}>
                 <Text style={styles.profileName}>{user?.fullName || user?.name || 'Store Owner'}</Text>
                 <Text style={styles.profileEmail}>{user?.email || 'nike@store.com'}</Text>
-                <Text style={styles.profileRole}>Managed Store: {storeInfo.name}</Text>
+                <Text style={styles.profileRole}>Managed Store: {(storeInfo?.name || 'My Store')}</Text>
 
                 <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
                   <Text style={styles.logoutBtnText}>Sign Out of Vendor Portal</Text>
@@ -1072,7 +1072,7 @@ export default function VendorDashboardScreen({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingProduct ? `Edit Product (${storeInfo.name})` : `Add Product to ${storeInfo.name}`}</Text>
+              <Text style={styles.modalTitle}>{editingProduct ? `Edit Product (${(storeInfo?.name || 'My Store')})` : `Add Product to ${(storeInfo?.name || 'My Store')}`}</Text>
               <TouchableOpacity onPress={() => setProductModalVisible(false)}>
                 <X size={22} color="#1E293B" weight="bold" />
               </TouchableOpacity>
