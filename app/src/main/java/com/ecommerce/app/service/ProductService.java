@@ -75,10 +75,13 @@ public class ProductService {
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
+        if (request.getDiscountPrice() != null) product.setDiscountPrice(request.getDiscountPrice());
+        if (request.getOldPrice() != null) product.setOldPrice(request.getOldPrice());
         product.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
-        product.setEmoji(request.getEmoji() != null ? request.getEmoji() : "🎁");
+        product.setEmoji(request.getEmoji() != null ? request.getEmoji() : "\uD83C\uDF81");
         product.setImageUrl(request.getImageUrl());
         product.setCategoryId(request.getCategoryId());
+        product.setActive(request.isActive());
 
         Product saved = productRepository.save(product);
 
@@ -87,8 +90,8 @@ public class ProductService {
                 storeId,
                 saved.getId(),
                 saved.getName(),
-                "New product added",
-                "Product created with price ₦" + saved.getPrice()
+                "Product Added",
+                "New product created with price \u20A6" + saved.getPrice()
         ));
 
         return new ProductDto(saved);
@@ -100,11 +103,13 @@ public class ProductService {
 
         validateProductOwnership(product, userEmail);
 
-        String oldPriceStr = product.getPrice() != null ? "₦" + product.getPrice() : "N/A";
+        String oldPriceStr = product.getPrice() != null ? "\u20A6" + product.getPrice() : "N/A";
 
         if (request.getName() != null) product.setName(request.getName());
         if (request.getDescription() != null) product.setDescription(request.getDescription());
         if (request.getPrice() != null) product.setPrice(request.getPrice());
+        if (request.getDiscountPrice() != null) product.setDiscountPrice(request.getDiscountPrice());
+        if (request.getOldPrice() != null) product.setOldPrice(request.getOldPrice());
         if (request.getStockQuantity() != null) product.setStockQuantity(request.getStockQuantity());
         if (request.getEmoji() != null) product.setEmoji(request.getEmoji());
         if (request.getImageUrl() != null) product.setImageUrl(request.getImageUrl());
@@ -114,8 +119,10 @@ public class ProductService {
 
         // Audit Log
         Long storeId = saved.getStore() != null ? saved.getStore().getId() : 1L;
-        String newPriceStr = saved.getPrice() != null ? "₦" + saved.getPrice() : "N/A";
-        String details = oldPriceStr.equals(newPriceStr) ? "Product details updated" : "Price changed " + oldPriceStr + " → " + newPriceStr;
+        String newPriceStr = saved.getPrice() != null ? "\u20A6" + saved.getPrice() : "N/A";
+        String details = oldPriceStr.equals(newPriceStr)
+                ? "Product details and images updated"
+                : "Price changed " + oldPriceStr + " \u2192 " + newPriceStr;
 
         productActivityRepository.save(new ProductActivity(
                 storeId,

@@ -32,8 +32,11 @@ CREATE TABLE IF NOT EXISTS products (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price NUMERIC(10, 2) NOT NULL,
+    discount_price NUMERIC(10, 2),
+    old_price NUMERIC(10, 2),
     stock_quantity INT DEFAULT 0,
     emoji VARCHAR(20),
+    image_url VARCHAR(512),
     active BOOLEAN DEFAULT TRUE,
     featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -79,11 +82,12 @@ INSERT INTO store_users (id, store_id, user_id, role, created_at) VALUES
 (2, 2, 2, 'OWNER', CURRENT_TIMESTAMP),
 (3, 3, 3, 'OWNER', CURRENT_TIMESTAMP);
 
--- 7. Insert Products (Tied to Store ID)
-INSERT INTO products (id, store_id, vendor_id, category_id, name, description, price, stock_quantity, emoji, active, featured, created_at, updated_at) VALUES
-(1, 1, 101, 2, 'Air Max 2026', 'Next-gen cushioned running shoes with enhanced mesh upper', 8999.00, 20, '👟', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(2, 1, 101, 2, 'Nike Dri-FIT T-Shirt', 'Breathable performance training t-shirt', 1499.00, 50, '👕', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(3, 1, 101, 2, 'Nike Heritage Backpack', 'Durable everyday storage bag with padded shoulder straps', 2499.00, 30, '🎒', true, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(4, 2, 102, 1, 'Jazari Special Meal Platter', 'Chef signature gourmet platter with grilled chicken and side salad', 450.00, 100, '🍔', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(5, 2, 102, 1, 'Fresh Citrus Smoothie', '100% natural cold pressed orange and passionfruit smoothie', 120.00, 80, '🥤', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(6, 3, 103, 8, 'iPhone 15 Pro Max', 'Titanium design with A17 Pro chip and 48MP camera system', 119900.00, 15, '📱', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- 7. Insert Products (Tied to Store ID, with images and discount prices)
+INSERT INTO products (id, store_id, vendor_id, category_id, name, description, price, discount_price, old_price, stock_quantity, emoji, image_url, active, featured, created_at, updated_at) VALUES
+(1, 1, 101, 2, 'Air Max 2026', 'Next-gen cushioned running shoes with enhanced mesh upper', 8999.00, 7999.00, 9999.00, 20, '👟', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 1, 101, 2, 'Nike Dri-FIT T-Shirt', 'Breathable performance training t-shirt', 1499.00, 1299.00, 1999.00, 50, '👕', 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(3, 1, 101, 2, 'Nike Heritage Backpack', 'Durable everyday storage bag with padded shoulder straps', 2499.00, 2199.00, 2999.00, 30, '🎒', 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400', true, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(4, 2, 102, 1, 'Jazari Special Meal Platter', 'Chef signature gourmet platter with grilled chicken and side salad', 4500.00, 3999.00, 5000.00, 100, '🍔', 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(5, 2, 102, 1, 'Fresh Citrus Smoothie', '100% natural cold pressed orange and passionfruit smoothie', 1200.00, 999.00, 1500.00, 80, '🥤', 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(6, 3, 103, 8, 'iPhone 15 Pro Max', 'Titanium design with A17 Pro chip and 48MP camera system', 119900.00, 114900.00, 129900.00, 15, '📱', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+

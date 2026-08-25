@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS products (
     old_price DECIMAL(10, 2),
     stock_quantity INT DEFAULT 0,
     emoji VARCHAR(20),
+    image_url VARCHAR(512),
     active TINYINT(1) DEFAULT 1,
     featured TINYINT(1) DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -126,14 +127,14 @@ REPLACE INTO store_users (id, store_id, user_id, role, created_at) VALUES
 (2, 2, 2, 'OWNER', NOW()),
 (3, 3, 3, 'OWNER', NOW());
 
--- 7. Insert Products (Tied to Store ID)
-REPLACE INTO products (id, store_id, vendor_id, category_id, name, description, price, stock_quantity, emoji, active, featured, created_at, updated_at) VALUES
-(1, 1, 101, 2, 'Air Max 2026', 'Next-gen cushioned running shoes with enhanced mesh upper', 8999.00, 20, '👟', 1, 1, NOW(), NOW()),
-(2, 1, 101, 2, 'Nike Dri-FIT T-Shirt', 'Breathable performance training t-shirt', 1499.00, 50, '👕', 1, 1, NOW(), NOW()),
-(3, 1, 101, 2, 'Nike Heritage Backpack', 'Durable everyday storage bag with padded shoulder straps', 2499.00, 30, '🎒', 1, 0, NOW(), NOW()),
-(4, 2, 102, 1, 'Jazari Special Meal Platter', 'Chef signature gourmet platter with grilled chicken and side salad', 450.00, 100, '🍔', 1, 1, NOW(), NOW()),
-(5, 2, 102, 1, 'Fresh Citrus Smoothie', '100% natural cold pressed orange and passionfruit smoothie', 120.00, 80, '🥤', 1, 1, NOW(), NOW()),
-(6, 3, 103, 8, 'iPhone 15 Pro Max', 'Titanium design with A17 Pro chip and 48MP camera system', 119900.00, 15, '📱', 1, 1, NOW(), NOW());
+-- 7. Insert Products (Tied to Store ID, with images and discount prices)
+REPLACE INTO products (id, store_id, vendor_id, category_id, name, description, price, discount_price, old_price, stock_quantity, emoji, image_url, active, featured, created_at, updated_at) VALUES
+(1, 1, 101, 2, 'Air Max 2026', 'Next-gen cushioned running shoes with enhanced mesh upper', 8999.00, 7999.00, 9999.00, 20, '👟', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', 1, 1, NOW(), NOW()),
+(2, 1, 101, 2, 'Nike Dri-FIT T-Shirt', 'Breathable performance training t-shirt', 1499.00, 1299.00, 1999.00, 50, '👕', 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400', 1, 1, NOW(), NOW()),
+(3, 1, 101, 2, 'Nike Heritage Backpack', 'Durable everyday storage bag with padded shoulder straps', 2499.00, 2199.00, 2999.00, 30, '🎒', 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400', 1, 0, NOW(), NOW()),
+(4, 2, 102, 1, 'Jazari Special Meal Platter', 'Chef signature gourmet platter with grilled chicken and side salad', 4500.00, 3999.00, 5000.00, 100, '🍔', 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400', 1, 1, NOW(), NOW()),
+(5, 2, 102, 1, 'Fresh Citrus Smoothie', '100% natural cold pressed orange and passionfruit smoothie', 1200.00, 999.00, 1500.00, 80, '🥤', 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400', 1, 1, NOW(), NOW()),
+(6, 3, 103, 8, 'iPhone 15 Pro Max', 'Titanium design with A17 Pro chip and 48MP camera system', 119900.00, 114900.00, 129900.00, 15, '📱', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400', 1, 1, NOW(), NOW());
 
 -- 8. Insert Activity Audit History
 REPLACE INTO product_activities (id, store_id, product_id, product_name, action_type, details, timestamp) VALUES
