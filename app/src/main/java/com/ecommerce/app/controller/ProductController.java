@@ -56,10 +56,13 @@ public class ProductController {
     @PutMapping("/products/{id}")
     public ResponseEntity<?> updateProduct(
             @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "nike@store.com") String email,
             @RequestBody CreateProductRequest request) {
         try {
-            ProductDto updated = productService.updateProduct(id, request);
+            ProductDto updated = productService.updateProduct(id, request, email);
             return ResponseEntity.ok(updated);
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(new ApiResponse(rse.getReason()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
         }
@@ -68,10 +71,13 @@ public class ProductController {
     @PatchMapping("/products/{id}/status")
     public ResponseEntity<?> toggleProductStatus(
             @PathVariable Long id,
-            @RequestParam boolean active) {
+            @RequestParam boolean active,
+            @RequestParam(required = false, defaultValue = "nike@store.com") String email) {
         try {
-            ProductDto updated = productService.toggleProductStatus(id, active);
+            ProductDto updated = productService.toggleProductStatus(id, active, email);
             return ResponseEntity.ok(updated);
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(new ApiResponse(rse.getReason()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
         }
@@ -89,10 +95,14 @@ public class ProductController {
     }
 
     @DeleteMapping("/products/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<?> deleteProduct(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "nike@store.com") String email) {
         try {
-            productService.deleteProduct(id);
+            productService.deleteProduct(id, email);
             return ResponseEntity.ok(new ApiResponse("Product deleted successfully"));
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(new ApiResponse(rse.getReason()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
         }

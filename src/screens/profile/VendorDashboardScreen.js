@@ -116,7 +116,7 @@ export default function VendorDashboardScreen({ navigation }) {
   const [productsList, setProductsList] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
 
-  // Product Modal States
+  // Product Edit Modal States
   const [productModalVisible, setProductModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [prodName, setProdName] = useState('');
@@ -128,6 +128,10 @@ export default function VendorDashboardScreen({ navigation }) {
   const [prodEmoji, setProdEmoji] = useState('🎁');
   const [prodActive, setProdActive] = useState(true);
   const [uploadedImages, setUploadedImages] = useState([]);
+
+  // Dedicated View Product Detail Modal States
+  const [viewProductModalVisible, setViewProductModalVisible] = useState(false);
+  const [viewingProduct, setViewingProduct] = useState(null);
 
   // Form Validation Errors
   const [nameError, setNameError] = useState('');
@@ -250,7 +254,7 @@ export default function VendorDashboardScreen({ navigation }) {
     const activeStore = getInitialStore(userEmail);
     setStoreInfo(activeStore);
 
-    // 1. Fetch Store Profile from Backend if available
+    // 1. Fetch Store Profile from Backend
     try {
       const storeRes = await withTimeout(getMyStore(userEmail), 2000);
       if (storeRes.data) {
@@ -317,6 +321,13 @@ export default function VendorDashboardScreen({ navigation }) {
     try {
       await withTimeout(toggleProductStatusApi(product.id, nextState), 2000);
     } catch (e) {
+      if (e.response && e.response.status === 403) {
+        Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
+        setProductsList((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, active: product.active } : p))
+        );
+        return;
+      }
       console.warn('API toggle failed, updating locally.', e.message);
     }
 
@@ -351,6 +362,7 @@ export default function VendorDashboardScreen({ navigation }) {
 
   // Open Edit Modal
   const handleOpenEditModal = (product) => {
+    setViewProductModalVisible(false);
     setEditingProduct(product);
     setProdName(product.name);
     setProdPrice(String(product.price || ''));
@@ -364,6 +376,12 @@ export default function VendorDashboardScreen({ navigation }) {
     setNameError('');
     setPriceError('');
     setProductModalVisible(true);
+  };
+
+  // Open View Product Detail Modal
+  const handleOpenViewModal = (product) => {
+    setViewingProduct(product);
+    setViewProductModalVisible(true);
   };
 
   // Upload Product Images
@@ -395,7 +413,7 @@ export default function VendorDashboardScreen({ navigation }) {
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Save & Publish Flow
+  // Save & Publish Flow with 403 Security handling
   const handleSaveAndPublish = async () => {
     let hasError = false;
 
@@ -461,6 +479,11 @@ export default function VendorDashboardScreen({ navigation }) {
         setProductsList((prev) => [newItem, ...prev]);
       }
     } catch (e) {
+      if (e.response && e.response.status === 403) {
+        Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
+        setLoading(false);
+        return;
+      }
       console.warn('API save failed, persisting locally.', e.message);
       if (editingProduct) {
         setProductsList((prev) =>
@@ -541,7 +564,7 @@ export default function VendorDashboardScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* ─── Simplified Navigation Drawer / Tab Bar ──────────────────────── */}
+      {/* ─── Navigation Bar ─────────────────────────────────────────────── */}
       <View style={styles.navContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navScroll}>
           {[
@@ -732,12 +755,19 @@ export default function VendorDashboardScreen({ navigation }) {
                           <Text style={styles.prodStockText}>Stock: {item.stockQuantity ?? item.stock ?? 20} units</Text>
                         </View>
 
-                        {/* Actions Row (Edit | Active Toggle) */}
+                        {/* Actions Row ([View] | [Edit] | Active Toggle) */}
                         <View style={styles.prodCardActions}>
-                          <TouchableOpacity style={styles.editActionBtn} onPress={() => handleOpenEditModal(item)}>
-                            <PencilSimple size={14} color="#1E293B" weight="bold" />
-                            <Text style={styles.editActionText}>Edit Product</Text>
-                          </TouchableOpacity>
+                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                            <TouchableOpacity style={styles.viewActionBtn} onPress={() => handleOpenViewModal(item)}>
+                              <Eye size={13} color="#FFFFFF" weight="bold" />
+                              <Text style={styles.viewActionText}>View</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.editActionBtn} onPress={() => handleOpenEditModal(item)}>
+                              <PencilSimple size={13} color="#1E293B" weight="bold" />
+                              <Text style={styles.editActionText}>Edit</Text>
+                            </TouchableOpacity>
+                          </View>
 
                           {/* Soft Toggle Active / Inactive Switch */}
                           <View style={styles.toggleRow}>
@@ -778,7 +808,7 @@ export default function VendorDashboardScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* Mock Customer Storefront Screen Card */}
+              {/* Customer Storefront Card */}
               <View style={styles.customerStoreCard}>
                 <View style={styles.customerHeaderBanner}>
                   <View style={styles.storeAvatarBox}>
@@ -794,7 +824,7 @@ export default function VendorDashboardScreen({ navigation }) {
                   </View>
                 </View>
 
-                {/* Catalog Listing for Customers */}
+                {/* Catalog Listing */}
                 <View style={styles.customerCatalogBody}>
                   <Text style={styles.catalogHeading}>LIVE STORE CATALOG ({customerViewProducts.length} Active Items)</Text>
                   
@@ -824,7 +854,7 @@ export default function VendorDashboardScreen({ navigation }) {
             </ScrollView>
           )}
 
-          {/* ─── 4. CHANGE HISTORY / AUDIT LOG VIEW ─────────────────────── */}
+          {/* ─── 4. CHANGE HISTORY LOG VIEW ───────────────────────────────── */}
           {portalTab === 'history' && (
             <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
               <Text style={sectionHeadingStyle}>CHANGE HISTORY LOG</Text>
@@ -918,6 +948,76 @@ export default function VendorDashboardScreen({ navigation }) {
           )}
         </View>
       )}
+
+      {/* ─── DEDICATED VIEW PRODUCT DETAIL MODAL ─────────────────────────── */}
+      <Modal visible={viewProductModalVisible} animationType="slide" transparent onRequestClose={() => setViewProductModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Product Details</Text>
+              <TouchableOpacity onPress={() => setViewProductModalVisible(false)}>
+                <X size={22} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            {viewingProduct && (
+              <ScrollView style={styles.modalFormContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.viewHeroBox}>
+                  {viewingProduct.imageUrl ? (
+                    <Image source={{ uri: viewingProduct.imageUrl }} style={styles.viewHeroImg} resizeMode="cover" />
+                  ) : (
+                    <Text style={{ fontSize: 56 }}>{viewingProduct.emoji || '🎁'}</Text>
+                  )}
+                </View>
+
+                <View style={styles.viewTitleRow}>
+                  <Text style={styles.viewProdTitle}>{viewingProduct.name}</Text>
+                  <View style={[styles.statusTag, viewingProduct.active !== false ? styles.statusTagActive : styles.statusTagInactive]}>
+                    <Text style={[styles.statusTagText, viewingProduct.active !== false ? styles.statusTagTextActive : styles.statusTagTextInactive]}>
+                      {viewingProduct.active !== false ? 'Active 🟢' : 'Inactive 🔴'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.viewMetaGrid}>
+                  <View style={styles.viewMetaBox}>
+                    <Text style={styles.viewMetaLabel}>Price (Naira)</Text>
+                    <Text style={styles.viewMetaVal}>₦{Number(viewingProduct.price).toLocaleString('en-NG')}</Text>
+                  </View>
+
+                  {viewingProduct.discountPrice && (
+                    <View style={styles.viewMetaBox}>
+                      <Text style={styles.viewMetaLabel}>Discount Price</Text>
+                      <Text style={[styles.viewMetaVal, { color: '#16A34A' }]}>₦{Number(viewingProduct.discountPrice).toLocaleString('en-NG')}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.viewMetaBox}>
+                    <Text style={styles.viewMetaLabel}>Stock Available</Text>
+                    <Text style={styles.viewMetaVal}>{viewingProduct.stockQuantity ?? viewingProduct.stock ?? 20} units</Text>
+                  </View>
+                </View>
+
+                <View style={styles.viewDescBox}>
+                  <Text style={styles.viewDescHeading}>Description & Specs</Text>
+                  <Text style={styles.viewDescText}>{viewingProduct.description || 'No detailed description specified.'}</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.publishBtn}
+                  onPress={() => handleOpenEditModal(viewingProduct)}
+                  activeOpacity={0.85}
+                >
+                  <PencilSimple size={18} color="#FFFFFF" weight="bold" />
+                  <Text style={styles.publishBtnText}>Edit This Product</Text>
+                </TouchableOpacity>
+
+                <View style={{ height: 40 }} />
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* ─── ADD / EDIT PRODUCT MODAL ────────────────────────────────────── */}
       <Modal visible={productModalVisible} animationType="slide" transparent onRequestClose={() => setProductModalVisible(false)}>
@@ -1488,6 +1588,20 @@ const getStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  viewActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  viewActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   editActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1849,6 +1963,74 @@ const getStyles = (colors) => StyleSheet.create({
   },
   modalFormContent: {
     padding: 16,
+  },
+  viewHeroBox: {
+    height: 180,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    marginBottom: 14,
+  },
+  viewHeroImg: {
+    width: '100%',
+    height: '100%',
+  },
+  viewTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewProdTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+    flex: 1,
+  },
+  viewMetaGrid: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    gap: 12,
+    marginBottom: 14,
+  },
+  viewMetaBox: {
+    flex: 1,
+  },
+  viewMetaLabel: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '700',
+  },
+  viewMetaVal: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 2,
+  },
+  viewDescBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 16,
+  },
+  viewDescHeading: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  viewDescText: {
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 18,
   },
   inputGroup: {
     marginBottom: 14,

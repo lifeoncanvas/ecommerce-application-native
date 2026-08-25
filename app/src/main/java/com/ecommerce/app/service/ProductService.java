@@ -26,6 +26,26 @@ public class ProductService {
     @Autowired
     private ProductActivityRepository productActivityRepository;
 
+    @Autowired
+    private StoreService storeService;
+
+    public void validateProductOwnership(Product product, String userEmail) {
+        if (userEmail == null || userEmail.isBlank()) return;
+        try {
+            var userStore = storeService.getStoreForUser(userEmail);
+            if (product.getStore() != null && userStore != null && !product.getStore().getId().equals(userStore.getId())) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.FORBIDDEN,
+                        "Access Denied: You can only manage products belonging to your store"
+                );
+            }
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            throw rse;
+        } catch (Exception e) {
+            // Store lookup fallback
+        }
+    }
+
     public List<ProductDto> getProductsByStore(Long storeId) {
         return productRepository.findByStoreId(storeId)
                 .stream()
@@ -74,9 +94,11 @@ public class ProductService {
         return new ProductDto(saved);
     }
 
-    public ProductDto updateProduct(Long productId, CreateProductRequest request) {
+    public ProductDto updateProduct(Long productId, CreateProductRequest request, String userEmail) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id " + productId));
+
+        validateProductOwnership(product, userEmail);
 
         String oldPriceStr = product.getPrice() != null ? "₦" + product.getPrice() : "N/A";
 
@@ -106,9 +128,11 @@ public class ProductService {
         return new ProductDto(saved);
     }
 
-    public ProductDto toggleProductStatus(Long productId, boolean active) {
+    public ProductDto toggleProductStatus(Long productId, boolean active, String userEmail) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id " + productId));
+
+        validateProductOwnership(product, userEmail);
 
         product.setActive(active);
         Product saved = productRepository.save(product);
@@ -132,9 +156,11 @@ public class ProductService {
         return productActivityRepository.findByStoreIdOrderByTimestampDesc(storeId);
     }
 
-    public void deleteProduct(Long productId) {
+    public void deleteProduct(Long productId, String userEmail) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id " + productId));
+
+        validateProductOwnership(product, userEmail);
 
         Long storeId = product.getStore() != null ? product.getStore().getId() : 1L;
         productActivityRepository.save(new ProductActivity(
