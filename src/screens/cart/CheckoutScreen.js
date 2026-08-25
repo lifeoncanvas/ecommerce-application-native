@@ -64,7 +64,7 @@ export default function CheckoutScreen({ route, navigation }) {
       console.warn('GET /api/coupons failed. Loading mock coupons.', e.message);
       apiCoupons = [
         { code: 'TECH20', description: 'Get 20% off on electronics and gadget orders', value: 20 },
-        { code: 'FREESHIP', description: 'Free shipping on orders above ₹990', value: 99 },
+        { code: 'FREESHIP', description: 'Free shipping on orders above ₦990', value: 99 },
         { code: 'HTTN10', description: 'Get a flat 10% discount on food orders', value: 10 }
       ];
     }

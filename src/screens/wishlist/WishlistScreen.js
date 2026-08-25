@@ -57,7 +57,7 @@ const DEFAULT_WISHLIST_ITEMS = [
     price: 1190,
     oldPrice: null,
     discount: null,
-    offerText: 'Get it for ₹1,090',
+    offerText: 'Get it for ₦1,090',
     badges: ['Fast delivery'],
     image: require('../../../assets/images/wishlist/wish_3.jpg'),
     swatches: null,
@@ -244,13 +244,13 @@ export default function WishlistScreen({ navigation }) {
 
           {/* Price Row */}
           <View style={styles.priceRow}>
-            <Text style={styles.itemPrice}>₹{item.price.toLocaleString('en-IN')}</Text>
+            <Text style={styles.itemPrice}>₦{item.price.toLocaleString('en-NG')}</Text>
             {item.oldPrice && (
-              <Text style={styles.itemOldPrice}>₹{item.oldPrice.toLocaleString('en-IN')}</Text>
+              <Text style={styles.itemOldPrice}>₦{item.oldPrice.toLocaleString('en-NG')}</Text>
             )}
           </View>
 
-          {/* Offer text e.g. "Get it for ₹1,090" */}
+          {/* Offer text e.g. "Get it for ₦1,090" */}
           {item.offerText && (
             <Text style={styles.offerText}>{item.offerText}</Text>
           )}
@@ -356,7 +356,7 @@ export default function WishlistScreen({ navigation }) {
                       </View>
                     </View>
                     <Text style={styles.itemTitle} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.itemPrice}>₹{item.price}</Text>
+                    <Text style={styles.itemPrice}>₦{item.price}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

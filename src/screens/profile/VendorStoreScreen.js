@@ -56,15 +56,15 @@ export default function VendorStoreScreen({ route, navigation }) {
 
       if (storeRes.data) setVendor(storeRes.data);
       if (productsRes.data && productsRes.data.length > 0) {
-        setProducts(productsRes.data);
+        setProducts(productsRes.data.filter((p) => p.active !== false));
       } else {
-        setProducts(mockProducts.filter((p) => p.vendorId === id || p.storeId === storeIdNum));
+        setProducts(mockProducts.filter((p) => (p.vendorId === id || p.storeId === storeIdNum) && p.active !== false));
       }
     } catch (e) {
       console.warn(`GET /api/stores/${id} endpoints failed, using local fallback.`, e.message);
       const matched = mockVendors.find((v) => v.id === id) || mockVendors[0];
       setVendor(matched);
-      setProducts(mockProducts.filter((p) => p.vendorId === id));
+      setProducts(mockProducts.filter((p) => p.vendorId === id && p.active !== false));
     } finally {
       setLoading(false);
     }

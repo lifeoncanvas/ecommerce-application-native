@@ -40,8 +40,8 @@ export default function LoyaltyScreen({ navigation }) {
   const [history, setHistory] = useState([]);
 
   const REWARDS = [
-    { id: 'rew_1', title: '₹150 Voucher Code', cost: 100, code: 'LOYAL150', description: 'Redeem for flat ₹150 off coupon in cart', value: 150 },
-    { id: 'rew_2', title: '₹300 Voucher Code', cost: 180, code: 'LOYAL300', description: 'Redeem for premium ₹300 off coupon in cart', value: 300 },
+    { id: 'rew_1', title: '₦150 Voucher Code', cost: 100, code: 'LOYAL150', description: 'Redeem for flat ₦150 off coupon in cart', value: 150 },
+    { id: 'rew_2', title: '₦300 Voucher Code', cost: 180, code: 'LOYAL300', description: 'Redeem for premium ₦300 off coupon in cart', value: 300 },
     { id: 'rew_3', title: 'Free Delivery Code', cost: 50, code: 'LOYALFREE', description: 'Redeem for free shipping on your next order', value: 99 }
   ];
 
@@ -163,7 +163,7 @@ export default function LoyaltyScreen({ navigation }) {
               <Text style={styles.pointsVal}>{points}</Text>
               <Text style={styles.pointsUnit}>PTS</Text>
             </View>
-            <Text style={styles.goldCardDesc}>Earn 1 point for every ₹10 spent. Redeem for discount coupons.</Text>
+            <Text style={styles.goldCardDesc}>Earn 1 point for every ₦10 spent. Redeem for discount coupons.</Text>
           </View>
 
           {/* Redeemable Rewards list */}
@@ -173,7 +173,7 @@ export default function LoyaltyScreen({ navigation }) {
               <View key={rew.id} style={styles.rewardItem}>
                 <View style={styles.rewardTicketLeft}>
                   <Text style={styles.ticketValueText}>
-                    {rew.id === 'rew_3' ? 'FREE' : rew.id === 'rew_1' ? '₹150' : '₹300'}
+                    {rew.id === 'rew_3' ? 'FREE' : rew.id === 'rew_1' ? '₦150' : '₦300'}
                   </Text>
                   <Text style={styles.ticketUnitText}>OFF</Text>
                 </View>

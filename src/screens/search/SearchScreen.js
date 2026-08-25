@@ -378,9 +378,9 @@ export default function SearchScreen({ navigation }) {
               <View style={styles.filterPillsRow}>
                 {[
                   { id: 'all', label: 'All Prices' },
-                  { id: 'under400', label: 'Under ₹400' },
-                  { id: '400to800', label: '₹400 - ₹800' },
-                  { id: 'over800', label: 'Over ₹800' },
+                  { id: 'under400', label: 'Under ₦400' },
+                  { id: '400to800', label: '₦400 - ₦800' },
+                  { id: 'over800', label: 'Over ₦800' },
                 ].map((item) => (
                   <TouchableOpacity
                     key={item.id}

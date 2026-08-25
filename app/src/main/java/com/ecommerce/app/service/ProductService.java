@@ -3,7 +3,9 @@ package com.ecommerce.app.service;
 import com.ecommerce.app.dto.CreateProductRequest;
 import com.ecommerce.app.dto.ProductDto;
 import com.ecommerce.app.model.Product;
+import com.ecommerce.app.model.ProductActivity;
 import com.ecommerce.app.model.Store;
+import com.ecommerce.app.repository.ProductActivityRepository;
 import com.ecommerce.app.repository.ProductRepository;
 import com.ecommerce.app.repository.StoreRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,9 @@ public class ProductService {
 
     @Autowired
     private StoreRepository storeRepository;
+
+    @Autowired
+    private ProductActivityRepository productActivityRepository;
 
     public List<ProductDto> getProductsByStore(Long storeId) {
         return productRepository.findByStoreId(storeId)
@@ -56,12 +61,24 @@ public class ProductService {
         product.setCategoryId(request.getCategoryId());
 
         Product saved = productRepository.save(product);
+
+        // Audit Log
+        productActivityRepository.save(new ProductActivity(
+                storeId,
+                saved.getId(),
+                saved.getName(),
+                "New product added",
+                "Product created with price ₦" + saved.getPrice()
+        ));
+
         return new ProductDto(saved);
     }
 
     public ProductDto updateProduct(Long productId, CreateProductRequest request) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id " + productId));
+
+        String oldPriceStr = product.getPrice() != null ? "₦" + product.getPrice() : "N/A";
 
         if (request.getName() != null) product.setName(request.getName());
         if (request.getDescription() != null) product.setDescription(request.getDescription());
@@ -72,12 +89,62 @@ public class ProductService {
         if (request.getCategoryId() != null) product.setCategoryId(request.getCategoryId());
 
         Product saved = productRepository.save(product);
+
+        // Audit Log
+        Long storeId = saved.getStore() != null ? saved.getStore().getId() : 1L;
+        String newPriceStr = saved.getPrice() != null ? "₦" + saved.getPrice() : "N/A";
+        String details = oldPriceStr.equals(newPriceStr) ? "Product details updated" : "Price changed " + oldPriceStr + " → " + newPriceStr;
+
+        productActivityRepository.save(new ProductActivity(
+                storeId,
+                saved.getId(),
+                saved.getName(),
+                oldPriceStr.equals(newPriceStr) ? "Product Details Updated" : "Price Updated",
+                details
+        ));
+
         return new ProductDto(saved);
+    }
+
+    public ProductDto toggleProductStatus(Long productId, boolean active) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found with id " + productId));
+
+        product.setActive(active);
+        Product saved = productRepository.save(product);
+
+        Long storeId = saved.getStore() != null ? saved.getStore().getId() : 1L;
+        String actionType = active ? "Product Activated" : "Product Deactivated";
+        String details = active ? "Product marked as Active and visible in Customer App" : "Product marked as Inactive (Hidden from Customer App)";
+
+        productActivityRepository.save(new ProductActivity(
+                storeId,
+                saved.getId(),
+                saved.getName(),
+                actionType,
+                details
+        ));
+
+        return new ProductDto(saved);
+    }
+
+    public List<ProductActivity> getStoreActivities(Long storeId) {
+        return productActivityRepository.findByStoreIdOrderByTimestampDesc(storeId);
     }
 
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id " + productId));
+
+        Long storeId = product.getStore() != null ? product.getStore().getId() : 1L;
+        productActivityRepository.save(new ProductActivity(
+                storeId,
+                product.getId(),
+                product.getName(),
+                "Product Removed",
+                "Product listing removed from database"
+        ));
+
         productRepository.delete(product);
     }
 }

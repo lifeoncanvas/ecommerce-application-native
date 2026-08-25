@@ -364,7 +364,7 @@ export default function HomeScreen({ navigation }) {
               {item.brand}
             </Text>
             <Text style={styles.productPriceText}>
-              Rs {item.price}
+              ₦{item.price}
             </Text>
           </View>
           <View style={styles.cardInfoRow}>
@@ -417,8 +417,8 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.hCardBrand} numberOfLines={1}>{vendor?.name || 'Store'}</Text>
           <Text style={styles.hCardName} numberOfLines={1}>{item.name}</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.currentPrice}>Rs {Number(item.price).toFixed(0)}</Text>
-            {item.oldPrice && <Text style={styles.oldPrice}>Rs {Number(item.oldPrice).toFixed(0)}</Text>}
+            <Text style={styles.currentPrice}>₦{Number(item.price).toFixed(0)}</Text>
+            {item.oldPrice && <Text style={styles.oldPrice}>₦{Number(item.oldPrice).toFixed(0)}</Text>}
           </View>
           {isFlash && item.claimed && (
             <View style={styles.claimedContainer}>

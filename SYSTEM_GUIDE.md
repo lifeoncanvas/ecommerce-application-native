@@ -114,6 +114,9 @@ To install and run the complete system on one machine, ensure you have the follo
 
 | User Type | Email | Password | Role / Access |
 |---|---|---|---|
-| Store Owner (Nike) | `nike@store.com` | `password` | Nike Store Portal (Add/Edit Shoes & Wear) |
-| Store Owner (Jazari) | `jazari@vendor.com` | `password` | Jazari Restaurant Portal (Add/Edit Meals) |
-| Store Owner (Apple) | `apple@store.com` | `password` | Apple Store Portal (Add/Edit Electronics) |
+| **Normal Customer** | `user@gmail.com` | `password` | Shopper Account (Cart, Checkout, Wishlist, Profile) |
+| **Normal Customer** | `customer@gmail.com` | `password` | Shopper Account (Cart, Checkout, Wishlist, Profile) |
+| **Normal Customer** | `buyer@gmail.com` | `password` | Shopper Account (Cart, Checkout, Wishlist, Profile) |
+| **Store Owner (Nike)** | `nike@store.com` | `password` | Nike Store Portal (Add/Edit Shoes & Wear) |
+| **Store Owner (Jazari)** | `jazari@vendor.com` | `password` | Jazari Restaurant Portal (Add/Edit Meals) |
+| **Store Owner (Apple)** | `apple@store.com` | `password` | Apple Store Portal (Add/Edit Electronics) |

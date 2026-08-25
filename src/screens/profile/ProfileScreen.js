@@ -132,20 +132,20 @@ export default function ProfileScreen({ navigation }) {
       ],
     },
     {
-      title: 'Seller Corner',
+      title: 'Seller & Store Portal',
       items: [
-        user?.isVendor ? {
+        (user?.isVendor || user?.role === 'STORE_OWNER' || user?.email?.includes('@store.com') || user?.email?.includes('@vendor.com')) ? {
           id: 'vendor_dashboard',
-          title: 'Seller Dashboard',
-          subtitle: 'Manage your store orders and inventory stats',
+          title: 'Store Management Portal 🏬',
+          subtitle: 'Add/remove products, edit prices, images & orders',
           Icon: ChartLineUp,
           iconBg: colors.gold50,
           iconColor: colors.gold600,
           onPress: () => navigation.navigate('VendorDashboard'),
         } : {
           id: 'become_vendor',
-          title: 'Become a Seller',
-          subtitle: 'Register your store and list premium items',
+          title: 'Become a Seller / Store Owner 🏬',
+          subtitle: 'Register your store and access Vendor Portal',
           Icon: Storefront,
           iconBg: colors.gold50,
           iconColor: colors.gold600,

@@ -76,10 +76,10 @@ export default function ProductCard({ product, onPress }) {
 
         {/* Prices */}
         <View style={styles.priceRow}>
-          <Text style={styles.price}>₹{product?.price ? Number(product.price).toFixed(2) : '999.00'}</Text>
+          <Text style={styles.price}>₦{product?.price ? Number(product.price).toFixed(2) : '999.00'}</Text>
           {product?.oldPrice && (
             <>
-              <Text style={styles.oldPrice}>₹{Number(product.oldPrice).toFixed(2)}</Text>
+              <Text style={styles.oldPrice}>₦{Number(product.oldPrice).toFixed(2)}</Text>
               <Text style={styles.discount}>{discount}% Off</Text>
             </>
           )}

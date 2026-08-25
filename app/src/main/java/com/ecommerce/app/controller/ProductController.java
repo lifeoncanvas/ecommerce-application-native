@@ -65,6 +65,29 @@ public class ProductController {
         }
     }
 
+    @PatchMapping("/products/{id}/status")
+    public ResponseEntity<?> toggleProductStatus(
+            @PathVariable Long id,
+            @RequestParam boolean active) {
+        try {
+            ProductDto updated = productService.toggleProductStatus(id, active);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/stores/my-store/activities")
+    public ResponseEntity<?> getMyStoreActivities(
+            @RequestParam(required = false, defaultValue = "nike@store.com") String email) {
+        try {
+            StoreDto myStore = storeService.getStoreForUser(email);
+            return ResponseEntity.ok(productService.getStoreActivities(myStore.getId()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/products/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {

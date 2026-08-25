@@ -33,10 +33,12 @@ export const getCategories = () => client.get('/categories');
 export const getCategoryDetails = (id) => client.get(`/categories/${id}`);
 export const getCategoryProducts = (id) => client.get(`/categories/${id}/products`);
 
-// Store Portal Product Endpoints
+// Store Portal Product & Audit Endpoints
 export const getStoreProducts = (storeId) => client.get(`/stores/${storeId}/products`);
 export const createStoreProduct = (storeId, payload) => client.post(`/stores/${storeId}/products`, payload);
 export const createMyStoreProduct = (payload, email) => client.post('/stores/my-store/products', payload, { params: { email } });
 export const updateProduct = (id, payload) => client.put(`/products/${id}`, payload);
+export const toggleProductStatus = (id, active) => client.patch(`/products/${id}/status`, null, { params: { active } });
+export const getStoreActivities = (email) => client.get('/stores/my-store/activities', { params: { email } });
 export const deleteProduct = (id) => client.delete(`/products/${id}`);
 

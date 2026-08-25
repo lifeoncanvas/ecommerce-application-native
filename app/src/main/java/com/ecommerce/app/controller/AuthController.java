@@ -60,10 +60,9 @@ public class AuthController {
             String token = authService.loginUser(request);
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
-            // Assuming simple token return for now
             return ResponseEntity.ok(Map.of("data", response));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+            return ResponseEntity.status(401).body(new ApiResponse(e.getMessage()));
         }
     }
 
