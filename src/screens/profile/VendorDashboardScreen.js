@@ -14,7 +14,6 @@ import {
   Switch,
   Platform,
 } from 'react-native';
-import { typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
@@ -30,10 +29,9 @@ import {
   Plus,
   House,
   Storefront,
-  History,
+  ClockCounterClockwise,
   User,
   Eye,
-  Check,
   Star,
   ShoppingBag,
   ArrowLeft,
@@ -295,7 +293,7 @@ export default function VendorDashboardScreen({ navigation }) {
     { key: 'dashboard', label: 'Dashboard', Icon: House },
     { key: 'products', label: `Products (${totalCount})`, Icon: Package },
     { key: 'add', label: '+ Add', Icon: Plus, isAdd: true },
-    { key: 'history', label: 'History', Icon: History },
+    { key: 'history', label: 'History', Icon: ClockCounterClockwise },
     { key: 'store_view', label: 'My Store', Icon: Storefront },
     { key: 'profile', label: 'Account', Icon: User },
   ];
@@ -743,14 +741,12 @@ export default function VendorDashboardScreen({ navigation }) {
               <Text style={S.sectionLabel}>CHANGE HISTORY LOG</Text>
               <Text style={S.historySub}>Audit timeline for {storeInfo?.name}</Text>
 
-              {activityLogs.length === 0 && (
-                <View style={S.emptyBox}>
-                  <History size={40} color="#CBD5E1" />
-                  <Text style={S.emptyNote}>No changes recorded yet.</Text>
-                </View>
-              )}
-
-              {activityLogs.map((log, i) => (
+              {activityLogs.length === 0 ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                  <ClockCounterClockwise size={40} color="#CBD5E1" />
+                  <Text style={{ marginTop: 12, color: '#94A3B8' }}>No recent activities found.</Text>
+              </View>
+              ) : activityLogs.map((log, i) => (
                 <View key={log.id || i} style={S.logRow}>
                   <View style={S.logDot} />
                   <View style={S.logCard}>
