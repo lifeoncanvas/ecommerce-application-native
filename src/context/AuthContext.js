@@ -86,21 +86,26 @@ export const AuthProvider = ({ children }) => {
       const token = res.data?.token || res.token || 'mock-jwt-token';
       await setToken(token);
 
-      const isStoreOwner = phoneOrEmail.includes('@store.com') || phoneOrEmail.includes('@vendor.com');
-      const role = isStoreOwner ? 'STORE_OWNER' : 'CUSTOMER';
-      let name = phoneOrEmail.split('@')[0];
-      if (phoneOrEmail.includes('nike')) name = 'Nike Store Manager';
-      else if (phoneOrEmail.includes('jazari')) name = 'Jazari Restaurant Owner';
-      else if (phoneOrEmail.includes('apple')) name = 'Apple Store Manager';
+      const userFromBackend = res.data?.user || res.user || {};
+      
+      const isStoreOwner = userFromBackend.isVendor ?? (phoneOrEmail.includes('@store.com') || phoneOrEmail.includes('@vendor.com'));
+      const role = userFromBackend.role ?? (isStoreOwner ? 'STORE_OWNER' : 'CUSTOMER');
+      
+      let name = userFromBackend.name || phoneOrEmail.split('@')[0];
+      if (!userFromBackend.name) {
+        if (phoneOrEmail.includes('nike')) name = 'Nike Store Manager';
+        else if (phoneOrEmail.includes('jazari')) name = 'Jazari Restaurant Owner';
+        else if (phoneOrEmail.includes('apple')) name = 'Apple Store Manager';
+      }
 
       const userObj = {
         token,
         email: phoneOrEmail,
-        name: res.data?.user?.name || name,
-        fullName: res.data?.user?.name || name,
-        role: res.data?.user?.role || role,
+        name: name,
+        fullName: name,
+        role: role,
         isVendor: isStoreOwner,
-        storeName: name.replace(' Manager', '').replace(' Owner', ''),
+        storeName: userFromBackend.storeName || name.replace(' Manager', '').replace(' Owner', ''),
       };
 
       await AsyncStorage.setItem('@user_profile', JSON.stringify(userObj));
