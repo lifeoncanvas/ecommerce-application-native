@@ -364,7 +364,7 @@ export default function HomeScreen({ navigation }) {
               {item.brand}
             </Text>
             <Text style={styles.productPriceText}>
-              Rs {item.price}
+              ₦{item.price}
             </Text>
           </View>
           <View style={styles.cardInfoRow}>
@@ -417,8 +417,8 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.hCardBrand} numberOfLines={1}>{vendor?.name || 'Store'}</Text>
           <Text style={styles.hCardName} numberOfLines={1}>{item.name}</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.currentPrice}>Rs {Number(item.price).toFixed(0)}</Text>
-            {item.oldPrice && <Text style={styles.oldPrice}>Rs {Number(item.oldPrice).toFixed(0)}</Text>}
+            <Text style={styles.currentPrice}>₦{Number(item.price).toFixed(0)}</Text>
+            {item.oldPrice && <Text style={styles.oldPrice}>₦{Number(item.oldPrice).toFixed(0)}</Text>}
           </View>
           {isFlash && item.claimed && (
             <View style={styles.claimedContainer}>
@@ -452,6 +452,37 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.locationText} numberOfLines={1}>Delivered to <Text style={styles.locationBold}>{selectedLocation}</Text></Text>
           <CaretDown size={11} color={colors.textSecondary} weight="bold" />
         </TouchableOpacity>
+
+        {/* Store Owner Quick Portal Banner Shortcut */}
+        {(user?.role === 'STORE_OWNER' || user?.isVendor || user?.email?.includes('@store.com') || user?.email?.includes('@vendor.com')) && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#1E293B',
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 8,
+              marginVertical: 4,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+            onPress={() => {
+              try {
+                navigation.navigate('VendorDashboard');
+              } catch (e) {
+                navigation.navigate('Profile', { screen: 'VendorDashboard' });
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
+              🏬 Open Store Portal ({user?.storeName || 'My Store'})
+            </Text>
+            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '800' }}>
+              Manage Products & Prices →
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Row 2: Search bar + Bell + Heart + Profile — all in ONE line */}
         <View style={styles.searchRow}>

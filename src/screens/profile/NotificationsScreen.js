@@ -60,7 +60,7 @@ export default function NotificationsScreen({ navigation }) {
         {
           id: 'notif_3',
           title: 'Refund Processed 💳',
-          message: 'The refund of ₹1,290.00 for order ORD-723910 has been successfully credited to your payment method.',
+          message: 'The refund of ₦1,290.00 for order ORD-723910 has been successfully credited to your payment method.',
           date: 'Jan 15, 2026',
           read: true,
           type: 'billing',

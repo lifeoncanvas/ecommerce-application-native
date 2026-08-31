@@ -15,6 +15,8 @@ import { typography, spacing, radius } from '../../theme';
 import ProductCard from '../../components/ProductCard';
 import { useTheme } from '../../context/ThemeContext';
 import { products as mockProducts, vendors as mockVendors } from '../../data/mockData';
+import { getStoreById } from '../../api/stores.api';
+import { getStoreProducts } from '../../api/products.api';
 import { getVendor, getVendorProducts, getVendorReviews } from '../../api/vendor.api';
 import { buildProductRouteParams } from '../../utils/productResolver';
 
@@ -26,7 +28,7 @@ const withTimeout = (promise, ms = 2000) => {
 };
 
 export default function VendorStoreScreen({ route, navigation }) {
-  const { id } = route?.params || {};
+  const { id = 1 } = route?.params || {};
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
@@ -38,45 +40,31 @@ export default function VendorStoreScreen({ route, navigation }) {
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
 
-  // Fetch Vendor details, products, and reviews
+  // Fetch Vendor/Store details, products, and reviews
   const loadStorefront = useCallback(async () => {
     setLoading(true);
     try {
-      const [vendorRes, productsRes, reviewsRes] = await withTimeout(
+      // Try Store API first for store & products stored in DB
+      const storeIdNum = typeof id === 'number' ? id : (parseInt(id.replace(/\D/g, '')) || 1);
+      const [storeRes, productsRes] = await withTimeout(
         Promise.all([
-          getVendor(id),
-          getVendorProducts(id),
-          getVendorReviews(id),
+          getStoreById(storeIdNum),
+          getStoreProducts(storeIdNum),
         ]),
         2500
       );
 
-      if (vendorRes.data) setVendor(vendorRes.data);
-      if (productsRes.data) setProducts(productsRes.data || []);
-      if (reviewsRes.data) setReviews(reviewsRes.data || []);
+      if (storeRes.data) setVendor(storeRes.data);
+      if (productsRes.data && productsRes.data.length > 0) {
+        setProducts(productsRes.data.filter((p) => p.active !== false));
+      } else {
+        setProducts(mockProducts.filter((p) => (p.vendorId === id || p.storeId === storeIdNum) && p.active !== false));
+      }
     } catch (e) {
-      console.warn(`GET /api/vendor/${id} endpoints failed, using local mock data.`, e.message);
-      
-      // Offline fallback: load mock details
+      console.warn(`GET /api/stores/${id} endpoints failed, using local fallback.`, e.message);
       const matched = mockVendors.find((v) => v.id === id) || mockVendors[0];
       setVendor(matched);
-      setProducts(mockProducts.filter((p) => p.vendorId === id));
-      setReviews([
-        {
-          id: 'v_rev_1',
-          userName: 'Precious O.',
-          rating: 5,
-          comment: 'Always delivers hot and fresh meals. Highly recommended!',
-          date: '2 days ago'
-        },
-        {
-          id: 'v_rev_2',
-          userName: 'Kene C.',
-          rating: 4,
-          comment: 'Good communication and prompt package prep.',
-          date: '1 week ago'
-        }
-      ]);
+      setProducts(mockProducts.filter((p) => p.vendorId === id && p.active !== false));
     } finally {
       setLoading(false);
     }

@@ -266,9 +266,9 @@ export default function ProductListingScreen({ route, navigation }) {
 
     if (selectedPrice !== 'All') {
       items = items.filter((p) => {
-        if (selectedPrice === 'Under ₹400') return p.price < 400;
-        if (selectedPrice === '₹400 - ₹800') return p.price >= 400 && p.price <= 800;
-        if (selectedPrice === 'Over ₹800') return p.price > 800;
+        if (selectedPrice === 'Under ₦400') return p.price < 400;
+        if (selectedPrice === '₦400 - ₦800') return p.price >= 400 && p.price <= 800;
+        if (selectedPrice === 'Over ₦800') return p.price > 800;
         return true;
       });
     }
@@ -351,9 +351,9 @@ export default function ProductListingScreen({ route, navigation }) {
 
           {/* Pricing Row */}
           <View style={styles.priceRow}>
-            <Text style={styles.priceMain}>₹{item.price}</Text>
+            <Text style={styles.priceMain}>₦{item.price}</Text>
             {item.oldPrice && (
-              <Text style={styles.priceOld}>₹{item.oldPrice}</Text>
+              <Text style={styles.priceOld}>₦{item.oldPrice}</Text>
             )}
             {item.discount && (
               <Text style={styles.discountText}>{item.discount}</Text>
@@ -363,7 +363,7 @@ export default function ProductListingScreen({ route, navigation }) {
           {/* Coupon Row */}
           {item.bestPrice && (
             <Text style={styles.couponText}>
-              Best Price ₹{item.bestPrice} with coupon
+              Best Price ₦{item.bestPrice} with coupon
             </Text>
           )}
 
@@ -627,7 +627,7 @@ export default function ProductListingScreen({ route, navigation }) {
 
             {activeFilterTab === 'Filters' && (
               <View style={styles.modalBody}>
-                {['All Prices', 'Under ₹400', '₹400 - ₹800', 'Over ₹800'].map((p) => (
+                {['All Prices', 'Under ₦400', '₦400 - ₦800', 'Over ₦800'].map((p) => (
                   <TouchableOpacity
                     key={p}
                     style={styles.sortOptionRow}

@@ -12,13 +12,17 @@ export default function RootNavigator() {
     return <SplashScreen />;
   }
 
+  const isVendor = user?.isVendor || user?.role === 'STORE_OWNER' ||
+    user?.email?.includes('@store.com') || user?.email?.includes('@vendor.com');
+
   return (
     <NavigationContainer>
       {user || isGuest ? (
-        <MainTabNavigator />
+        <MainTabNavigator isVendor={isVendor} />
       ) : (
         <AuthStack isOnboardingCompleted={isOnboardingCompleted} />
       )}
     </NavigationContainer>
   );
 }
+

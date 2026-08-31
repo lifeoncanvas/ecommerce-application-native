@@ -64,13 +64,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      // BACKEND CONNECTION POINT (Commented out until backend is active):
-      /*
-      await resetPassword(token.trim(), newPassword);
-      */
-
-      // Active Mock Transition
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate networking query
+      await resetPassword(email, token.trim(), newPassword);
       setSuccess(true);
     } catch (e) {
       setGeneralError(e.response?.data?.message || 'Failed to reset password. Please try again.');

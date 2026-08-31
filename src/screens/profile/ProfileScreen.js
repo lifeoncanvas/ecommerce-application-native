@@ -23,7 +23,7 @@ import {
   ChartLineUp
 } from 'phosphor-react-native';
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileScreen({ navigation, route }) {
   const { user, logout } = useAuth();
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -31,6 +31,18 @@ export default function ProfileScreen({ navigation }) {
   const [points, setPoints] = useState(250);
   const [orderCount, setOrderCount] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
+
+  // Auto-open Vendor Dashboard if this is a vendor login
+  useEffect(() => {
+    const isVendor = user?.isVendor || user?.role === 'STORE_OWNER' ||
+      user?.email?.includes('@store.com') || user?.email?.includes('@vendor.com');
+    if (isVendor && route?.params?.openVendorDashboard) {
+      const timer = setTimeout(() => {
+        navigation.navigate('VendorDashboard');
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [route?.params?.openVendorDashboard, user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,6 +77,8 @@ export default function ProfileScreen({ navigation }) {
       isMounted = false;
     };
   }, [user]);
+
+
 
   const sections = [
     {
@@ -132,20 +146,20 @@ export default function ProfileScreen({ navigation }) {
       ],
     },
     {
-      title: 'Seller Corner',
+      title: 'Seller & Store Portal',
       items: [
-        user?.isVendor ? {
+        (user?.isVendor || user?.role === 'STORE_OWNER' || user?.email?.includes('@store.com') || user?.email?.includes('@vendor.com')) ? {
           id: 'vendor_dashboard',
-          title: 'Seller Dashboard',
-          subtitle: 'Manage your store orders and inventory stats',
+          title: 'Store Management Portal 🏬',
+          subtitle: 'Add/remove products, edit prices, images & orders',
           Icon: ChartLineUp,
           iconBg: colors.gold50,
           iconColor: colors.gold600,
           onPress: () => navigation.navigate('VendorDashboard'),
         } : {
           id: 'become_vendor',
-          title: 'Become a Seller',
-          subtitle: 'Register your store and list premium items',
+          title: 'Become a Seller / Store Owner 🏬',
+          subtitle: 'Register your store and access Vendor Portal',
           Icon: Storefront,
           iconBg: colors.gold50,
           iconColor: colors.gold600,
@@ -231,6 +245,28 @@ export default function ProfileScreen({ navigation }) {
                   {points >= 500 ? 'Platinum Member' : points >= 200 ? 'Gold Member' : 'Loyalty Member'}
                 </Text>
               </View>
+
+              {/* Store Owner Quick Portal Shortcut Button */}
+              {(user?.isVendor || user?.role === 'STORE_OWNER' || user?.email?.includes('@store.com') || user?.email?.includes('@vendor.com')) && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#1E293B',
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    marginTop: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => navigation.navigate('VendorDashboard')}
+                  activeOpacity={0.85}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
+                    🏬 Open Store Portal
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
           

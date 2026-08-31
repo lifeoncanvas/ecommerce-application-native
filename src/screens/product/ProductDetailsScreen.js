@@ -261,7 +261,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
     try {
       await Share.share({
         title: `${product.brand} - ${product.title}`,
-        message: `Check out ${product.brand} (${product.title}) on KingsShoppers for ₹${product.price} (${product.discount})!`,
+        message: `Check out ${product.brand} (${product.title}) on KingsShoppers for ₦${product.price} (${product.discount})!`,
       });
     } catch (e) {}
   };
@@ -464,8 +464,8 @@ export default function ProductDetailsScreen({ route, navigation }) {
 
           {/* Pricing Row */}
           <View style={styles.priceRow}>
-            <Text style={styles.priceMain}>₹{product.price}</Text>
-            <Text style={styles.mrpText}>MRP ₹{product.mrp}</Text>
+            <Text style={styles.priceMain}>₦{product.price}</Text>
+            <Text style={styles.mrpText}>MRP ₦{product.mrp}</Text>
             <Text style={styles.discountLabel}>{product.discount}</Text>
           </View>
           <Text style={styles.taxNote}>inclusive of all taxes</Text>
@@ -663,7 +663,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
                   <Text style={styles.similarBrand}>{top.brand}</Text>
                   <Text style={styles.similarName} numberOfLines={1}>{top.name}</Text>
                   <View style={styles.similarPriceRow}>
-                    <Text style={styles.similarPrice}>₹{top.price}</Text>
+                    <Text style={styles.similarPrice}>₦{top.price}</Text>
                     <Text style={styles.similarDiscount}>{top.discount}</Text>
                   </View>
                   <TouchableOpacity
@@ -774,7 +774,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
                     <Text style={styles.recBrand}>{item.brand}</Text>
                     <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
                     <View style={styles.recPriceRow}>
-                      <Text style={styles.recPrice}>₹{item.price}</Text>
+                      <Text style={styles.recPrice}>₦{item.price}</Text>
                       <Text style={styles.recDiscount}>{item.discount}</Text>
                     </View>
                   </TouchableOpacity>
@@ -1119,7 +1119,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
                 >
                   <Image source={item.image} style={{ width: '100%', height: 130, borderRadius: 12 }} resizeMode="cover" />
                   <Text style={[styles.similarBrand, { fontSize: 11 }]}>{item.brand}</Text>
-                  <Text style={styles.similarPrice}>₹{item.price}</Text>
+                  <Text style={styles.similarPrice}>₦{item.price}</Text>
                 </TouchableOpacity>
               ))}
             </View>
