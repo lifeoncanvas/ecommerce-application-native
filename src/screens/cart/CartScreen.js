@@ -214,11 +214,15 @@ export default function CartScreen({ navigation }) {
           style={styles.photoContainer}
         >
           {item.image ? (
-            typeof item.image === 'number' ? (
-              <Image source={item.image} style={styles.productPhoto} resizeMode="cover" />
-            ) : (
-              <Image source={{ uri: item.image }} style={styles.productPhoto} resizeMode="cover" />
-            )
+            <Image
+              source={
+                typeof item.image === 'string' && (item.image.startsWith('http') || item.image.startsWith('data:'))
+                  ? { uri: item.image }
+                  : item.image
+              }
+              style={styles.productPhoto}
+              resizeMode="cover"
+            />
           ) : (
             <View style={[styles.productPhoto, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#F1F5F9' }]}>
               <Text style={{ fontSize: 24 }}>🎁</Text>
