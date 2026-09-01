@@ -523,9 +523,7 @@ export default function HomeScreen({ navigation }) {
             <MagnifyingGlass size={18} color="#111" weight="regular" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.hdrIconBtn} activeOpacity={0.75}>
-            <Bell size={22} color="#111" weight="regular" />
-          </TouchableOpacity>
+
           <TouchableOpacity style={styles.hdrIconBtn} onPress={() => navigation.navigate('Wishlist')} activeOpacity={0.75}>
             <Heart size={22} color="#111" weight="regular" />
           </TouchableOpacity>
@@ -1059,7 +1057,7 @@ const getStyles = (colors) => StyleSheet.create({
   bannerDotActive: { width: 22, height: 6, borderRadius: 3, backgroundColor: '#1E293B' },
 
   // Curated Brands 2x4 Grid
-  sectionContainer: { marginTop: 12, marginBottom: 8 },
+  sectionContainer: { marginTop: 4, marginBottom: 8 },
   vendorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1242,7 +1240,6 @@ const getStyles = (colors) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginTop: 16,
     marginBottom: 10,
   },
   sectionTitle: { fontSize: 15, color: '#1E293B', fontWeight: '700' },
