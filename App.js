@@ -9,6 +9,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { registerForPushNotificationsAsync } from './src/utils/notificationManager';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { TabBarVisibilityProvider } from './src/context/TabBarVisibilityContext';
+import { CurrencyProvider } from './src/context/CurrencyContext';
 import {
   useFonts,
   PlusJakartaSans_400Regular,
@@ -69,12 +70,14 @@ export default function App() {
       <AuthProvider>
         <ThemeProvider>
           <TabBarVisibilityProvider>
-            <WishlistProvider>
-              <CartProvider>
-                <StatusBar style="light" />
-                <RootNavigator />
-              </CartProvider>
-            </WishlistProvider>
+            <CurrencyProvider>
+              <WishlistProvider>
+                <CartProvider>
+                  <StatusBar style="light" />
+                  <RootNavigator />
+                </CartProvider>
+              </WishlistProvider>
+            </CurrencyProvider>
           </TabBarVisibilityProvider>
         </ThemeProvider>
       </AuthProvider>

@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { radius } from '../theme';
 import { vendors } from '../data/mockData';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { buildProductRouteParams } from '../utils/productResolver';
 
 export default function ProductCard({ product, onPress }) {
@@ -13,6 +14,7 @@ export default function ProductCard({ product, onPress }) {
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
     : 0;
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
 
   const handlePress = () => {
@@ -62,7 +64,7 @@ export default function ProductCard({ product, onPress }) {
       {/* Bottom Section: Details */}
       <View style={styles.info}>
         <Text style={styles.brand} numberOfLines={1}>
-          {product?.brand || vendor?.name || 'KingsShoppers'}
+          {product?.brand || vendor?.name || 'LitchMarketing'}
         </Text>
         <Text style={styles.name} numberOfLines={2}>
           {product?.name || product?.title || 'Product'}
@@ -76,10 +78,10 @@ export default function ProductCard({ product, onPress }) {
 
         {/* Prices */}
         <View style={styles.priceRow}>
-          <Text style={styles.price}>₦{product?.price ? Number(product.price).toFixed(2) : '999.00'}</Text>
+          <Text style={styles.price}>{formatPrice(product?.price ? Number(product.price).toFixed(2) : '999.00')}</Text>
           {product?.oldPrice && (
             <>
-              <Text style={styles.oldPrice}>₦{Number(product.oldPrice).toFixed(2)}</Text>
+              <Text style={styles.oldPrice}>{formatPrice(Number(product.oldPrice).toFixed(2))}</Text>
               <Text style={styles.discount}>{discount}% Off</Text>
             </>
           )}

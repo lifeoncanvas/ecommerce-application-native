@@ -15,7 +15,7 @@ export const getLocalActivities = async () => {
       id: 'act_1',
       productName: 'Air Max 2026',
       actionType: 'Price Updated',
-      details: 'Price changed ₦8,999 → ₦7,999',
+      details: `Price changed $8,999 -> $7,999`,
       date: 'Today, 1:20 PM',
       timestamp: Date.now() - 3600000,
     },

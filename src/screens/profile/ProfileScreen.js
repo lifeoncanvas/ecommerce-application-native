@@ -20,6 +20,7 @@ import {
   Gear, 
   SignOut,
   CaretRight,
+  CaretLeft,
   ChartLineUp
 } from 'phosphor-react-native';
 
@@ -226,6 +227,15 @@ export default function ProfileScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+          <CaretLeft size={24} color={colors.navy || colors.textPrimary} weight="bold" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.headerBtn} />
+      </View>
+
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
@@ -236,7 +246,7 @@ export default function ProfileScreen({ navigation, route }) {
           <View style={styles.userInfoRow}>
             <View style={styles.userDetails}>
               <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
-              <Text style={styles.userEmail}>{user?.email || 'guest@kingsshoppers.com'}</Text>
+              <Text style={styles.userEmail}>{user?.email || 'guest@litchmarketing.com'}</Text>
               
               {/* Loyalty membership badge */}
               <View style={styles.membershipBadge}>
@@ -365,6 +375,28 @@ const getStyles = (colors) => StyleSheet.create({
   scrollContent: {
     padding: spacing.md,
     paddingBottom: spacing.xl,
+  },
+  header: {
+    height: 52,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontFamily: 'PlusJakartaSans-Bold',
+    fontSize: 17,
+    color: colors.textPrimary,
+    fontWeight: '800',
   },
   
   // Profile Card

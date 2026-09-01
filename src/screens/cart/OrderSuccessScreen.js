@@ -22,7 +22,7 @@ export default function OrderSuccessScreen({ route, navigation }) {
   if (isBooking) {
     const bookingItem = selectedItems?.[0] || {
       name: 'Premium Service Booking',
-      brand: 'Kings Shoppers Partner',
+      brand: 'Litch Marketing Partner',
       bookingDay: 'Today',
       bookingTimeSlot: '12:00 PM - 01:30 PM',
     };

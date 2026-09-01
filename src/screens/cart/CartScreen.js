@@ -28,6 +28,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
 
 // Default initial items removed per user instruction
@@ -35,6 +36,7 @@ const DEFAULT_CART_ITEMS = [];
 
 export default function CartScreen({ navigation }) {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const { items: contextItems, updateItem, removeItem, clear } = useCart();
   const { toggleWishlist } = useWishlist();
 
@@ -267,9 +269,9 @@ export default function CartScreen({ navigation }) {
 
           {/* Pricing Row */}
           <View style={styles.priceRow}>
-            <Text style={styles.itemPrice}>₦{item.price.toLocaleString('en-NG')}</Text>
+            <Text style={styles.itemPrice}>{formatPrice(item.price.toLocaleString('en-NG'))}</Text>
             {item.oldPrice && (
-              <Text style={styles.itemOldPrice}>₦{item.oldPrice.toLocaleString('en-NG')}</Text>
+              <Text style={styles.itemOldPrice}>{formatPrice(item.oldPrice.toLocaleString('en-NG'))}</Text>
             )}
             {item.discount && (
               <View style={styles.discountBadge}>
@@ -407,14 +409,14 @@ export default function CartScreen({ navigation }) {
 
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Selected Items ({selectedCount})</Text>
-                  <Text style={styles.summaryValue}>₦{totalOldPrice.toLocaleString('en-NG')}</Text>
+                  <Text style={styles.summaryValue}>{formatPrice(totalOldPrice.toLocaleString('en-NG'))}</Text>
                 </View>
 
                 {totalSavings > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Bag Discount</Text>
                     <Text style={[styles.summaryValue, { color: '#16A34A', fontWeight: '800' }]}>
-                      -₦{totalSavings.toLocaleString('en-NG')}
+                      -{formatPrice(totalSavings.toLocaleString('en-NG'))}
                     </Text>
                   </View>
                 )}
@@ -428,7 +430,7 @@ export default function CartScreen({ navigation }) {
 
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryTotalLabel}>Total Amount</Text>
-                  <Text style={styles.summaryTotalValue}>₦{totalPrice.toLocaleString('en-NG')}</Text>
+                  <Text style={styles.summaryTotalValue}>{formatPrice(totalPrice.toLocaleString('en-NG'))}</Text>
                 </View>
               </View>
 
@@ -437,7 +439,7 @@ export default function CartScreen({ navigation }) {
                 {activeCartTab === 'products' && (
                   <View style={styles.featureRow}>
                     <Truck size={20} color="#1E293B" weight="regular" />
-                    <Text style={styles.featureText}>Free Shipping for orders ₦990</Text>
+                    <Text style={styles.featureText}>Free Shipping for orders ${formatPrice('990')}</Text>
                   </View>
                 )}
 
@@ -493,10 +495,10 @@ export default function CartScreen({ navigation }) {
 
           {/* Pricing Summary */}
           <View style={styles.totalSummaryCol}>
-            <Text style={styles.totalPriceMain}>₦{totalPrice.toLocaleString('en-NG')}</Text>
+            <Text style={styles.totalPriceMain}>{formatPrice(totalPrice.toLocaleString('en-NG'))}</Text>
             {totalSavings > 0 && (
               <View style={styles.savingsRow}>
-                <Text style={styles.savingsText}>-₦{totalSavings.toLocaleString('en-NG')}</Text>
+                <Text style={styles.savingsText}>-{formatPrice(totalSavings.toLocaleString('en-NG'))}</Text>
                 <CaretDown size={11} color="#64748B" weight="bold" />
               </View>
             )}

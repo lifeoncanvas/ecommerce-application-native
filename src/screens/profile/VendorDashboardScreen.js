@@ -18,6 +18,7 @@ import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { products as mockProducts, categories as mockCategories } from '../../data/mockData';
 import * as DocumentPicker from 'expo-document-picker';
 import { getMyStore } from '../../api/stores.api';
@@ -63,7 +64,8 @@ const withTimeout = (promise, ms = 2500) => {
 
 export default function VendorDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
-  const { colors } = useTheme();
+  const { colors } = useTheme(); 
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
 
   // Determine active store identity based on logged in user email
@@ -462,7 +464,7 @@ export default function VendorDashboardScreen({ navigation }) {
 
     const priceNum = parseFloat(prodPrice);
     if (!prodPrice.trim() || isNaN(priceNum) || priceNum <= 0) {
-      setPriceError('Please enter a valid price in Naira (₦).');
+      setPriceError('Please enter a valid price in Dollars ($).');
       hasError = true;
     } else {
       setPriceError('');
@@ -490,13 +492,13 @@ export default function VendorDashboardScreen({ navigation }) {
     };
 
     let logAction = 'New product added';
-    let logDetail = `Price: ₦${priceNum.toLocaleString('en-NG')}`;
+    let logDetail = `Price: $${priceNum.toLocaleString('en-NG')}`;
 
     if (editingProduct) {
       const oldP = editingProduct.price;
       if (oldP !== priceNum) {
         logAction = 'Price Updated';
-        logDetail = `Price changed ₦${oldP.toLocaleString('en-NG')} → ₦${priceNum.toLocaleString('en-NG')}`;
+        logDetail = `Price changed $${oldP.toLocaleString('en-NG')} → $${priceNum.toLocaleString('en-NG')}`;
       } else {
         logAction = 'Product Details Updated';
         logDetail = 'Updated product specs and photo gallery';
@@ -789,11 +791,11 @@ export default function VendorDashboardScreen({ navigation }) {
                           </View>
                         </View>
 
-                        {/* Price Row in Naira */}
+                        {/* Price Row in Dollars */}
                         <View style={styles.prodPriceRow}>
-                          <Text style={styles.prodPriceVal}>₦{Number(item.price).toLocaleString('en-NG')}</Text>
+                          <Text style={styles.prodPriceVal}>{formatPrice(Number(item.price).toLocaleString('en-NG'))}</Text>
                           {item.oldPrice && (
-                            <Text style={styles.prodOldPrice}>₦{Number(item.oldPrice).toLocaleString('en-NG')}</Text>
+                            <Text style={styles.prodOldPrice}>{formatPrice(Number(item.oldPrice).toLocaleString('en-NG'))}</Text>
                           )}
                           <Text style={styles.prodStockText}>Stock: {item.stockQuantity ?? item.stock ?? 20} units</Text>
                         </View>
@@ -887,7 +889,7 @@ export default function VendorDashboardScreen({ navigation }) {
                           )}
                         </View>
                         <Text style={styles.custTitle} numberOfLines={1}>{p.name}</Text>
-                        <Text style={styles.custPrice}>₦{Number(p.price).toLocaleString('en-NG')}</Text>
+                        <Text style={styles.custPrice}>{formatPrice(Number(p.price).toLocaleString('en-NG'))}</Text>
                         <TouchableOpacity style={styles.custBuyBtn} activeOpacity={0.8}>
                           <ShoppingBag size={12} color="#FFFFFF" weight="bold" />
                           <Text style={styles.custBuyBtnText}>Add to Cart</Text>
@@ -1029,14 +1031,14 @@ export default function VendorDashboardScreen({ navigation }) {
 
                 <View style={styles.viewMetaGrid}>
                   <View style={styles.viewMetaBox}>
-                    <Text style={styles.viewMetaLabel}>Price (Naira)</Text>
-                    <Text style={styles.viewMetaVal}>₦{Number(viewingProduct.price).toLocaleString('en-NG')}</Text>
+                    <Text style={styles.viewMetaLabel}>Price (USD)</Text>
+                    <Text style={styles.viewMetaVal}>{formatPrice(Number(viewingProduct.price).toLocaleString('en-NG'))}</Text>
                   </View>
 
                   {viewingProduct.discountPrice && (
                     <View style={styles.viewMetaBox}>
                       <Text style={styles.viewMetaLabel}>Discount Price</Text>
-                      <Text style={[styles.viewMetaVal, { color: '#16A34A' }]}>₦{Number(viewingProduct.discountPrice).toLocaleString('en-NG')}</Text>
+                      <Text style={[styles.viewMetaVal, { color: '#16A34A' }]}>{formatPrice(Number(viewingProduct.discountPrice).toLocaleString('en-NG'))}</Text>
                     </View>
                   )}
 
@@ -1100,7 +1102,7 @@ export default function VendorDashboardScreen({ navigation }) {
                 <View style={styles.priceDiffCard}>
                   <Text style={styles.priceDiffTitle}>Price Update Preview:</Text>
                   <Text style={styles.priceDiffText}>
-                    ₦{editingProduct.price.toLocaleString('en-NG')} → <Text style={{ fontWeight: '800', color: '#16A34A' }}>₦{parseFloat(prodPrice).toLocaleString('en-NG')}</Text>
+                    {formatPrice(editingProduct.price.toLocaleString('en-NG'))} → <Text style={{ fontWeight: '800', color: '#16A34A' }}>{formatPrice(parseFloat(prodPrice).toLocaleString('en-NG'))}</Text>
                   </Text>
                 </View>
               ) : null}
@@ -1108,7 +1110,7 @@ export default function VendorDashboardScreen({ navigation }) {
               {/* Price & Discount Price */}
               <View style={styles.rowTwoCols}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Price (₦) *</Text>
+                  <Text style={styles.fieldLabel}>Price ($) *</Text>
                   <TextInput
                     style={[styles.inputWrapper, priceError ? styles.inputError : null]}
                     value={prodPrice}
@@ -1124,7 +1126,7 @@ export default function VendorDashboardScreen({ navigation }) {
                 </View>
 
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Discount Price (₦)</Text>
+                  <Text style={styles.fieldLabel}>Discount Price ($)</Text>
                   <TextInput
                     style={styles.inputWrapper}
                     value={prodDiscountPrice}

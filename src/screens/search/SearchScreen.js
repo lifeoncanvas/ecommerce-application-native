@@ -16,6 +16,7 @@ import { CaretLeft, Sliders, CaretRight, Clock, MagnifyingGlass } from 'phosphor
 import { typography, spacing, radius } from '../../theme';
 import { products as mockProducts, vendors as mockVendors, categories as mockCategories } from '../../data/mockData';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import {
   searchProducts,
   getSearchSuggestions,
@@ -33,7 +34,8 @@ const withTimeout = (promise, ms = 2500) => {
 };
 
 export default function SearchScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors } = useTheme(); 
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -378,9 +380,9 @@ export default function SearchScreen({ navigation }) {
               <View style={styles.filterPillsRow}>
                 {[
                   { id: 'all', label: 'All Prices' },
-                  { id: 'under400', label: 'Under ₦400' },
-                  { id: '400to800', label: '₦400 - ₦800' },
-                  { id: 'over800', label: 'Over ₦800' },
+                  { id: 'under400', label: `Under ${formatPrice('400')}` },
+                  { id: '400to800', label: `${formatPrice('400')} - $800` },
+                  { id: 'over800', label: `Over ${formatPrice('800')}` },
                 ].map((item) => (
                   <TouchableOpacity
                     key={item.id}

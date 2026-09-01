@@ -31,6 +31,7 @@ import { ALL_FEED_PRODUCTS } from '../../data/mockProductsData';
 import { useWishlist } from '../../context/WishlistContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 40) / 2; // 20px padding left & right, 8px middle gap
@@ -220,6 +221,7 @@ const RICH_LISTING_CATALOG = [
 
 export default function ProductListingScreen({ route, navigation }) {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const { categoryId = 'cat_fashion', subcategoryId } = route?.params || {};
   const { isLiked, toggleWishlist } = useWishlist();
 
@@ -266,9 +268,9 @@ export default function ProductListingScreen({ route, navigation }) {
 
     if (selectedPrice !== 'All') {
       items = items.filter((p) => {
-        if (selectedPrice === 'Under ₦400') return p.price < 400;
-        if (selectedPrice === '₦400 - ₦800') return p.price >= 400 && p.price <= 800;
-        if (selectedPrice === 'Over ₦800') return p.price > 800;
+        if (selectedPrice === `Under ${formatPrice(400)}`) return p.price < 400;
+        if (selectedPrice === `${formatPrice(400)} - ${formatPrice(800)}`) return p.price >= 400 && p.price <= 800;
+        if (selectedPrice === `Over ${formatPrice(800)}`) return p.price > 800;
         return true;
       });
     }
@@ -351,9 +353,9 @@ export default function ProductListingScreen({ route, navigation }) {
 
           {/* Pricing Row */}
           <View style={styles.priceRow}>
-            <Text style={styles.priceMain}>₦{item.price}</Text>
+            <Text style={styles.priceMain}>{formatPrice(item.price)}</Text>
             {item.oldPrice && (
-              <Text style={styles.priceOld}>₦{item.oldPrice}</Text>
+              <Text style={styles.priceOld}>{formatPrice(item.oldPrice)}</Text>
             )}
             {item.discount && (
               <Text style={styles.discountText}>{item.discount}</Text>
@@ -363,7 +365,7 @@ export default function ProductListingScreen({ route, navigation }) {
           {/* Coupon Row */}
           {item.bestPrice && (
             <Text style={styles.couponText}>
-              Best Price ₦{item.bestPrice} with coupon
+              Best Price {formatPrice(item.bestPrice)} with coupon
             </Text>
           )}
 
@@ -627,7 +629,7 @@ export default function ProductListingScreen({ route, navigation }) {
 
             {activeFilterTab === 'Filters' && (
               <View style={styles.modalBody}>
-                {['All Prices', 'Under ₦400', '₦400 - ₦800', 'Over ₦800'].map((p) => (
+                {['All Prices', `Under ${formatPrice(400)}`, `${formatPrice(400)} - ${formatPrice(800)}`, `Over ${formatPrice(800)}`].map((p) => (
                   <TouchableOpacity
                     key={p}
                     style={styles.sortOptionRow}

@@ -1,4 +1,4 @@
-# HTTN / KingsShoppers - Complete System Guide
+# HTTN / Litch Marketing - Complete System Guide
 
 This document provides a comprehensive guide covering all features of the application, how user and vendor registration work, and step-by-step instructions to install and run the complete system on a single machine.
 

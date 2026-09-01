@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
 
 const { width } = Dimensions.get('window');
@@ -57,7 +58,7 @@ const DEFAULT_WISHLIST_ITEMS = [
     price: 1190,
     oldPrice: null,
     discount: null,
-    offerText: 'Get it for ₦1,090',
+    offerText: 'Get it for $1,090',
     badges: ['Fast delivery'],
     image: require('../../../assets/images/wishlist/wish_3.jpg'),
     swatches: null,
@@ -96,6 +97,7 @@ const FOR_YOU_ITEMS = [
 
 export default function WishlistScreen({ navigation }) {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const { wishlistItems: contextWishlist, toggleWishlist } = useWishlist();
   const { addItem, items: cartItems } = useCart();
 
@@ -244,13 +246,13 @@ export default function WishlistScreen({ navigation }) {
 
           {/* Price Row */}
           <View style={styles.priceRow}>
-            <Text style={styles.itemPrice}>₦{item.price.toLocaleString('en-NG')}</Text>
+            <Text style={styles.itemPrice}>{formatPrice(item.price.toLocaleString('en-NG'))}</Text>
             {item.oldPrice && (
-              <Text style={styles.itemOldPrice}>₦{item.oldPrice.toLocaleString('en-NG')}</Text>
+              <Text style={styles.itemOldPrice}>{formatPrice(item.oldPrice.toLocaleString('en-NG'))}</Text>
             )}
           </View>
 
-          {/* Offer text e.g. "Get it for ₦1,090" */}
+          {/* Offer text e.g. "Get it for ${formatPrice('1,090')}" */}
           {item.offerText && (
             <Text style={styles.offerText}>{item.offerText}</Text>
           )}
@@ -356,7 +358,7 @@ export default function WishlistScreen({ navigation }) {
                       </View>
                     </View>
                     <Text style={styles.itemTitle} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.itemPrice}>₦{item.price}</Text>
+                    <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

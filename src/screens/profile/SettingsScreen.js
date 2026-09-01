@@ -12,12 +12,15 @@ import {
 import { typography, spacing, radius } from '../../theme';
 import { getSettings, updateSettings } from '../../api/profile.api';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import {
   CaretLeft,
   Bell,
   Moon,
   ShieldCheck,
   EnvelopeSimpleOpen,
+  CurrencyDollar,
+  CheckCircle,
 } from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2000) => {
@@ -29,6 +32,7 @@ const withTimeout = (promise, ms = 2000) => {
 
 export default function SettingsScreen({ navigation }) {
   const { colors, isDarkMode, toggleDarkMode } = useTheme();
+  const { currency, changeCurrency } = useCurrency();
   const styles = getStyles(colors);
 
   const [loading, setLoading] = useState(false);
@@ -137,6 +141,26 @@ export default function SettingsScreen({ navigation }) {
                 thumbColor="#FFFFFF"
                 ios_backgroundColor="#CBD5E1"
               />
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.settingRow}>
+              <View style={[styles.settingIconWrapper, { backgroundColor: '#F0FDF4' }]}>
+                <CurrencyDollar size={20} color="#16A34A" weight="regular" />
+              </View>
+              <View style={styles.textCol}>
+                <Text style={styles.settingTitle}>Currency</Text>
+                <Text style={styles.settingDesc}>Choose between US Dollars or Espees</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.currencyToggle}
+                onPress={() => changeCurrency(currency === 'USD' ? 'ESP' : 'USD')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.currencyOption, currency === 'USD' && styles.currencyOptionActive]}>USD</Text>
+                <Text style={[styles.currencyOption, currency === 'ESP' && styles.currencyOptionActive]}>ESP</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -278,5 +302,25 @@ const getStyles = (colors) => StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F1F5F9',
+  },
+  currencyToggle: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  currencyOption: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    backgroundColor: '#F8FAFC',
+  },
+  currencyOptionActive: {
+    backgroundColor: '#1E293B',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

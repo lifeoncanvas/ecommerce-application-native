@@ -33,6 +33,7 @@ import { colors as staticColors, typography, spacing, radius } from '../../theme
 import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { useTabBarVisibility } from '../../context/TabBarVisibilityContext';
 import { categories as mockCategories, vendors, products as mockProducts } from '../../data/mockData';
 import { ALL_FEED_PRODUCTS } from '../../data/mockProductsData';
@@ -52,10 +53,35 @@ const CARD_WIDTH = (width - 44) / 2; // 2-column grid with 16px side margin + 12
 const PAGE_SIZE = 6;
 
 // ─── Exact Cropped Static Local Assets ──────────────────────────────────────
-const BANNER_IMAGES = [
-  require('../../../assets/images/banners/banner1.jpg'), // Omnia A-Fold S1
-  require('../../../assets/images/banners/banner2.jpg'), // Fashion Redemption
-  require('../../../assets/images/banners/banner3.jpg'), // Akara Fries
+const BANNER_DATA = [
+  {
+    id: 'b1',
+    image: require('../../../assets/images/vendors/kalaya.jpg'),
+    promo: 'BEAUTY WEEK',
+    title: 'Kaya Makeup',
+    subtitle: 'Flat 50% OFF on all Kaya products',
+  },
+  {
+    id: 'b2',
+    image: require('../../../assets/images/categories/fashion.jpg'),
+    promo: 'FASHION REDEMPTION',
+    title: 'New Arrivals',
+    subtitle: 'Upgrade your style with up to 40% OFF',
+  },
+  {
+    id: 'b3',
+    image: require('../../../assets/images/ai/omnia_tablet_front.png'),
+    promo: 'TECH SALE',
+    title: 'Omnia Mobile',
+    subtitle: 'Experience extreme performance',
+  },
+  {
+    id: 'b4',
+    image: require('../../../assets/images/categories/food.jpg'),
+    promo: 'HUNGRY?',
+    title: 'Gourmet Restaurant',
+    subtitle: 'Delicious meals delivered hot & fast',
+  }
 ];
 
 const CAT_IMAGES = [
@@ -131,6 +157,7 @@ const SAVED_ADDRESSES = [
 
 export default function HomeScreen({ navigation }) {
   const { colors, isDarkMode } = useTheme();
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
   const { user } = useAuth();
   const { isLiked, toggleWishlist } = useWishlist();
@@ -259,7 +286,7 @@ export default function HomeScreen({ navigation }) {
     clearInterval(bannerAutoPlayRef.current);
     bannerAutoPlayRef.current = setInterval(() => {
       setActiveBannerIndex((prev) => {
-        const next = (prev + 1) % BANNER_IMAGES.length;
+        const next = (prev + 1) % BANNER_DATA.length;
         bannerListRef.current?.scrollToIndex({ index: next, animated: true });
         return next;
       });
@@ -364,7 +391,7 @@ export default function HomeScreen({ navigation }) {
               {item.brand}
             </Text>
             <Text style={styles.productPriceText}>
-              ₦{item.price}
+              {formatPrice(item.price)}
             </Text>
           </View>
           <View style={styles.cardInfoRow}>
@@ -417,8 +444,8 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.hCardBrand} numberOfLines={1}>{vendor?.name || 'Store'}</Text>
           <Text style={styles.hCardName} numberOfLines={1}>{item.name}</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.currentPrice}>₦{Number(item.price).toFixed(0)}</Text>
-            {item.oldPrice && <Text style={styles.oldPrice}>₦{Number(item.oldPrice).toFixed(0)}</Text>}
+            <Text style={styles.currentPrice}>{formatPrice(Number(item.price).toFixed(0))}</Text>
+            {item.oldPrice && <Text style={styles.oldPrice}>{formatPrice(Number(item.oldPrice).toFixed(0))}</Text>}
           </View>
           {isFlash && item.claimed && (
             <View style={styles.claimedContainer}>
@@ -545,7 +572,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.bannerWrapper}>
           <FlatList
             ref={bannerListRef}
-            data={BANNER_IMAGES}
+            data={BANNER_DATA}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
@@ -554,11 +581,18 @@ export default function HomeScreen({ navigation }) {
             scrollEventThrottle={16}
             getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
             renderItem={({ item }) => (
-              <Image source={item} style={styles.bannerImage} resizeMode="cover" />
+              <View style={[styles.bannerImage, { position: 'relative', overflow: 'hidden' }]}>
+                <Image source={item.image} style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]} resizeMode="cover" />
+                <View style={styles.bannerOverlay}>
+                  <Text style={styles.bannerPromo}>{item.promo}</Text>
+                  <Text style={styles.bannerTitleText}>{item.title}</Text>
+                  <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
+                </View>
+              </View>
             )}
           />
           <View style={styles.bannerDots}>
-            {BANNER_IMAGES.map((_, i) => (
+            {BANNER_DATA.map((_, i) => (
               <View key={i} style={[styles.bannerDot, i === activeBannerIndex && styles.bannerDotActive]} />
             ))}
           </View>
@@ -566,6 +600,9 @@ export default function HomeScreen({ navigation }) {
 
         {/* ─── Curated Brands — 2-row × 4-col grid ────────────────────── */}
         <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Top Brands</Text>
+          </View>
           <View style={styles.vendorGrid}>
             {VENDOR_IMGS.map((img, idx) => (
               <TouchableOpacity
@@ -1027,9 +1064,9 @@ const getStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 16,
-    rowGap: 14,
-    columnGap: (width - 32 - (4 * 72)) / 3 > 0 ? (width - 32 - (4 * 72)) / 3 : 8,
-    justifyContent: 'space-between',
+    rowGap: 16,
+    columnGap: 20,
+    justifyContent: 'center',
   },
   vendorTile: {
     width: 72,
@@ -1517,4 +1554,31 @@ const getStyles = (colors) => StyleSheet.create({
     fontFamily: 'PlusJakartaSans-Medium',
     color: colors.textPrimary,
   },
+  bannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    alignItems: 'flex-start',
+  },
+  bannerPromo: {
+    color: '#FBBF24',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  bannerTitleText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  bannerSubtitle: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 16,
+    maxWidth: '80%',
+  }
 });
