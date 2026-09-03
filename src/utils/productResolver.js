@@ -1,104 +1,56 @@
-import { products as mockProducts, vendors as mockVendors } from '../data/mockData';
-import { ALL_FEED_PRODUCTS } from '../data/mockProductsData';
+import { products, vendors } from '../data/mockData';
 
 const asString = (value) => (value === undefined || value === null ? '' : String(value));
 
-// Category-specific gallery pools
-const DETAIL_IMAGE_POOLS = {
-  cat_beauty: [
-    require('../../assets/images/products/product_1.jpg'),
-    require('../../assets/images/products/product_3.jpg'),
-    require('../../assets/images/products/product_6.jpg'),
-    require('../../assets/images/vendors/vendor_2.jpg'),
-  ],
-  cat_fashion: [
-    require('../../assets/images/products/product_2.jpg'),
-    require('../../assets/images/products/product_4.jpg'),
-    require('../../assets/images/products/product_5.jpg'),
-    require('../../assets/images/details/hero_1.jpg'),
-    require('../../assets/images/details/card_1.jpg'),
-    require('../../assets/images/details/card_2.jpg'),
-  ],
-  cat_electronics: [
-    require('../../assets/images/vendors/vendor_1.jpg'),
-    require('../../assets/images/banners/banner1.jpg'),
-    require('../../assets/images/banners/banner2.jpg'),
-  ],
-  cat_groceries: [
-    require('../../assets/images/vendors/vendor_3.jpg'),
-    require('../../assets/images/categories/cat_3.jpg'),
-    require('../../assets/images/categories/food.jpg'),
-  ],
-  cat_home: [
-    require('../../assets/images/vendors/vendor_4.jpg'),
-    require('../../assets/images/categories/cat_5.jpg'),
-    require('../../assets/images/banners/banner3.jpg'),
-  ],
-  cat_services: [
-    require('../../assets/images/vendors/vendor_8.jpg'),
-    require('../../assets/images/categories/cat_4.jpg'),
-    require('../../assets/images/categories/services.jpg'),
-  ],
-};
+export const normalizeProduct = (rawProduct = {}) => {
+  const key = asString(rawProduct.id || rawProduct.productId || rawProduct.slug);
+  const found = products.find((p) => asString(p.id) === key) || rawProduct;
 
-// Swatch presets
-const DEFAULT_SWATCHES = [
-  { id: 'sw_1', name: 'Primary', hex: '#BA5392' },
-  { id: 'sw_2', name: 'Amber', hex: '#E27B36' },
-  { id: 'sw_3', name: 'Royal Blue', hex: '#5282EC' },
-  { id: 'sw_4', name: 'Deep Maroon', hex: '#772020' },
-];
+  const vendor = vendors.find((v) => asString(v.id) === asString(found.vendorId));
 
-export const normalizeProduct = (product = {}) => {
-  const vendor = mockVendors.find((v) => asString(v.id) === asString(product.vendorId));
-  const price = Number(product.price || product.salePrice || 999);
-  const oldPrice = Number(product.oldPrice || product.mrp || product.originalPrice || 0) || Math.round(price * 1.6);
-  const discount = product.discount || (oldPrice && price ? `${Math.round(((oldPrice - price) / oldPrice) * 100)}% OFF` : '40% OFF');
-  const image = product.image || product.thumbnail || product.imageUrl || require('../../assets/images/details/hero_1.jpg');
-  const categoryId = product.categoryId || product.category || 'cat_fashion';
+  const image = found.image || (found.images && found.images[0]) || require('../../assets/images/details/hero_1.jpg');
+  const images = (found.images && found.images.length > 0) ? found.images : [image];
 
-  // Build 4 gallery images with product's own photo first
-  const pool = DETAIL_IMAGE_POOLS[categoryId] || DETAIL_IMAGE_POOLS.cat_fashion;
-  const gallery = [
-    image,
-    ...pool.filter((img) => img !== image),
-  ].slice(0, 4);
+  const price = Number(found.price || 99);
+  const oldPrice = Number(found.oldPrice || found.mrp || Math.round(price * 1.3));
+  const discount = found.discount || `${Math.round(((oldPrice - price) / oldPrice) * 100)}% OFF`;
 
   return {
-    ...product,
-    id: String(product.id || product.productId || product.slug || 'prod_default'),
-    slug: product.slug || String(product.id || 'product'),
-    brand: product.brand || product.vendor || vendor?.name || 'LitchMarketing',
-    title: product.title || product.name || 'Textured Solid V-neck Top',
-    name: product.name || product.title || 'Textured Solid V-neck Top',
+    ...found,
+    id: String(found.id || 'prod_default'),
+    name: found.name || found.title || 'Product Item',
+    title: found.title || found.name || 'Product Item',
+    brand: found.brand || vendor?.name || 'Pinnacle Brand',
+    vendorName: vendor?.name || found.brand || 'Pinnacle Merchant',
+    vendorLocation: vendor?.location || 'PINNACLE MALL',
+    vendorRating: vendor?.rating || 4.8,
     price,
     oldPrice,
     mrp: oldPrice,
-    discount: discount.includes('OFF') ? `(${discount})` : `(${discount} OFF)`,
-    rating: Number(product.rating || product.ratingValue || 4.5),
-    ratingsCount: Number(product.reviewsCount || product.ratingsCount || 87),
-    description: product.description || 'Premium design tailored for unmatched comfort, flattering fit, and effortless elegance.',
+    discount: discount.includes('OFF') ? discount : `${discount} OFF`,
+    rating: Number(found.rating || 4.8),
+    ratingsCount: Number(found.reviewsCount || 100),
+    description: found.description || 'High quality product curated for excellence.',
     image,
-    gallery,
-    categoryId,
-    vendorId: product.vendorId,
-    swatches: product.swatches || DEFAULT_SWATCHES,
+    images,
+    gallery: images,
+    metadata: found.metadata || {},
+    categoryId: found.categoryId || 'cat_fashion',
+    subcategoryId: found.subcategoryId || '',
+    vendorId: found.vendorId,
   };
 };
 
 export const resolveProduct = (idOrSlug, fallbackProduct = null) => {
   const key = asString(idOrSlug);
-  if (fallbackProduct) {
-    return normalizeProduct({ ...fallbackProduct, id: fallbackProduct.id || key });
-  }
-
   if (key) {
-    const allProducts = [...ALL_FEED_PRODUCTS, ...mockProducts];
-    const found = allProducts.find((p) => asString(p.id) === key || asString(p.slug) === key || asString(p.productId) === key);
+    const found = products.find((p) => asString(p.id) === key || asString(p.slug) === key);
     if (found) return normalizeProduct(found);
   }
-
-  return normalizeProduct({ id: key || 'prod_1' });
+  if (fallbackProduct) {
+    return normalizeProduct(fallbackProduct);
+  }
+  return normalizeProduct(products[0]);
 };
 
 export const buildProductRouteParams = (product = {}) => {
@@ -106,15 +58,16 @@ export const buildProductRouteParams = (product = {}) => {
   return {
     id: normalized.id,
     productId: normalized.id,
-    slug: normalized.slug,
+    slug: normalized.id,
     product: normalized,
   };
 };
 
 export const getRelatedMockProducts = (currentCategoryId, currentProductId, limit = 4) => {
   const key = asString(currentProductId);
-  return ALL_FEED_PRODUCTS
-    .filter((p) => asString(p.id) !== key)
+  return products
+    .filter((p) => asString(p.id) !== key && p.categoryId === currentCategoryId)
+    .concat(products.filter((p) => asString(p.id) !== key && p.categoryId !== currentCategoryId))
     .slice(0, limit)
     .map(normalizeProduct);
 };

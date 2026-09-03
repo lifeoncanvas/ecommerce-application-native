@@ -84,12 +84,12 @@ const BANNER_DATA = [
   }
 ];
 
-const CAT_IMAGES = [
-  require('../../../assets/images/categories/cat_1.jpg'), // Food
-  require('../../../assets/images/categories/cat_2.jpg'), // Fashion
-  require('../../../assets/images/categories/cat_3.jpg'), // Groceries
-  require('../../../assets/images/categories/cat_4.jpg'), // Services
-  require('../../../assets/images/categories/cat_5.jpg'), // More / Beauty
+const CATEGORY_BAR_ITEMS = [
+  { id: 'cat_food', name: 'Food', image: require('../../../assets/images/categories/cat_1.jpg') },
+  { id: 'cat_fashion', name: 'Fashion', image: require('../../../assets/images/categories/cat_2.jpg') },
+  { id: 'cat_electronics', name: 'Electronics', image: require('../../../assets/images/products/electronics/phone.jpg') },
+  { id: 'cat_services', name: 'Services', image: require('../../../assets/images/categories/cat_4.jpg') },
+  { id: 'cat_beauty', name: 'Beauty', image: require('../../../assets/images/categories/cat_5.jpg') },
 ];
 
 const VENDOR_IMGS = [
@@ -353,6 +353,8 @@ export default function HomeScreen({ navigation }) {
   const renderExactProductCard = (item, index) => {
     const isSelected = selectedProductIndex === index;
     const liked = isLiked(item.id);
+    const imgSrc = typeof item.image === 'number' ? item.image : (typeof item.image === 'string' ? { uri: item.image } : item.image);
+    const discountPct = item.oldPrice && item.price ? Math.round(((item.oldPrice - item.price) / item.oldPrice) * 100) : null;
 
     return (
       <TouchableOpacity
@@ -362,11 +364,18 @@ export default function HomeScreen({ navigation }) {
           setSelectedProductIndex(index);
           navigation.navigate('ProductDetails', buildProductRouteParams(item));
         }}
-        activeOpacity={0.9}
+        activeOpacity={0.88}
       >
-        {/* Full-bleed Photo Container */}
+        {/* Photo Container matching Image 1 */}
         <View style={styles.gridCardPhoto}>
-          <Image source={item.image} style={styles.gridCardImg} resizeMode="cover" />
+          <Image source={imgSrc} style={styles.gridCardImg} resizeMode="cover" />
+
+          {/* Dark Pill Discount Badge top-left */}
+          {discountPct > 0 && (
+            <View style={styles.darkDiscountBadge}>
+              <Text style={styles.darkDiscountText}>-{discountPct}%</Text>
+            </View>
+          )}
 
           {/* Heart Outline Button on top right */}
           <TouchableOpacity
@@ -375,32 +384,33 @@ export default function HomeScreen({ navigation }) {
             activeOpacity={0.7}
           >
             <Heart
-              size={18}
-              color={liked ? '#E53935' : '#222'}
+              size={16}
+              color={liked ? '#E11D48' : '#222'}
               weight={liked ? 'fill' : 'regular'}
             />
           </TouchableOpacity>
-
-
         </View>
 
         {/* Info Row Below Photo */}
         <View style={styles.gridCardInfo}>
           <View style={styles.cardInfoRow}>
             <Text style={styles.productBrandText} numberOfLines={1}>
-              {item.brand}
+              {item.name}
             </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 10, color: '#F59E0B', marginRight: 2 }}>★</Text>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748B' }}>{item.rating || '4.9'}</Text>
+            </View>
+          </View>
+          <View style={[styles.cardInfoRow, { marginTop: 3 }]}>
             <Text style={styles.productPriceText}>
               {formatPrice(item.price)}
             </Text>
-          </View>
-          <View style={styles.cardInfoRow}>
-            <Text style={styles.productCategoryText} numberOfLines={1}>
-              {item.category}
-            </Text>
-            <Text style={styles.productDiscountText}>
-              {item.discount}
-            </Text>
+            {item.oldPrice && (
+              <Text style={{ fontSize: 11, color: '#94A3B8', textDecorationLine: 'line-through' }}>
+                {formatPrice(item.oldPrice)}
+              </Text>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -411,50 +421,52 @@ export default function HomeScreen({ navigation }) {
   const renderHorizontalCard = (item, isFlash = false) => {
     const vendor = vendors.find((v) => v.id === item.vendorId);
     const liked = isLiked(item.id);
+    const imgSrc = typeof item.image === 'number' ? item.image : (typeof item.image === 'string' ? { uri: item.image } : item.image);
+    const discountPct = item.oldPrice && item.price ? Math.round(((item.oldPrice - item.price) / item.oldPrice) * 100) : null;
+
     return (
       <TouchableOpacity
         key={item.id}
         style={styles.hCard}
         onPress={() => navigation.navigate('ProductDetails', buildProductRouteParams(item))}
-        activeOpacity={0.85}
+        activeOpacity={0.88}
       >
-        <View style={styles.hCardHeader}>
-          <View style={styles.ratingBadge}>
-            <Text style={styles.starIcon}>★</Text>
-            <Text style={styles.ratingText}>{item.rating || '4.5'}</Text>
-          </View>
-          <TouchableOpacity style={styles.heartButton} onPress={() => toggleWishlist(item.id)} activeOpacity={0.7}>
-            <Heart size={14} color={liked ? colors.error : colors.disabled} weight={liked ? 'fill' : 'regular'} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.hCardImage}>
-          {item.image
-            ? <Image source={{ uri: item.image }} style={styles.hCardImg} resizeMode="cover" />
-            : <Text style={styles.hCardEmoji}>{item.emoji || '🎁'}</Text>
-          }
-          {item.oldPrice && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountBadgeText}>
-                {Math.round(((item.oldPrice - item.price) / item.oldPrice) * 100)}% OFF
-              </Text>
+        {/* Photo Container matching img 1 */}
+        <View style={styles.hCardImageWrapper}>
+          <Image source={imgSrc} style={styles.hCardImg} resizeMode="cover" />
+
+          {/* Dark Pill Discount Badge top-left (-20%) */}
+          {discountPct > 0 && (
+            <View style={styles.darkDiscountBadge}>
+              <Text style={styles.darkDiscountText}>-{discountPct}%</Text>
+            </View>
+          )}
+
+          {/* Rating Badge top-right */}
+          {item.rating && (
+            <View style={styles.topRatingPill}>
+              <Text style={styles.topRatingStar}>★</Text>
+              <Text style={styles.topRatingNum}>{item.rating}</Text>
             </View>
           )}
         </View>
-        <View style={styles.hCardInfo}>
-          <Text style={styles.hCardBrand} numberOfLines={1}>{vendor?.name || 'Store'}</Text>
-          <Text style={styles.hCardName} numberOfLines={1}>{item.name}</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.currentPrice}>{formatPrice(Number(item.price).toFixed(0))}</Text>
-            {item.oldPrice && <Text style={styles.oldPrice}>{formatPrice(Number(item.oldPrice).toFixed(0))}</Text>}
-          </View>
-          {isFlash && item.claimed && (
-            <View style={styles.claimedContainer}>
-              <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${item.claimed}%` }]} />
-              </View>
-              <Text style={styles.claimedText}>{item.claimed}% claimed</Text>
+
+        {/* Content Below Image */}
+        <View style={styles.hCardContent}>
+          <Text style={styles.hCardTitle} numberOfLines={1}>{item.name}</Text>
+
+          <View style={styles.hCardBottomRow}>
+            <View style={styles.priceContainer}>
+              <Text style={styles.mainPriceText}>{formatPrice(Number(item.price).toFixed(0))}</Text>
+              {item.oldPrice && (
+                <Text style={styles.subOldPriceText}>{formatPrice(Number(item.oldPrice).toFixed(0))}</Text>
+              )}
             </View>
-          )}
+
+            <TouchableOpacity style={styles.inlineHeartBtn} onPress={() => toggleWishlist(item.id)} activeOpacity={0.7}>
+              <Heart size={16} color={liked ? '#E11D48' : '#64748B'} weight={liked ? 'fill' : 'regular'} />
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -541,29 +553,25 @@ export default function HomeScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.navy]} />}
       >
 
-        {/* ─── Category strip (img2) — horizontal photo tiles ──────────── */}
+        {/* ─── Category strip — horizontal photo tiles ──────────── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.catStrip}
         >
-          {homeCategories.slice(0, 5).map((cat, idx) => {
-            const img = CAT_IMAGES[idx % CAT_IMAGES.length];
-            const labels = ['Food', 'Fashion', 'Groceries', 'Services', 'Beauty'];
-            return (
-              <TouchableOpacity
-                key={cat.id || idx}
-                style={styles.catItem}
-                onPress={() => navigation.navigate('ProductListing', { categoryId: cat.id })}
-                activeOpacity={0.82}
-              >
-                <View style={styles.catTile}>
-                  <Image source={img} style={styles.catTileImg} resizeMode="cover" />
-                </View>
-                <Text style={styles.catLabel} numberOfLines={1}>{labels[idx] || cat.name}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {CATEGORY_BAR_ITEMS.map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              style={styles.catItem}
+              onPress={() => navigation.navigate('ProductListing', { categoryId: cat.id })}
+              activeOpacity={0.82}
+            >
+              <View style={styles.catTile}>
+                <Image source={cat.image} style={styles.catTileImg} resizeMode="cover" />
+              </View>
+              <Text style={styles.catLabel} numberOfLines={1}>{cat.name}</Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         {/* ─── Banner carousel — exact cropped banners, auto-swiping 3s ── */}
@@ -636,6 +644,19 @@ export default function HomeScreen({ navigation }) {
             </ScrollView>
           </View>
         )}
+
+        {/* ─── Beauty & Cosmetics Collection ────────────────────────────── */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Beauty & Cosmetics Collection</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ProductListing', { categoryId: 'cat_beauty' })}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#1E293B' }}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
+            {mockProducts.filter((p) => p.categoryId === 'cat_beauty').map((p) => renderHorizontalCard(p))}
+          </ScrollView>
+        </View>
 
         {/* ─── Featured Products ───────────────────────────────────────── */}
         {featuredProducts.length > 0 && (
@@ -1253,51 +1274,103 @@ const getStyles = (colors) => StyleSheet.create({
   countdownText: { color: '#FDE047', fontWeight: '700', fontSize: 11 },
   hScroll: { paddingLeft: 16, paddingBottom: 12 },
   hCard: {
-    width: 148,
-    backgroundColor: '#FFFFFF',
+    width: 160,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    padding: 6,
+    marginRight: 14,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(0,0,0,0.04)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  hCardImageWrapper: {
+    width: '100%',
+    height: 155,
+    borderRadius: 14,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#E2E8F0',
+  },
+  hCardImg: {
+    width: '100%',
+    height: '100%',
+  },
+  darkDiscountBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#1E1B4B',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 12,
-    marginRight: 12,
-    overflow: 'hidden',
   },
-  hCardHeader: {
-    position: 'absolute', top: 8, left: 8, right: 8,
-    zIndex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  darkDiscountText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '800',
   },
-  ratingBadge: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    paddingHorizontal: 6, paddingVertical: 2,
-    borderRadius: 4, borderWidth: 0.5, borderColor: '#E5E7EB',
+  topRatingPill: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
-  starIcon:   { color: '#F59E0B', fontSize: 9, marginRight: 2 },
-  ratingText: { color: '#111', fontWeight: '700', fontSize: 9 },
-  heartButton: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 0.5, borderColor: '#E5E7EB',
+  topRatingStar: {
+    fontSize: 9,
+    color: '#F59E0B',
+    marginRight: 2,
   },
-  hCardImage: {
-    height: 110, backgroundColor: '#F9FAFB',
-    justifyContent: 'center', alignItems: 'center',
-    overflow: 'hidden',
+  topRatingNum: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  hCardImg: { width: '100%', height: '100%' },
-  hCardEmoji:   { fontSize: 38 },
-  discountBadge: {
-    position: 'absolute', bottom: 6, left: 6,
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+  hCardContent: {
+    paddingTop: 8,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
   },
-  discountBadgeText: { color: '#FFFFFF', fontWeight: '700', fontSize: 8 },
-  hCardInfo:  { padding: 8 },
-  hCardBrand: { color: '#6B7280', fontSize: 9, fontWeight: '600', textTransform: 'uppercase' },
-  hCardName:  { color: '#111827', fontSize: 12, fontWeight: '600', marginTop: 2 },
-  priceRow:   { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 },
-  currentPrice: { color: '#1E293B', fontSize: 13, fontWeight: '700' },
-  oldPrice:     { color: '#9CA3AF', textDecorationLine: 'line-through', fontSize: 10 },
+  hCardTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  hCardBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  mainPriceText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  subOldPriceText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  inlineHeartBtn: {
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   claimedContainer: { marginTop: 6 },
   progressBarBg:   { height: 4, backgroundColor: '#E5E7EB', borderRadius: 999, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: '#F59E0B' },

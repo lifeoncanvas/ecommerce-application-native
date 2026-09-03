@@ -131,7 +131,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
     '08:00 PM - 09:30 PM',
   ];
 
-  const [selectedBookingDay, setSelectedBookingDay] = useState((days[0] && days[0].value) || 'Today');
+  const [selectedBookingDay, setSelectedBookingDay] = useState(days[0]?.value || 'Today');
   const [selectedBookingSlot, setSelectedBookingSlot] = useState(slots[1]);
 
   const SIMILAR_TOPS = useMemo(() => {
@@ -139,7 +139,6 @@ export default function ProductDetailsScreen({ route, navigation }) {
   }, [product]);
 
   // States
-  const [slideWidth, setSlideWidth] = useState(HERO_WIDTH);
   const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
   const [selectedSize, setSelectedSize] = useState('L');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -306,7 +305,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
     showToast('Thank you! Your verified review has been submitted.');
   };
 
-  const totalCartCount = (cartItems && cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0)) || 0;
+  const totalCartCount = cartItems?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -395,9 +394,9 @@ export default function ProductDetailsScreen({ route, navigation }) {
               key={idx}
               activeOpacity={0.95}
               onPress={() => setVisualSearchVisible(true)}
-              style={[styles.heroSlideWrapper, { width: slideWidth }]}
+              style={styles.heroSlideWrapper}
             >
-              <Image source={imgSrc} style={[styles.heroImage, { width: slideWidth, height: 400 }]} resizeMode="cover" />
+              <Image source={imgSrc} style={styles.heroImage} resizeMode="cover" />
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -514,7 +513,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
               </View>
             </View>
           ) : (
-            <React.Fragment>
+            <>
               {/* ─── Color Swatches ────────────────────────────────────────────── */}
               <View style={styles.colorSection}>
                 <Text style={styles.colorLabel}>
@@ -591,7 +590,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
                   })}
                 </View>
               </View>
-            </React.Fragment>
+            </>
           )}
 
           {/* ─── Delivery & Services Box ───────────────────────────────────── */}
