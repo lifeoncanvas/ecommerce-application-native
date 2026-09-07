@@ -176,10 +176,10 @@ function ProfileContent({ navigation, route }) {
     {
       title: 'Seller & Store Portal',
       items: [
-        user?.isVendor ||
+        (user?.isVendor ||
         user?.role === 'STORE_OWNER' ||
         user?.email?.includes('@store.com') ||
-        user?.email?.includes('@vendor.com')
+        user?.email?.includes('@vendor.com'))
           ? {
               id: 'vendor_dashboard',
               title: 'Store Management Portal 🏬',

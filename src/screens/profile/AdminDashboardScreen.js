@@ -28,7 +28,7 @@ import {
   MagnifyingGlass,
 } from 'phosphor-react-native';
 
-export default function AdminDashboardScreen({ navigation }) {
+function AdminContent({ navigation }) {
   const { user } = useAuth();
   const { colors } = useTheme();
 
@@ -339,6 +339,35 @@ export default function AdminDashboardScreen({ navigation }) {
         </View>
       </Modal>
     </SafeAreaView>
+  );
+}
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 18, color: 'red', marginBottom: 10 }}>Admin Dashboard Crashed!</Text>
+          <Text style={{ fontSize: 12, color: '#333' }}>{this.state.error?.toString()}</Text>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function AdminDashboardScreen(props) {
+  return (
+    <ErrorBoundary>
+      <AdminContent {...props} />
+    </ErrorBoundary>
   );
 }
 
