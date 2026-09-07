@@ -52,10 +52,9 @@ import {
   ChartLineUp,
 } from 'phosphor-react-native';
 
-export default function ProfileScreen({ navigation, route }) {
+function ProfileContent({ navigation, route }) {
   const { user, logout } = useAuth();
   const themeContext = useTheme();
-  const colors = themeContext?.colors || {};
 
   const [points, setPoints] = useState(250);
   const [orderCount, setOrderCount] = useState(0);
@@ -273,9 +272,8 @@ export default function ProfileScreen({ navigation, route }) {
   ];
 
   return (
-    <ErrorBoundary>
-      <SafeAreaView style={styles.safeContainer}>
-        <ScrollView
+    <SafeAreaView style={styles.safeContainer}>
+      <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -403,6 +401,13 @@ export default function ProfileScreen({ navigation, route }) {
           </View>
         </ScrollView>
       </SafeAreaView>
+  );
+}
+
+export default function ProfileScreen(props) {
+  return (
+    <ErrorBoundary>
+      <ProfileContent {...props} />
     </ErrorBoundary>
   );
 }
