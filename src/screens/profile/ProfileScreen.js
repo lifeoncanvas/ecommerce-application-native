@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,28 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 18, color: 'red', marginBottom: 10 }}>Profile Screen Crashed!</Text>
+          <Text style={{ fontSize: 12, color: '#333' }}>{this.state.error?.toString()}</Text>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getLoyaltyStatus } from '../../api/loyalty.api';
@@ -251,135 +273,137 @@ export default function ProfileScreen({ navigation, route }) {
   ];
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Profile Avatar Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.userInfoRow}>
-            <View style={styles.userDetails}>
-              <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
-              <Text style={styles.userEmail}>{user?.email || 'guest@litemarket.com'}</Text>
+    <ErrorBoundary>
+      <SafeAreaView style={styles.safeContainer}>
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Profile Avatar Card */}
+          <View style={styles.profileCard}>
+            <View style={styles.userInfoRow}>
+              <View style={styles.userDetails}>
+                <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
+                <Text style={styles.userEmail}>{user?.email || 'guest@litemarket.com'}</Text>
 
-              {/* Loyalty membership badge */}
-              <View style={styles.membershipBadge}>
-                <Crown size={11} color="#F59E0B" weight="fill" />
-                <Text style={styles.membershipText}>
-                  {points >= 500 ? 'Platinum Member' : points >= 200 ? 'Gold Member' : 'Loyalty Member'}
-                </Text>
-              </View>
-
-              {/* Store Owner Quick Portal Shortcut Button */}
-              {(user?.isVendor ||
-                user?.role === 'STORE_OWNER' ||
-                user?.email?.includes('@store.com') ||
-                user?.email?.includes('@vendor.com')) && (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: '#1E293B',
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
-                    borderRadius: 8,
-                    marginTop: 10,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  onPress={() => navigation.navigate('VendorDashboard')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
-                    🏬 Open Store Portal
+                {/* Loyalty membership badge */}
+                <View style={styles.membershipBadge}>
+                  <Crown size={11} color="#F59E0B" weight="fill" />
+                  <Text style={styles.membershipText}>
+                    {points >= 500 ? 'Platinum Member' : points >= 200 ? 'Gold Member' : 'Loyalty Member'}
                   </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+                </View>
 
-          <View style={styles.profileDivider} />
-
-          <View style={styles.statsRow}>
-            <TouchableOpacity
-              style={styles.statCol}
-              onPress={() => navigation.navigate('Loyalty')}
-              activeOpacity={0.7}
-            >
-              <Crown size={20} color="#F59E0B" weight="fill" style={styles.statIcon} />
-              <View>
-                <Text style={styles.statLabel}>Loyalty Balance</Text>
-                <Text style={styles.statValue}>{points} PTS</Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.statDivider} />
-
-            <TouchableOpacity
-              style={styles.statCol}
-              onPress={() => navigation.navigate('MyOrders')}
-              activeOpacity={0.7}
-            >
-              <Package size={20} color="#2952CC" weight="regular" style={styles.statIcon} />
-              <View>
-                <Text style={styles.statLabel}>Active Orders</Text>
-                {loadingStats ? (
-                  <ActivityIndicator size="small" color="#111827" style={{ height: 16, marginTop: 4, alignSelf: 'flex-start' }} />
-                ) : (
-                  <Text style={styles.statValue}>
-                    {`${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`}
-                  </Text>
+                {/* Store Owner Quick Portal Shortcut Button */}
+                {(user?.isVendor ||
+                  user?.role === 'STORE_OWNER' ||
+                  user?.email?.includes('@store.com') ||
+                  user?.email?.includes('@vendor.com')) && (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#1E293B',
+                      paddingVertical: 10,
+                      paddingHorizontal: 12,
+                      borderRadius: 8,
+                      marginTop: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onPress={() => navigation.navigate('VendorDashboard')}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
+                      🏬 Open Store Portal
+                    </Text>
+                  </TouchableOpacity>
                 )}
               </View>
-            </TouchableOpacity>
-          </View>
-        </View>
+            </View>
 
-        {/* Grouped Menu List */}
-        {sections.map((section) => (
-          <View key={section.title} style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.sectionCard}>
-              {section.items.map((item, index) => {
-                const ItemIcon = item.Icon;
-                return (
-                  <View key={item.id}>
-                    <TouchableOpacity
-                      style={styles.menuRow}
-                      onPress={item.onPress}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.menuIconContainer, { backgroundColor: item.iconBg }]}>
-                        <ItemIcon size={20} color={item.iconColor} weight="regular" />
-                      </View>
-                      <View style={styles.menuTextCol}>
-                        <Text style={styles.menuTitle}>{item.title}</Text>
-                        <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                      </View>
-                      <CaretRight size={16} color="#9CA3AF" weight="bold" style={styles.chevron} />
-                    </TouchableOpacity>
-                    {index < section.items.length - 1 && <View style={styles.menuRowDivider} />}
-                  </View>
-                );
-              })}
+            <View style={styles.profileDivider} />
+
+            <View style={styles.statsRow}>
+              <TouchableOpacity
+                style={styles.statCol}
+                onPress={() => navigation.navigate('Loyalty')}
+                activeOpacity={0.7}
+              >
+                <Crown size={20} color="#F59E0B" weight="fill" style={styles.statIcon} />
+                <View>
+                  <Text style={styles.statLabel}>Loyalty Balance</Text>
+                  <Text style={styles.statValue}>{points} PTS</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.statDivider} />
+
+              <TouchableOpacity
+                style={styles.statCol}
+                onPress={() => navigation.navigate('MyOrders')}
+                activeOpacity={0.7}
+              >
+                <Package size={20} color="#2952CC" weight="regular" style={styles.statIcon} />
+                <View>
+                  <Text style={styles.statLabel}>Active Orders</Text>
+                  {loadingStats ? (
+                    <ActivityIndicator size="small" color="#111827" style={{ height: 16, marginTop: 4, alignSelf: 'flex-start' }} />
+                  ) : (
+                    <Text style={styles.statValue}>
+                      {`${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
-        ))}
 
-        {/* Custom Logout Button */}
-        <View style={styles.logoutWrapper}>
-          <TouchableOpacity
-            style={styles.customLogoutBtn}
-            onPress={logout}
-            activeOpacity={0.8}
-          >
-            <SignOut size={18} color="#DC2626" weight="bold" />
-            <Text style={styles.customLogoutBtnText}>Sign Out of Account</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          {/* Grouped Menu List */}
+          {sections.map((section) => (
+            <View key={section.title} style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <View style={styles.sectionCard}>
+                {section.items.map((item, index) => {
+                  const ItemIcon = item.Icon;
+                  return (
+                    <View key={item.id}>
+                      <TouchableOpacity
+                        style={styles.menuRow}
+                        onPress={item.onPress}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.menuIconContainer, { backgroundColor: item.iconBg }]}>
+                          <ItemIcon size={20} color={item.iconColor} weight="regular" />
+                        </View>
+                        <View style={styles.menuTextCol}>
+                          <Text style={styles.menuTitle}>{item.title}</Text>
+                          <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                        </View>
+                        <CaretRight size={16} color="#9CA3AF" weight="bold" style={styles.chevron} />
+                      </TouchableOpacity>
+                      {index < section.items.length - 1 && <View style={styles.menuRowDivider} />}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+
+          {/* Custom Logout Button */}
+          <View style={styles.logoutWrapper}>
+            <TouchableOpacity
+              style={styles.customLogoutBtn}
+              onPress={logout}
+              activeOpacity={0.8}
+            >
+              <SignOut size={18} color="#DC2626" weight="bold" />
+              <Text style={styles.customLogoutBtnText}>Sign Out of Account</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 
