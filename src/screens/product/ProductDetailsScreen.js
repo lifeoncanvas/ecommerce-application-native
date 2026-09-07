@@ -70,7 +70,7 @@ const INITIAL_REVIEWS = [
     date: 'Jun 19, 2026',
     size: 'Size: XL',
     verified: true,
-    comment: 'I recently bought this product on KingsShoppers. The fabric and finish are so premium and the fit is perfect!',
+    comment: 'I recently bought this product on Lite Market. The fabric and finish are so premium and the fit is perfect!',
   },
   {
     id: 'rev_2',
@@ -261,7 +261,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
     try {
       await Share.share({
         title: `${product.brand} - ${product.title}`,
-        message: `Check out ${product.brand} (${product.title}) on KingsShoppers for ₦${product.price} (${product.discount})!`,
+        message: `Check out ${product.brand} (${product.title}) on Lite Market for ₦${product.price} (${product.discount})!`,
       });
     } catch (e) {}
   };

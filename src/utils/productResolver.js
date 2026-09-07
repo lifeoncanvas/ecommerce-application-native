@@ -68,7 +68,7 @@ export const normalizeProduct = (product = {}) => {
     ...product,
     id: String(product.id || product.productId || product.slug || 'prod_default'),
     slug: product.slug || String(product.id || 'product'),
-    brand: product.brand || product.vendor || vendor?.name || 'KingsShoppers',
+    brand: product.brand || product.vendor || vendor?.name || 'Lite Market',
     title: product.title || product.name || 'Textured Solid V-neck Top',
     name: product.name || product.title || 'Textured Solid V-neck Top',
     price,

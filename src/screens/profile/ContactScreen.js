@@ -29,7 +29,7 @@ export default function ContactScreen({ navigation }) {
 
   const [loading, setLoading] = useState(false);
   const [supportInfo, setSupportInfo] = useState({
-    email: 'support@kingsshoppers.com',
+    email: 'support@litemarket.com',
     phone: '+1 (800) 123-4567',
     address: '100 Innovation Way, Suite 400, NY'
   });

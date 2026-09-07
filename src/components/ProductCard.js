@@ -62,7 +62,7 @@ export default function ProductCard({ product, onPress }) {
       {/* Bottom Section: Details */}
       <View style={styles.info}>
         <Text style={styles.brand} numberOfLines={1}>
-          {product?.brand || vendor?.name || 'KingsShoppers'}
+          {product?.brand || vendor?.name || 'Lite Market'}
         </Text>
         <Text style={styles.name} numberOfLines={2}>
           {product?.name || product?.title || 'Product'}

@@ -28,7 +28,7 @@ export default function TermsConditionsScreen({ navigation }) {
       } catch (e) {
         console.warn('GET /api/content/terms failed. Using fallback terms.', e.message);
         setContent(
-          '1. Terms of Usage\nBy registering or placing orders on KingsShoppers, you agree to comply with our localized buyer and seller guidelines.\n\n2. Purchase Agreement\nPayments made via Stripe, PayPal, or Espees are processed instantly. Sellers are obligated to ship packages within 3 business days.\n\n3. Refund Guidelines\nRefunds/Exchanges must be submitted within 7 days of package delivery. Returned products must be in their original state with seal tags attached.'
+          '1. Terms of Usage\nBy registering or placing orders on Lite Market, you agree to comply with our localized buyer and seller guidelines.\n\n2. Purchase Agreement\nPayments made via Stripe, PayPal, or Espees are processed instantly. Sellers are obligated to ship packages within 3 business days.\n\n3. Refund Guidelines\nRefunds/Exchanges must be submitted within 7 days of package delivery. Returned products must be in their original state with seal tags attached.'
         );
       } finally {
         setLoading(false);

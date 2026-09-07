@@ -236,7 +236,7 @@ export default function ProfileScreen({ navigation, route }) {
           <View style={styles.userInfoRow}>
             <View style={styles.userDetails}>
               <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
-              <Text style={styles.userEmail}>{user?.email || 'guest@kingsshoppers.com'}</Text>
+              <Text style={styles.userEmail}>{user?.email || 'guest@litemarket.com'}</Text>
               
               {/* Loyalty membership badge */}
               <View style={styles.membershipBadge}>
