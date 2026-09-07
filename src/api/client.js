@@ -57,17 +57,24 @@ client.interceptors.request.use(async (config) => {
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
-    console.error('API Error:', error.message, error.config?.url);
-    if (error.response?.status === 401) {
+    console.error('API Error:', error?.message, error?.config?.url);
+    if (error?.response?.status === 401) {
       // token expired/invalid — clear it, navigate user to Login from AuthContext
       await deleteToken();
     }
     
-    // Graceful fallback for missing backend endpoints or type mismatch (500/404)
-    if (error.response?.status === 500 || error.response?.status === 404) {
-      console.warn(`Endpoint ${error.config?.url} is missing or failing on the backend. Falling back gracefully.`);
-      // Return a fake successful response with empty data to prevent the UI from crashing
-      return Promise.resolve({ data: { items: [], content: [] } });
+    // Graceful fallback for missing backend endpoints, network failures, or offline backend
+    if (
+      !error?.response || 
+      error?.response?.status === 500 || 
+      error?.response?.status === 404 || 
+      error?.message === 'Network Error' || 
+      error?.code === 'ERR_NETWORK' ||
+      error?.message === 'Running in offline/mock mode'
+    ) {
+      console.warn(`Endpoint ${error?.config?.url} failed or backend is offline. Falling back gracefully.`);
+      // Return a fake successful response with safe fallback data structure to prevent UI crashes
+      return Promise.resolve({ data: [] });
     }
     
     return Promise.reject(error);
