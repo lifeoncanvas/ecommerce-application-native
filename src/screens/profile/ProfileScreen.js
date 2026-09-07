@@ -25,7 +25,7 @@ import {
 
 export default function ProfileScreen({ navigation, route }) {
   const { user, logout } = useAuth();
-  const { colors } = useTheme();
+  const { colors = {} } = useTheme() || {};
   const styles = getStyles(colors);
 
   const [points, setPoints] = useState(250);
@@ -78,7 +78,10 @@ export default function ProfileScreen({ navigation, route }) {
     };
   }, [user]);
 
-
+  const goldColor = colors.gold || '#F59E0B';
+  const textPrimaryColor = colors.textPrimary || '#111827';
+  const textSecondaryColor = colors.textSecondary || '#6B7280';
+  const errorColor = colors.error || '#DC2626';
 
   const sections = [
     {
@@ -254,7 +257,7 @@ export default function ProfileScreen({ navigation, route }) {
               
               {/* Loyalty membership badge */}
               <View style={styles.membershipBadge}>
-                <Crown size={11} color={colors.gold} weight="fill" />
+                <Crown size={11} color={goldColor} weight="fill" />
                 <Text style={styles.membershipText}>
                   {points >= 500 ? 'Platinum Member' : points >= 200 ? 'Gold Member' : 'Loyalty Member'}
                 </Text>
@@ -292,7 +295,7 @@ export default function ProfileScreen({ navigation, route }) {
               onPress={() => navigation.navigate('Loyalty')}
               activeOpacity={0.7}
             >
-              <Crown size={20} color={colors.gold} weight="fill" style={styles.statIcon} />
+              <Crown size={20} color={goldColor} weight="fill" style={styles.statIcon} />
               <View>
                 <Text style={styles.statLabel}>Loyalty Balance</Text>
                 <Text style={styles.statValue}>{points} PTS</Text>
@@ -311,7 +314,7 @@ export default function ProfileScreen({ navigation, route }) {
                 <Text style={styles.statLabel}>Active Orders</Text>
                 <Text style={styles.statValue}>
                   {loadingStats ? (
-                    <ActivityIndicator size="small" color={colors.textPrimary} style={{ height: 16 }} />
+                    <ActivityIndicator size="small" color={textPrimaryColor} style={{ height: 16 }} />
                   ) : (
                     `${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`
                   )}
@@ -342,7 +345,7 @@ export default function ProfileScreen({ navigation, route }) {
                         <Text style={styles.menuTitle}>{item.title}</Text>
                         <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
                       </View>
-                      <CaretRight size={16} color={colors.textSecondary} weight="bold" style={styles.chevron} />
+                      <CaretRight size={16} color={textSecondaryColor} weight="bold" style={styles.chevron} />
                     </TouchableOpacity>
                     {index < section.items.length - 1 && <View style={styles.menuRowDivider} />}
                   </View>
@@ -359,7 +362,7 @@ export default function ProfileScreen({ navigation, route }) {
             onPress={logout}
             activeOpacity={0.8}
           >
-            <SignOut size={18} color={colors.error} weight="bold" />
+            <SignOut size={18} color={errorColor} weight="bold" />
             <Text style={styles.customLogoutBtnText}>Sign Out of Account</Text>
           </TouchableOpacity>
         </View>
@@ -368,27 +371,27 @@ export default function ProfileScreen({ navigation, route }) {
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
+const getStyles = (colors = {}) => StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.background || '#F9FAFB',
   },
   scrollContainer: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
+    padding: spacing.md || 16,
+    paddingBottom: spacing.xl || 32,
   },
   
   // Profile Card
   profileCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surface || '#FFFFFF',
     borderRadius: radius.lg || 12,
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    borderColor: colors.border || '#E5E7EB',
+    padding: spacing.md || 16,
+    marginBottom: spacing.lg || 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -408,7 +411,7 @@ const getStyles = (colors) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: colors.border || '#E5E7EB',
   },
   avatarText: {
     fontSize: 34,
@@ -424,7 +427,7 @@ const getStyles = (colors) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: colors.surface,
+    borderColor: colors.surface || '#FFFFFF',
   },
   userDetails: {
     flex: 1,
@@ -432,13 +435,13 @@ const getStyles = (colors) => StyleSheet.create({
   userName: {
     fontFamily: 'PlusJakartaSans-Bold',
     fontSize: 18,
-    color: colors.textPrimary,
+    color: colors.textPrimary || '#111827',
     fontWeight: '700',
   },
   userEmail: {
     fontFamily: 'Inter-Regular',
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textSecondary || '#6B7280',
     marginTop: 2,
   },
   membershipBadge: {
@@ -460,8 +463,8 @@ const getStyles = (colors) => StyleSheet.create({
   },
   profileDivider: {
     height: 1,
-    backgroundColor: colors.border,
-    marginVertical: spacing.md,
+    backgroundColor: colors.border || '#E5E7EB',
+    marginVertical: spacing.md || 16,
   },
   statsRow: {
     flexDirection: 'row',
@@ -475,46 +478,46 @@ const getStyles = (colors) => StyleSheet.create({
     paddingVertical: 4,
   },
   statIcon: {
-    marginRight: spacing.sm,
+    marginRight: spacing.sm || 8,
   },
   statLabel: {
     fontFamily: 'Inter-Regular',
     fontSize: 10,
-    color: colors.textSecondary,
+    color: colors.textSecondary || '#6B7280',
   },
   statValue: {
     fontFamily: 'Inter-Bold',
     fontSize: 13,
-    color: colors.textPrimary,
+    color: colors.textPrimary || '#111827',
     fontWeight: '700',
     marginTop: 1,
   },
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: colors.border,
-    marginHorizontal: spacing.md,
+    backgroundColor: colors.border || '#E5E7EB',
+    marginHorizontal: spacing.md || 16,
   },
   
   // Section List
   sectionContainer: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.md || 16,
   },
   sectionTitle: {
     fontFamily: 'PlusJakartaSans-Bold',
     fontSize: 11,
-    color: colors.textSecondary,
+    color: colors.textSecondary || '#6B7280',
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.sm || 8,
     marginLeft: 4,
   },
   sectionCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surface || '#FFFFFF',
     borderRadius: radius.md || 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.border || '#E5E7EB',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -525,12 +528,12 @@ const getStyles = (colors) => StyleSheet.create({
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
+    padding: spacing.md || 16,
   },
   menuRowDivider: {
     height: 1,
-    backgroundColor: colors.border,
-    marginLeft: spacing.md + 36 + spacing.md, // Align divider with text instead of edge-to-edge
+    backgroundColor: colors.border || '#E5E7EB',
+    marginLeft: (spacing.md || 16) + 36 + (spacing.md || 16), // Align divider with text instead of edge-to-edge
   },
   menuIconContainer: {
     width: 36,
@@ -541,45 +544,45 @@ const getStyles = (colors) => StyleSheet.create({
   },
   menuTextCol: {
     flex: 1,
-    marginLeft: spacing.md,
+    marginLeft: spacing.md || 16,
   },
   menuTitle: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 13.5,
-    color: colors.textPrimary,
+    color: colors.textPrimary || '#111827',
     fontWeight: '600',
   },
   menuSubtitle: {
     fontFamily: 'Inter-Regular',
     fontSize: 11,
-    color: colors.textSecondary,
+    color: colors.textSecondary || '#6B7280',
     marginTop: 2,
   },
   chevron: {
-    marginLeft: spacing.sm,
+    marginLeft: spacing.sm || 8,
   },
   
   // Logout Button
   logoutWrapper: {
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
+    marginTop: spacing.md || 16,
+    marginBottom: spacing.xl || 32,
     paddingHorizontal: 4,
   },
   customLogoutBtn: {
     height: 48,
     borderWidth: 1.5,
-    borderColor: colors.error,
+    borderColor: colors.error || '#DC2626',
     borderRadius: radius.md || 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.background,
+    backgroundColor: colors.background || '#F9FAFB',
   },
   customLogoutBtnText: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 15,
     fontWeight: '600',
-    color: colors.error,
+    color: colors.error || '#DC2626',
   },
 });
