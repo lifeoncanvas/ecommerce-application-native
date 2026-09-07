@@ -324,13 +324,13 @@ export default function ProfileScreen({ navigation, route }) {
               <Package size={20} color="#2952CC" weight="regular" style={styles.statIcon} />
               <View>
                 <Text style={styles.statLabel}>Active Orders</Text>
-                <Text style={styles.statValue}>
-                  {loadingStats ? (
-                    <ActivityIndicator size="small" color="#111827" style={{ height: 16 }} />
-                  ) : (
-                    `${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`
-                  )}
-                </Text>
+                {loadingStats ? (
+                  <ActivityIndicator size="small" color="#111827" style={{ height: 16, marginTop: 4, alignSelf: 'flex-start' }} />
+                ) : (
+                  <Text style={styles.statValue}>
+                    {`${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
           </View>
