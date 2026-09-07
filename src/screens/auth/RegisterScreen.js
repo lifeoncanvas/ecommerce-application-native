@@ -350,7 +350,17 @@ export default function RegisterScreen({ navigation }) {
                 style={styles.footerLink}
               >
                 <Text style={styles.footerText}>
-                  Already have an account ? <Text style={styles.footerTextBold}>Sign In</Text>
+                  Already have an account? <Text style={styles.footerTextBold}>Sign In</Text>
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('VendorRegister')}
+                activeOpacity={0.7}
+                style={[styles.footerLink, { marginTop: 10 }]}
+              >
+                <Text style={styles.footerText}>
+                  Want to sell on Letch Market? <Text style={[styles.footerTextBold, { color: '#F6A400' }]}>Become a Seller</Text>
                 </Text>
               </TouchableOpacity>
             </View>
