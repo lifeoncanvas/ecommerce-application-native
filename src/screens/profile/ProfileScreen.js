@@ -168,6 +168,20 @@ export default function ProfileScreen({ navigation, route }) {
       ],
     },
     {
+      title: 'Platform Administration',
+      items: [
+        {
+          id: 'admin_portal',
+          title: 'Admin User & Store Management 🛡️',
+          subtitle: 'Manage admins, approve/suspend sellers, ban/unban customers',
+          Icon: ShieldCheck,
+          iconBg: '#F3E8FF',
+          iconColor: '#7E22CE',
+          onPress: () => navigation.navigate('AdminDashboard'),
+        },
+      ],
+    },
+    {
       title: 'Support & Info',
       items: [
         {

@@ -106,6 +106,7 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="BecomeVendor" component={BecomeVendorScreen} />
       <ProfileStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
       <ProfileStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
+      <ProfileStackNav.Screen name="AdminDashboard" component={AdminDashboardScreen} />
       <ProfileStackNav.Screen name="ExchangeRequest" component={ExchangeRequestScreen} />
       <ProfileStackNav.Screen name="ExchangeList" component={ExchangeListScreen} />
       <ProfileStackNav.Screen name="Support" component={SupportScreen} />
