@@ -1,10 +1,6 @@
 {
   "expo": {
-<<<<<<< HEAD
     "name": "Licht Marketing",
-=======
-    "name": "LitchMarketing",
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
     "slug": "httn-app",
     "version": "1.0.0",
     "orientation": "portrait",
