@@ -27,6 +27,10 @@ import VendorStoreScreen from '../screens/profile/VendorStoreScreen';
 import ExchangeRequestScreen from '../screens/profile/ExchangeRequestScreen';
 import ExchangeListScreen from '../screens/profile/ExchangeListScreen';
 import AdminDashboardScreen from '../screens/profile/AdminDashboardScreen';
+import AdminUsersScreen from '../screens/admin/AdminUsersScreen';
+import AdminSellersScreen from '../screens/admin/AdminSellersScreen';
+import AdminProductsScreen from '../screens/admin/AdminProductsScreen';
+import AdminOrdersScreen from '../screens/admin/AdminOrdersScreen';
 import SupportScreen from '../screens/profile/SupportScreen';
 import ReturnScreen from '../screens/profile/ReturnScreen';
 import LoyaltyScreen from '../screens/profile/LoyaltyScreen';
@@ -110,6 +114,10 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
       <ProfileStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
       <ProfileStackNav.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+      <ProfileStackNav.Screen name="AdminUsers" component={AdminUsersScreen} />
+      <ProfileStackNav.Screen name="AdminSellers" component={AdminSellersScreen} />
+      <ProfileStackNav.Screen name="AdminProducts" component={AdminProductsScreen} />
+      <ProfileStackNav.Screen name="AdminOrders" component={AdminOrdersScreen} />
       <ProfileStackNav.Screen name="ExchangeRequest" component={ExchangeRequestScreen} />
       <ProfileStackNav.Screen name="ExchangeList" component={ExchangeListScreen} />
       <ProfileStackNav.Screen name="Support" component={SupportScreen} />
