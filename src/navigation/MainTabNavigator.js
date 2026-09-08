@@ -34,6 +34,8 @@ import AboutScreen from '../screens/profile/AboutScreen';
 import PrivacyPolicyScreen from '../screens/profile/PrivacyPolicyScreen';
 import TermsConditionsScreen from '../screens/profile/TermsConditionsScreen';
 import ContactScreen from '../screens/profile/ContactScreen';
+import MyAddressesScreen from '../screens/profile/MyAddressesScreen';
+import PaymentHistoryScreen from '../screens/profile/PaymentHistoryScreen';
 import { useTheme } from '../context/ThemeContext';
 import { useTabBarVisibility } from '../context/TabBarVisibilityContext';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -117,6 +119,8 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <ProfileStackNav.Screen name="TermsConditions" component={TermsConditionsScreen} />
       <ProfileStackNav.Screen name="Contact" component={ContactScreen} />
+      <ProfileStackNav.Screen name="MyAddresses" component={MyAddressesScreen} />
+      <ProfileStackNav.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
     </ProfileStackNav.Navigator>
   );
 }

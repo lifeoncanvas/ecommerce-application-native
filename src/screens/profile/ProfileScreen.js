@@ -50,6 +50,8 @@ import {
   SignOut,
   CaretRight,
   ChartLineUp,
+  MapPin,
+  CreditCard,
 } from 'phosphor-react-native';
 
 function ProfileContent({ navigation, route }) {
@@ -151,6 +153,15 @@ function ProfileContent({ navigation, route }) {
           iconColor: '#D97706',
           onPress: () => navigation.navigate('Loyalty'),
         },
+        {
+          id: 'payment_history',
+          title: 'Payment History',
+          subtitle: 'View all past transactions and receipts',
+          Icon: CreditCard,
+          iconBg: '#F0FDF4',
+          iconColor: '#16A34A',
+          onPress: () => navigation.navigate('PaymentHistory'),
+        },
       ],
     },
     {
@@ -173,6 +184,15 @@ function ProfileContent({ navigation, route }) {
           iconBg: '#EFF6FF',
           iconColor: '#1D4ED8',
           onPress: () => navigation.navigate('ChangePassword'),
+        },
+        {
+          id: 'my_addresses',
+          title: 'My Addresses',
+          subtitle: 'Manage your saved delivery addresses',
+          Icon: MapPin,
+          iconBg: '#FEF2F2',
+          iconColor: '#DC2626',
+          onPress: () => navigation.navigate('MyAddresses'),
         },
         {
           id: 'settings',

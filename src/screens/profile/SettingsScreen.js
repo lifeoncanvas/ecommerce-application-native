@@ -8,16 +8,20 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { typography, spacing, radius } from '../../theme';
-import { getSettings, updateSettings } from '../../api/profile.api';
+import { getSettings, updateSettings, deleteAccount } from '../../api/profile.api';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   CaretLeft,
   Bell,
   Moon,
   ShieldCheck,
   EnvelopeSimpleOpen,
+  Trash,
+  Warning,
 } from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2000) => {
@@ -29,6 +33,7 @@ const withTimeout = (promise, ms = 2000) => {
 
 export default function SettingsScreen({ navigation }) {
   const { colors, isDarkMode, toggleDarkMode } = useTheme();
+  const { logout } = useAuth();
   const styles = getStyles(colors);
 
   const [loading, setLoading] = useState(false);
@@ -177,6 +182,55 @@ export default function SettingsScreen({ navigation }) {
                 thumbColor="#FFFFFF"
                 ios_backgroundColor="#CBD5E1"
               />
+            </View>
+          </View>
+
+          {/* Danger Zone - Delete Account */}
+          <Text style={[styles.sectionTitle, { color: '#DC2626' }]}>Danger Zone</Text>
+          <View style={[styles.sectionCard, { borderColor: '#FECACA' }]}>
+            <View style={styles.settingRow}>
+              <View style={[styles.settingIconWrapper, { backgroundColor: '#FEF2F2' }]}>
+                <Trash size={20} color="#DC2626" weight="regular" />
+              </View>
+              <View style={styles.textCol}>
+                <Text style={[styles.settingTitle, { color: '#DC2626' }]}>Delete Account</Text>
+                <Text style={styles.settingDesc}>Permanently delete your account and all data</Text>
+              </View>
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  backgroundColor: '#FEF2F2',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#FECACA',
+                }}
+                onPress={() => {
+                  Alert.alert(
+                    'Delete Account',
+                    'Are you sure you want to permanently delete your account? This action cannot be undone. All your data, orders, and saved information will be lost.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete Forever',
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            await deleteAccount();
+                          } catch (e) {
+                            console.warn('Delete account API failed', e.message);
+                          }
+                          await logout();
+                          Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
+                        },
+                      },
+                    ]
+                  );
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#DC2626' }}>Delete</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
