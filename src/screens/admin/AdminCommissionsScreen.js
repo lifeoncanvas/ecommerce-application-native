@@ -23,6 +23,18 @@ export default function AdminCommissionsScreen({ navigation }) {
     }
   };
 
+  const initNgCommission = async () => {
+    try {
+      setLoading(true);
+      await updateAdminCommission('NG', 0.1, 'Default Nigeria Commission (10%)');
+      await loadCommissions();
+      Alert.alert('Success', 'Nigeria commission initialized to 10%');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to initialize NG commission');
+      setLoading(false);
+    }
+  };
+
   const handleEdit = (item) => {
     Alert.prompt(
       'Update Commission',
@@ -89,7 +101,13 @@ export default function AdminCommissionsScreen({ navigation }) {
           )}
           ListEmptyComponent={
             <View style={{ padding: 40, alignItems: 'center' }}>
-              <Text style={{ color: '#94A3B8' }}>No commission configs found.</Text>
+              <Text style={{ color: '#94A3B8', marginBottom: 16 }}>No commission configs found.</Text>
+              <TouchableOpacity 
+                style={{ backgroundColor: '#16A34A', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+                onPress={initNgCommission}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Initialize NG Commission</Text>
+              </TouchableOpacity>
             </View>
           }
         />
