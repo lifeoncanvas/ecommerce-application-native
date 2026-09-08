@@ -24,14 +24,14 @@ export default function AboutScreen({ navigation }) {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.logoSection}>
           <Text style={styles.logoEmoji}>👑</Text>
-          <Text style={styles.appName}>Lite Market</Text>
+          <Text style={styles.appName}>Licht Marketing</Text>
           <Text style={styles.appVersion}>Version 1.0.2 (Build 12)</Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Our Mission</Text>
           <Text style={styles.cardText}>
-            Lite Market is a premium peer-to-peer commerce platform connecting local buyers with quality merchants. We strive to provide the fastest, safest, and most satisfying shopping experience with unified payments, live order tracking, and dynamic support tools.
+            Licht Marketing is a premium peer-to-peer commerce platform connecting local buyers with quality merchants. We strive to provide the fastest, safest, and most satisfying shopping experience with unified payments, live order tracking, and dynamic support tools.
           </Text>
         </View>
 
@@ -39,7 +39,7 @@ export default function AboutScreen({ navigation }) {
           <Text style={styles.cardTitle}>Application Info</Text>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Developer</Text>
-            <Text style={styles.infoValue}>Lite Market Dev Team</Text>
+            <Text style={styles.infoValue}>Licht Marketing Dev Team</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Released</Text>
@@ -51,7 +51,7 @@ export default function AboutScreen({ navigation }) {
           </View>
         </View>
 
-        <Text style={styles.footerCopyright}>© 2026 Lite Market application. All rights reserved.</Text>
+        <Text style={styles.footerCopyright}>© 2026 Licht Marketing application. All rights reserved.</Text>
       </ScrollView>
     </SafeAreaView>
   );

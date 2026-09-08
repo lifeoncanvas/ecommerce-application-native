@@ -304,7 +304,7 @@ export default function LoginScreen({ route, navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Seller Portal</Text>
-            <Text style={styles.modalSubTitle}>Choose an option to proceed as a Lite Market Seller:</Text>
+            <Text style={styles.modalSubTitle}>Choose an option to proceed as a Licht Marketing Seller:</Text>
 
             {/* Option 1: Register as Seller */}
             <TouchableOpacity
