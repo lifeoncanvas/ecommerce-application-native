@@ -16,6 +16,22 @@ import {
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+<<<<<<< HEAD
+=======
+import { useCurrency } from '../../context/CurrencyContext';
+import { products as mockProducts, categories as mockCategories } from '../../data/mockData';
+import * as DocumentPicker from 'expo-document-picker';
+import { getMyStore } from '../../api/stores.api';
+import {
+  getStoreProducts,
+  createMyStoreProduct,
+  updateProduct as updateStoreProductApi,
+  toggleProductStatus as toggleProductStatusApi,
+  getStoreActivities,
+  deleteProduct as deleteStoreProductApi,
+} from '../../api/products.api';
+import { getLocalActivities, logLocalActivity } from '../../utils/activityStorage';
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 import {
   CaretLeft,
   Package,
@@ -70,7 +86,13 @@ const EMOJI_OPTIONS = ['👟', '👕', '🎒', '🍔', '🥤', '📱', '🎁', '
 
 export default function VendorDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
+<<<<<<< HEAD
   const { colors } = useTheme();
+=======
+  const { colors } = useTheme(); 
+  const { formatPrice } = useCurrency();
+  const styles = getStyles(colors);
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 
   const getInitialStore = (email) => {
     const e = (email || '').toLowerCase();
@@ -180,10 +202,280 @@ export default function VendorDashboardScreen({ navigation }) {
   const inactiveCount = totalCount - activeCount;
   const outOfStockCount = products.filter(p => (p.stockQuantity ?? 0) === 0).length;
 
+<<<<<<< HEAD
   const filtered = products.filter(p => {
     if (filterMode === 'active' && p.active === false) return false;
     if (filterMode === 'inactive' && p.active !== false) return false;
     if (searchQuery.trim()) return p.name.toLowerCase().includes(searchQuery.toLowerCase());
+=======
+  // Toggle Active / Inactive Soft Removal
+  const handleToggleActiveStatus = async (product) => {
+    const nextState = !product.active;
+    const actionName = nextState ? 'Product Activated' : 'Product Deactivated';
+    const detailMsg = nextState
+      ? 'Status changed to Active (Visible in Customer App)'
+      : 'Status changed to Inactive (Hidden from Customer App)';
+
+    // Optimistic UI update
+    setProductsList((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, active: nextState } : p))
+    );
+
+    try {
+      await withTimeout(toggleProductStatusApi(product.id, nextState), 2000);
+    } catch (e) {
+      if (e.response && e.response.status === 403) {
+        Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
+        setProductsList((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, active: product.active } : p))
+        );
+        return;
+      }
+      console.warn('API toggle failed, updating locally.', e.message);
+    }
+
+    // Record activity log
+    const updatedLogs = await logLocalActivity(product.name, actionName, detailMsg);
+    setActivityLogs(updatedLogs);
+
+    Alert.alert(
+      nextState ? 'Product Activated 🟢' : 'Product Deactivated 🔴',
+      nextState
+        ? `"${product.name}" is now live and visible to customers on your storefront.`
+        : `"${product.name}" is hidden from customers, but safely saved in your store portal.`
+    );
+  };
+
+  // Delete Product Handler with 403 Forbidden checks
+  const handleDeleteProduct = (product) => {
+    Alert.alert(
+      'Delete Product 🗑️',
+      `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // Optimistic UI update
+            setProductsList((prev) => prev.filter((p) => p.id !== product.id));
+
+            try {
+              await withTimeout(deleteStoreProductApi(product.id, user?.email || 'nike@store.com'), 2000);
+            } catch (e) {
+              if (e.response && e.response.status === 403) {
+                Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
+                setProductsList((prev) => [product, ...prev]);
+                return;
+              }
+              console.warn('API delete failed, removing locally.', e.message);
+            }
+
+            // Log Activity
+            const updatedLogs = await logLocalActivity(product.name, 'Product Removed', 'Product listing deleted from store');
+            setActivityLogs(updatedLogs);
+
+            Alert.alert('Product Deleted 🗑️', `"${product.name}" has been removed from your store.`);
+          },
+        },
+      ]
+    );
+  };
+
+  // Open Add Modal
+  const handleOpenAddModal = () => {
+    setEditingProduct(null);
+    setProdName('');
+    setProdPrice('');
+    setProdDiscountPrice('');
+    setProdCategory((storeInfo?.id === 2 ? 'cat_food' : storeInfo?.id === 3 ? 'cat_electronics' : 'cat_fashion'));
+    setProdDescription('');
+    setProdStock('20');
+    setProdEmoji((storeInfo?.id === 2 ? '🍔' : storeInfo?.id === 3 ? '📱' : '👟'));
+    setProdActive(true);
+    setUploadedImages([]);
+    setNameError('');
+    setPriceError('');
+    setProductModalVisible(true);
+  };
+
+  // Open Edit Modal
+  const handleOpenEditModal = (product) => {
+    setViewProductModalVisible(false);
+    setEditingProduct(product);
+    setProdName(product.name);
+    setProdPrice(String(product.price || ''));
+    setProdDiscountPrice(product.discountPrice ? String(product.discountPrice) : '');
+    setProdCategory(product.categoryId || 'cat_fashion');
+    setProdDescription(product.description || '');
+    setProdStock(String(product.stockQuantity ?? product.stock ?? 20));
+    setProdEmoji(product.emoji || '🎁');
+    setProdActive(product.active !== false);
+    setUploadedImages(product.images || (product.imageUrl ? [product.imageUrl] : []));
+    setNameError('');
+    setPriceError('');
+    setProductModalVisible(true);
+  };
+
+  // Open View Product Detail Modal
+  const handleOpenViewModal = (product) => {
+    setViewingProduct(product);
+    setViewProductModalVisible(true);
+  };
+
+  // Upload Product Images
+  const handlePickImages = async () => {
+    if (uploadedImages.length >= 5) {
+      Alert.alert('Image Limit', 'You can attach up to 5 photos per product.');
+      return;
+    }
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+        multiple: true,
+      });
+
+      if (result.canceled || !result.assets) return;
+
+      const newUris = result.assets.map((a) => a.uri);
+      setUploadedImages((prev) => [...prev, ...newUris].slice(0, 5));
+    } catch (e) {
+      console.warn('Image picker error:', e);
+      const fallbackUrl = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400';
+      setUploadedImages((prev) => [...prev, fallbackUrl].slice(0, 5));
+    }
+  };
+
+  const handleRemoveImage = (index) => {
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Save & Publish Flow with 403 Security handling
+  const handleSaveAndPublish = async () => {
+    let hasError = false;
+
+    if (!prodName.trim()) {
+      setNameError('Product Name is required.');
+      hasError = true;
+    } else {
+      setNameError('');
+    }
+
+    const priceNum = parseFloat(prodPrice);
+    if (!prodPrice.trim() || isNaN(priceNum) || priceNum <= 0) {
+      setPriceError('Please enter a valid price in Dollars ($).');
+      hasError = true;
+    } else {
+      setPriceError('');
+    }
+
+    if (hasError) return;
+
+    setLoading(true);
+    const discountNum = prodDiscountPrice ? parseFloat(prodDiscountPrice) : null;
+    const stockNum = parseInt(prodStock, 10) || 0;
+
+    const payload = {
+      storeId: storeInfo?.id,
+      name: prodName.trim(),
+      price: priceNum,
+      discountPrice: discountNum,
+      oldPrice: editingProduct ? editingProduct.price : null,
+      stockQuantity: stockNum,
+      categoryId: prodCategory,
+      description: prodDescription.trim(),
+      emoji: prodEmoji,
+      active: prodActive,
+      imageUrl: uploadedImages[0] || null,
+      images: uploadedImages,
+    };
+
+    let logAction = 'New product added';
+    let logDetail = `Price: $${priceNum.toLocaleString('en-NG')}`;
+
+    if (editingProduct) {
+      const oldP = editingProduct.price;
+      if (oldP !== priceNum) {
+        logAction = 'Price Updated';
+        logDetail = `Price changed $${oldP.toLocaleString('en-NG')} → $${priceNum.toLocaleString('en-NG')}`;
+      } else {
+        logAction = 'Product Details Updated';
+        logDetail = 'Updated product specs and photo gallery';
+      }
+    }
+
+    try {
+      if (editingProduct) {
+        await withTimeout(updateStoreProductApi(editingProduct.id, payload), 2000);
+        setProductsList((prev) =>
+          prev.map((p) => (p.id === editingProduct.id ? { ...p, ...payload } : p))
+        );
+      } else {
+        const res = await withTimeout(createMyStoreProduct(payload, user?.email || 'nike@store.com'), 2500);
+        const newItem = res.data || { ...payload, id: Date.now() };
+        setProductsList((prev) => [newItem, ...prev]);
+      }
+    } catch (e) {
+      if (e.response && e.response.status === 403) {
+        Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
+        setLoading(false);
+        return;
+      }
+      console.warn('API save failed, persisting locally.', e.message);
+      if (editingProduct) {
+        setProductsList((prev) =>
+          prev.map((p) => (p.id === editingProduct.id ? { ...p, ...payload } : p))
+        );
+      } else {
+        const newItem = { ...payload, id: Date.now() };
+        setProductsList((prev) => [newItem, ...prev]);
+      }
+    } finally {
+      setLoading(false);
+      setProductModalVisible(false);
+
+      // Save activity history
+      const updatedLogs = await logLocalActivity(prodName, logAction, logDetail);
+      setActivityLogs(updatedLogs);
+
+      Alert.alert(
+        '✅ Product Saved & Published!',
+        `Your changes to "${prodName}" are now live and visible to customers on your storefront.`
+      );
+    }
+  };
+
+  // Open Edit Store Modal
+  const handleOpenEditStore = () => {
+    setEditStoreName((storeInfo?.name || 'My Store'));
+    setEditStoreDesc((storeInfo?.description || '') || '');
+    setEditStorePhone(storeInfo?.phone || '');
+    setEditStoreAddress(storeInfo?.address || '');
+    setEditStoreModalVisible(true);
+  };
+
+  const handleSaveStoreProfile = () => {
+    setStoreInfo((prev) => ({
+      ...prev,
+      name: editStoreName,
+      description: editStoreDesc,
+      phone: editStorePhone,
+      address: editStoreAddress,
+    }));
+    setEditStoreModalVisible(false);
+    Alert.alert('Store Profile Updated 🏪', 'Store details saved successfully.');
+  };
+
+  // Filtered Products for Listing
+  const filteredProducts = productsList.filter((p) => {
+    if (productFilter === 'active') if (p.active === false) return false;
+    if (productFilter === 'inactive') if (p.active !== false) return false;
+    if (searchQuery.trim()) {
+      return p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
     return true;
   });
 
@@ -517,10 +809,18 @@ export default function VendorDashboardScreen({ navigation }) {
                           </View>
                         </View>
 
+<<<<<<< HEAD
                         <View style={S.prodPriceRow}>
                           <Text style={S.prodPrice}>₦{Number(p.price).toLocaleString('en-NG')}</Text>
                           {p.discountPrice && (
                             <Text style={S.prodSale}>₦{Number(p.discountPrice).toLocaleString('en-NG')} sale</Text>
+=======
+                        {/* Price Row in Dollars */}
+                        <View style={styles.prodPriceRow}>
+                          <Text style={styles.prodPriceVal}>{formatPrice(Number(item.price).toLocaleString('en-NG'))}</Text>
+                          {item.oldPrice && (
+                            <Text style={styles.prodOldPrice}>{formatPrice(Number(item.oldPrice).toLocaleString('en-NG'))}</Text>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
                           )}
                         </View>
                         <Text style={S.prodStock}>Stock: {p.stockQuantity ?? 0} units</Text>
@@ -592,9 +892,238 @@ export default function VendorDashboardScreen({ navigation }) {
                 </View>
               )}
 
+<<<<<<< HEAD
               {/* PRODUCT NAME */}
               <View style={S.field}>
                 <Text style={S.fieldLabel}>Product Name <Text style={S.required}>*</Text></Text>
+=======
+              {/* Customer Storefront Card */}
+              <View style={styles.customerStoreCard}>
+                <View style={styles.customerHeaderBanner}>
+                  <View style={styles.storeAvatarBox}>
+                    <Storefront size={28} color="#1E293B" weight="bold" />
+                  </View>
+                  <View style={styles.customerStoreInfo}>
+                    <Text style={styles.customerStoreName}>{(storeInfo?.name || 'My Store')}</Text>
+                    <View style={styles.ratingRow}>
+                      <Star size={14} color="#F59E0B" weight="fill" />
+                      <Text style={styles.ratingText}>{storeInfo?.rating || 4.8} (120+ Shopper Reviews)</Text>
+                    </View>
+                    <Text style={styles.customerStoreDesc}>{(storeInfo?.description || '')}</Text>
+                  </View>
+                </View>
+
+                {/* Catalog Listing */}
+                <View style={styles.customerCatalogBody}>
+                  <Text style={styles.catalogHeading}>LIVE STORE CATALOG ({customerViewProducts.length} Active Items)</Text>
+                  
+                  <View style={styles.customerGrid}>
+                    {customerViewProducts.map((p) => (
+                      <View key={p.id} style={styles.customerItemCard}>
+                        <View style={styles.custPhotoFrame}>
+                          {p.imageUrl ? (
+                            <Image source={{ uri: p.imageUrl }} style={styles.custImg} resizeMode="cover" />
+                          ) : (
+                            <Text style={{ fontSize: 32 }}>{p.emoji || '🎁'}</Text>
+                          )}
+                        </View>
+                        <Text style={styles.custTitle} numberOfLines={1}>{p.name}</Text>
+                        <Text style={styles.custPrice}>{formatPrice(Number(p.price).toLocaleString('en-NG'))}</Text>
+                        <TouchableOpacity style={styles.custBuyBtn} activeOpacity={0.8}>
+                          <ShoppingBag size={12} color="#FFFFFF" weight="bold" />
+                          <Text style={styles.custBuyBtnText}>Add to Cart</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+
+          {/* ─── 4. CHANGE HISTORY LOG VIEW ───────────────────────────────── */}
+          {portalTab === 'history' && (
+            <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.sectionHeading}>CHANGE HISTORY LOG</Text>
+              <Text style={styles.historySub}>
+                Audit timeline of every price change, new listing, and status toggle for {(storeInfo?.name || 'My Store')}.
+              </Text>
+
+              <View style={styles.historyTimeline}>
+                {activityLogs.map((log, index) => (
+                  <View key={log.id || index} style={styles.timelineRow}>
+                    <View style={styles.timelineDot} />
+                    <View style={styles.timelineCard}>
+                      <View style={styles.timelineHeader}>
+                        <Text style={styles.timelineProdName}>{log.productName || 'Product Change'}</Text>
+                        <Text style={styles.timelineDate}>{log.date || 'Just Now'}</Text>
+                      </View>
+                      <View style={styles.timelineBadgeRow}>
+                        <View style={styles.actionTagPill}>
+                          <Text style={styles.actionTagText}>{log.actionType}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.timelineDetails}>{log.details}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+
+          {/* ─── 5. MY STORE INFO VIEW ────────────────────────────────────── */}
+          {portalTab === 'store' && (
+            <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.sectionHeading}>STORE DETAILS</Text>
+
+              <View style={styles.storeCard}>
+                <View style={styles.storeHeaderRow}>
+                  <Text style={styles.storeCardTitle}>{(storeInfo?.name || 'My Store')}</Text>
+                  <TouchableOpacity style={styles.storeEditBtn} onPress={handleOpenEditStore}>
+                    <PencilSimple size={16} color="#1E293B" weight="bold" />
+                    <Text style={styles.storeEditBtnText}>Edit Store Info</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.storeDesc}>{(storeInfo?.description || '')}</Text>
+
+                <View style={styles.storeDetailRow}>
+                  <Text style={styles.storeDetailLabel}>Category:</Text>
+                  <Text style={styles.storeDetailVal}>{storeInfo?.category || 'General'}</Text>
+                </View>
+
+                <View style={styles.storeDetailRow}>
+                  <Text style={styles.storeDetailLabel}>Address:</Text>
+                  <Text style={styles.storeDetailVal}>{storeInfo?.address || 'Not set'}</Text>
+                </View>
+
+                <View style={styles.storeDetailRow}>
+                  <Text style={styles.storeDetailLabel}>Contact Phone:</Text>
+                  <Text style={styles.storeDetailVal}>{storeInfo?.phone || 'Not set'}</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.previewStorefrontCardBtn}
+                  onPress={() => setPortalTab('preview')}
+                >
+                  <Eye size={18} color="#FFFFFF" weight="bold" />
+                  <Text style={styles.previewStorefrontCardBtnText}>View Customer Store Page</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+
+          {/* ─── 6. ACCOUNT PROFILE VIEW ─────────────────────────────────── */}
+          {portalTab === 'profile' && (
+            <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.sectionHeading}>STORE OWNER ACCOUNT</Text>
+
+              <View style={styles.profileBox}>
+                <Text style={styles.profileName}>{user?.fullName || user?.name || 'Store Owner'}</Text>
+                <Text style={styles.profileEmail}>{user?.email || 'nike@store.com'}</Text>
+                <Text style={styles.profileRole}>Managed Store: {(storeInfo?.name || 'My Store')}</Text>
+
+                <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+                  <Text style={styles.logoutBtnText}>Sign Out of Vendor Portal</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      )}
+
+      {/* ─── DEDICATED VIEW PRODUCT DETAIL MODAL ─────────────────────────── */}
+      <Modal visible={viewProductModalVisible} animationType="slide" transparent onRequestClose={() => setViewProductModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Product Details</Text>
+              <TouchableOpacity onPress={() => setViewProductModalVisible(false)}>
+                <X size={22} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            {viewingProduct && (
+              <ScrollView style={styles.modalFormContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.viewHeroBox}>
+                  {viewingProduct.imageUrl ? (
+                    <Image source={{ uri: viewingProduct.imageUrl }} style={styles.viewHeroImg} resizeMode="cover" />
+                  ) : (
+                    <Text style={{ fontSize: 56 }}>{viewingProduct.emoji || '🎁'}</Text>
+                  )}
+                </View>
+
+                <View style={styles.viewTitleRow}>
+                  <Text style={styles.viewProdTitle}>{viewingProduct.name}</Text>
+                  <View style={[styles.statusTag, viewingProduct.active !== false ? styles.statusTagActive : styles.statusTagInactive]}>
+                    <Text style={[styles.statusTagText, viewingProduct.active !== false ? styles.statusTagTextActive : styles.statusTagTextInactive]}>
+                      {viewingProduct.active !== false ? 'Active 🟢' : 'Inactive 🔴'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.viewMetaGrid}>
+                  <View style={styles.viewMetaBox}>
+                    <Text style={styles.viewMetaLabel}>Price (USD)</Text>
+                    <Text style={styles.viewMetaVal}>{formatPrice(Number(viewingProduct.price).toLocaleString('en-NG'))}</Text>
+                  </View>
+
+                  {viewingProduct.discountPrice && (
+                    <View style={styles.viewMetaBox}>
+                      <Text style={styles.viewMetaLabel}>Discount Price</Text>
+                      <Text style={[styles.viewMetaVal, { color: '#16A34A' }]}>{formatPrice(Number(viewingProduct.discountPrice).toLocaleString('en-NG'))}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.viewMetaBox}>
+                    <Text style={styles.viewMetaLabel}>Stock Available</Text>
+                    <Text style={styles.viewMetaVal}>{viewingProduct.stockQuantity ?? viewingProduct.stock ?? 20} units</Text>
+                  </View>
+                </View>
+
+                <View style={styles.viewDescBox}>
+                  <Text style={styles.viewDescHeading}>Description & Specs</Text>
+                  <Text style={styles.viewDescText}>{viewingProduct.description || 'No detailed description specified.'}</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.publishBtn}
+                  onPress={() => handleOpenEditModal(viewingProduct)}
+                  activeOpacity={0.85}
+                >
+                  <PencilSimple size={18} color="#FFFFFF" weight="bold" />
+                  <Text style={styles.publishBtnText}>Edit This Product</Text>
+                </TouchableOpacity>
+
+                <View style={{ height: 40 }} />
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── ADD / EDIT PRODUCT MODAL ────────────────────────────────────── */}
+      <Modal visible={productModalVisible} animationType="slide" transparent onRequestClose={() => setProductModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{editingProduct ? `Edit Product (${(storeInfo?.name || 'My Store')})` : `Add Product to ${(storeInfo?.name || 'My Store')}`}</Text>
+              <TouchableOpacity onPress={() => setProductModalVisible(false)}>
+                <X size={22} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalFormContent} showsVerticalScrollIndicator={false}>
+              {/* Name */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>Product Name *</Text>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
                 <TextInput
                   style={[S.input, nameErr && S.inputErr]}
                   value={formName}
@@ -605,10 +1134,27 @@ export default function VendorDashboardScreen({ navigation }) {
                 {nameErr ? <Text style={S.errText}>{nameErr}</Text> : null}
               </View>
 
+<<<<<<< HEAD
               {/* PRICE + DISCOUNT */}
               <View style={S.rowFields}>
                 <View style={[S.field, { flex: 1 }]}>
                   <Text style={S.fieldLabel}>Price (₦) <Text style={S.required}>*</Text></Text>
+=======
+              {/* Price Diff Preview if editing */}
+              {editingProduct && prodPrice.trim() && parseFloat(prodPrice) !== editingProduct.price ? (
+                <View style={styles.priceDiffCard}>
+                  <Text style={styles.priceDiffTitle}>Price Update Preview:</Text>
+                  <Text style={styles.priceDiffText}>
+                    {formatPrice(editingProduct.price.toLocaleString('en-NG'))} → <Text style={{ fontWeight: '800', color: '#16A34A' }}>{formatPrice(parseFloat(prodPrice).toLocaleString('en-NG'))}</Text>
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* Price & Discount Price */}
+              <View style={styles.rowTwoCols}>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Price ($) *</Text>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
                   <TextInput
                     style={[S.input, priceErr && S.inputErr]}
                     value={formPrice}
@@ -619,8 +1165,14 @@ export default function VendorDashboardScreen({ navigation }) {
                   />
                   {priceErr ? <Text style={S.errText}>{priceErr}</Text> : null}
                 </View>
+<<<<<<< HEAD
                 <View style={[S.field, { flex: 1 }]}>
                   <Text style={S.fieldLabel}>Sale Price (₦)</Text>
+=======
+
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Discount Price ($)</Text>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
                   <TextInput
                     style={S.input}
                     value={formDiscount}

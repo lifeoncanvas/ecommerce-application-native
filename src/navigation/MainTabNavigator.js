@@ -151,7 +151,10 @@ function CustomAnimatedTabBar({ state, descriptors, navigation }) {
   const focusedRouteName = getFocusedRouteNameFromRoute(currentRoute) ?? '';
   if (
     focusedRouteName === 'ProductListing' ||
-    focusedRouteName === 'ProductDetails'
+    focusedRouteName === 'ProductDetails' ||
+    focusedRouteName === 'Checkout' ||
+    focusedRouteName === 'Payment' ||
+    focusedRouteName === 'OrderSuccess'
   ) {
     return null;
   }

@@ -18,6 +18,7 @@ import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { getAddresses, getShippingRates, addAddress } from '../../api/orders.api';
 import { getCoupons, applyCoupon } from '../../api/coupons.api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,6 +33,7 @@ const withTimeout = (promise, ms = 2000) => {
 
 export default function CheckoutScreen({ route, navigation }) {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
   const { isBooking, selectedItems } = route.params || {};
   const {
@@ -64,7 +66,7 @@ export default function CheckoutScreen({ route, navigation }) {
       console.warn('GET /api/coupons failed. Loading mock coupons.', e.message);
       apiCoupons = [
         { code: 'TECH20', description: 'Get 20% off on electronics and gadget orders', value: 20 },
-        { code: 'FREESHIP', description: 'Free shipping on orders above ₦990', value: 99 },
+        { code: 'FREESHIP', description: `Free shipping on orders above ${formatPrice('990')}`, value: 99 },
         { code: 'HTTN10', description: 'Get a flat 10% discount on food orders', value: 10 }
       ];
     }

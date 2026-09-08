@@ -26,41 +26,40 @@ const { width } = Dimensions.get('window');
 // ─── Curated Subcategory Mappings with Real Photos ──────────────────────────
 const SUBCAT_IMAGES = {
   cat_food: [
-    { id: 'sub_food_1', name: 'Restaurants', image: require('../../../assets/images/categories/cat_1.jpg') },
-    { id: 'sub_food_2', name: 'Fries & Fast Food', image: require('../../../assets/images/banners/banner3.jpg') },
-    { id: 'sub_food_3', name: 'Bakeries & Pastries', image: require('../../../assets/images/vendors/vendor_3.jpg') },
-    { id: 'sub_food_4', name: 'Healthy Snacks', image: require('../../../assets/images/categories/cat_3.jpg') },
+    { id: 'sub_food_1', name: 'Restaurants', image: require('../../../assets/images/products/food/restaurant.jpg') },
+    { id: 'sub_food_2', name: 'Fries & Fast Food', image: require('../../../assets/images/products/food/pizza.jpg') },
+    { id: 'sub_food_3', name: 'Bakeries & Pastries', image: require('../../../assets/images/products/food/cake-strawberry.jpg') },
+    { id: 'sub_food_4', name: 'Healthy Snacks', image: require('../../../assets/images/products/food/croissant.jpg') },
   ],
   cat_fashion: [
-    { id: 'sub_fash_1', name: "Women's Wear", image: require('../../../assets/images/products/product_2.jpg') },
-    { id: 'sub_fash_2', name: "Men's Wear", image: require('../../../assets/images/products/product_4.jpg') },
-    { id: 'sub_fash_3', name: 'Kids Dresses', image: require('../../../assets/images/products/product_5.jpg') },
-    { id: 'sub_fash_4', name: 'Summer Blouses', image: require('../../../assets/images/categories/cat_2.jpg') },
+    { id: 'sub_fash_1', name: "Women's Wear", image: require('../../../assets/images/products/fashion/women-reddress.jpg') },
+    { id: 'sub_fash_2', name: "Men's Wear", image: require('../../../assets/images/products/fashion/men-brownjacket.jpg') },
+    { id: 'sub_fash_3', name: 'Kids Dresses', image: require('../../../assets/images/products/fashion/kids-deniem.jpg') },
+    { id: 'sub_fash_4', name: 'Summer Blouses', image: require('../../../assets/images/products/fashion/men-yellowshirt.jpg') },
   ],
   cat_electronics: [
-    { id: 'sub_elec_1', name: 'Smartphones', image: require('../../../assets/images/vendors/vendor_1.jpg') },
-    { id: 'sub_elec_2', name: 'Tablets & Fold', image: require('../../../assets/images/banners/banner1.jpg') },
-    { id: 'sub_elec_3', name: 'Smart Living', image: require('../../../assets/images/vendors/vendor_1.jpg') },
-    { id: 'sub_elec_4', name: 'Tech Gadgets', image: require('../../../assets/images/banners/banner1.jpg') },
+    { id: 'sub_elec_1', name: 'Smartphones', image: require('../../../assets/images/products/electronics/phone.jpg') },
+    { id: 'sub_elec_2', name: 'Headphones', image: require('../../../assets/images/products/electronics/headphones.jpg') },
+    { id: 'sub_elec_3', name: 'Earbuds & TWS', image: require('../../../assets/images/products/electronics/earbuds.jpg') },
+    { id: 'sub_elec_4', name: 'Studio Microphones', image: require('../../../assets/images/products/electronics/mic.jpg') },
   ],
   cat_home: [
-    { id: 'sub_home_1', name: 'Candles & Scent', image: require('../../../assets/images/vendors/vendor_4.jpg') },
-    { id: 'sub_home_2', name: 'Ceramic Decor', image: require('../../../assets/images/vendors/vendor_4.jpg') },
-    { id: 'sub_home_3', name: 'Plush & Toys', image: require('../../../assets/images/vendors/vendor_5.jpg') },
-    { id: 'sub_home_4', name: 'Living Room', image: require('../../../assets/images/products/product_2.jpg') },
+    { id: 'sub_home_1', name: 'Wall Decor', image: require('../../../assets/images/products/home/mirror.jpg') },
+    { id: 'sub_home_2', name: 'Bedside Lamps', image: require('../../../assets/images/products/home/night_lamp.jpg') },
+    { id: 'sub_home_3', name: 'Indoor Plants', image: require('../../../assets/images/products/home/plant.jpg') },
+    { id: 'sub_home_4', name: 'Living Room', image: require('../../../assets/images/vendors/homeworld.jpg') },
   ],
   cat_beauty: [
-    { id: 'sub_beau_1', name: 'Luxury Parfum', image: require('../../../assets/images/products/product_1.jpg') },
-    { id: 'sub_beau_2', name: 'Lipsticks & Tint', image: require('../../../assets/images/products/product_3.jpg') },
-    { id: 'sub_beau_3', name: 'Complexion 05', image: require('../../../assets/images/products/product_6.jpg') },
-    { id: 'sub_beau_4', name: 'Oral Care Gel', image: require('../../../assets/images/vendors/vendor_6.jpg') },
+    { id: 'sub_beau_1', name: 'Luxury Parfum', image: require('../../../assets/images/products/beauty/ysl perfume.jpg') },
+    { id: 'sub_beau_2', name: 'Lipsticks & Tint', image: require('../../../assets/images/products/beauty/lipstick_1.png') },
+    { id: 'sub_beau_3', name: 'Blush & Palette', image: require('../../../assets/images/products/beauty/blush_heart_1.jpg') },
+    { id: 'sub_beau_4', name: 'Oral Care Gel', image: require('../../../assets/images/products/beauty/oral.jpg') },
   ],
   cat_services: [
-    { id: 'sub_serv_1', name: 'Car Detailing', image: require('../../../assets/images/vendors/vendor_8.jpg') },
-    { id: 'sub_serv_2', name: 'Arcade & Bowling', image: require('../../../assets/images/categories/cat_4.jpg') },
-    { id: 'sub_serv_3', name: 'Spa & Salon', image: require('../../../assets/images/products/product_3.jpg') },
-    { id: 'sub_serv_4', name: 'Carwash Spa', image: require('../../../assets/images/vendors/vendor_8.jpg') },
-    { id: 'sub_food_1', name: 'Restaurants', image: require('../../../assets/images/categories/cat_1.jpg') },
+    { id: 'sub_serv_1', name: 'Car Detailing', image: require('../../../assets/images/products/services/carwash.jpg') },
+    { id: 'sub_serv_2', name: 'Arcade & Bowling', image: require('../../../assets/images/products/services/arcade.jpg') },
+    { id: 'sub_serv_3', name: 'Spa & Salon', image: require('../../../assets/images/vendors/kingscar.jpg') },
+    { id: 'sub_serv_4', name: 'Carwash Spa', image: require('../../../assets/images/products/services/carwash1.jpg') },
   ],
 };
 
@@ -69,133 +68,109 @@ const POPULAR_CATEGORY_PRODUCTS = {
   cat_food: [
     {
       id: 'pop_food_1',
-      vendor: 'JAZARI',
-      name: 'Gourmet Jollof Rice Platter',
-      price: 18.5,
-      rating: 4.8,
-      image: require('../../../assets/images/categories/cat_1.jpg'),
+      vendor: 'BEVERLY MEALS',
+      name: 'Fresh Strawberry Cream Cake',
+      price: 32.0,
+      rating: 4.9,
+      image: require('../../../assets/images/products/food/cake-strawberry.jpg'),
     },
     {
       id: 'pop_food_2',
-      vendor: 'AKARA',
-      name: 'Peri Peri Loaded Fries',
-      price: 12.0,
+      vendor: 'JAZARI',
+      name: 'Loaded Supreme Cheese Pizza',
+      price: 22.0,
       rating: 4.8,
-      image: require('../../../assets/images/banners/banner3.jpg'),
-    },
-    {
-      id: 'pop_food_3',
-      vendor: 'SHARERS',
-      name: 'Artisan Creamy Pasta Bowl',
-      price: 16.0,
-      rating: 4.9,
-      image: require('../../../assets/images/categories/cat_1.jpg'),
+      image: require('../../../assets/images/products/food/pizza.jpg'),
     },
   ],
   cat_fashion: [
     {
       id: 'pop_fash_1',
       vendor: 'FASHION REDEMPTION',
-      name: 'Coord Set Ruffle Trouser',
-      price: 380.0,
+      name: "Men's Utility Leather Jacket",
+      price: 135.0,
       rating: 4.9,
-      image: require('../../../assets/images/products/product_2.jpg'),
+      image: require('../../../assets/images/products/fashion/men-brownjacket.jpg'),
     },
     {
       id: 'pop_fash_2',
       vendor: 'FASHION REDEMPTION',
-      name: 'Mens Tailored Summer Suit',
-      price: 380.0,
-      rating: 4.8,
-      image: require('../../../assets/images/products/product_4.jpg'),
-    },
-    {
-      id: 'pop_fash_3',
-      vendor: 'FASHION REDEMPTION',
-      name: 'Kids Emerald Green Dress',
-      price: 380.0,
+      name: "Women's Evening Scarlet Red Dress",
+      price: 92.0,
       rating: 4.9,
-      image: require('../../../assets/images/products/product_5.jpg'),
+      image: require('../../../assets/images/products/fashion/women-reddress.jpg'),
     },
   ],
   cat_electronics: [
     {
       id: 'pop_elec_1',
       vendor: 'OMNIA',
-      name: 'Omnia A-Fold S1 5G 512GB',
-      price: 980.0,
+      name: 'Omnia Horizon 11" 256GB Tablet',
+      price: 640.0,
       rating: 4.9,
-      image: require('../../../assets/images/vendors/vendor_1.jpg'),
+      image: require('../../../assets/images/banners/banner_lt.png'),
     },
     {
       id: 'pop_elec_2',
       vendor: 'OMNIA',
-      name: 'Omnia Horizon Smart Tablet 11"',
-      price: 640.0,
+      name: 'Omnia Pro Wireless ANC Headphones',
+      price: 180.0,
       rating: 4.8,
-      image: require('../../../assets/images/banners/banner1.jpg'),
+      image: require('../../../assets/images/banners/banner_hp.png'),
     },
   ],
   cat_home: [
     {
       id: 'pop_home_1',
       vendor: 'HOME WORLD',
-      name: 'Pink Tulip Ceramic Candle Jar',
-      price: 290.0,
-      rating: 4.9,
-      image: require('../../../assets/images/vendors/vendor_4.jpg'),
+      name: 'Nordic Round Brass Wall Mirror',
+      price: 65.0,
+      rating: 4.8,
+      image: require('../../../assets/images/products/home/mirror.jpg'),
     },
     {
       id: 'pop_home_2',
-      vendor: 'MINISO',
-      name: 'Fluffy Sheep Tulip Plush',
-      price: 220.0,
-      rating: 5.0,
-      image: require('../../../assets/images/vendors/vendor_5.jpg'),
+      vendor: 'SMART HOME',
+      name: 'Wooden Bedside Ambient Lamp',
+      price: 42.0,
+      rating: 4.9,
+      image: require('../../../assets/images/products/home/night_lamp.jpg'),
     },
   ],
   cat_beauty: [
     {
       id: 'pop_beau_1',
       vendor: 'KALAYA BEAUTY',
-      name: 'Beautiful Woman Luxury Parfum',
-      price: 380.0,
-      rating: 5.0,
-      image: require('../../../assets/images/products/product_1.jpg'),
+      name: 'Imperial Rose Eau De Parfum',
+      price: 110.0,
+      rating: 4.9,
+      image: require('../../../assets/images/products/beauty/ysl perfume.jpg'),
     },
     {
       id: 'pop_beau_2',
       vendor: 'KALAYA BEAUTY',
-      name: 'Signature Red Liquid Lip',
-      price: 380.0,
-      rating: 4.9,
-      image: require('../../../assets/images/products/product_3.jpg'),
-    },
-    {
-      id: 'pop_beau_3',
-      vendor: 'KALAYA BEAUTY',
-      name: 'Complexion 05 9-Shade Palette',
-      price: 380.0,
-      rating: 5.0,
-      image: require('../../../assets/images/products/product_6.jpg'),
+      name: 'Signature Velvet Matte Lipstick',
+      price: 28.0,
+      rating: 4.8,
+      image: require('../../../assets/images/products/beauty/lipstick_1.png'),
     },
   ],
   cat_services: [
     {
       id: 'pop_serv_1',
       vendor: 'KINGS CARWASH',
-      name: 'Ceramic Detail & Hydrophobic Coat',
-      price: 350.0,
-      rating: 4.9,
-      image: require('../../../assets/images/vendors/vendor_8.jpg'),
+      name: 'Premium Car Wash & Ceramic Spa',
+      price: 35.0,
+      rating: 4.8,
+      image: require('../../../assets/images/products/services/carwash.jpg'),
     },
     {
       id: 'pop_serv_2',
-      vendor: 'KINGS CARWASH',
-      name: 'Premium Arcade & Bowling Pass',
-      price: 250.0,
-      rating: 4.8,
-      image: require('../../../assets/images/categories/cat_4.jpg'),
+      vendor: 'THE PLAY ARENA',
+      name: 'Arcade Unlimited Day Pass',
+      price: 49.0,
+      rating: 4.9,
+      image: require('../../../assets/images/products/services/arcade.jpg'),
     },
   ],
 };
@@ -226,7 +201,9 @@ export default function CategoriesScreen({ navigation }) {
 
   const activeCategory = CATEGORY_TABS.find((c) => c.id === activeCategoryId) || CATEGORY_TABS[0];
   const subcategories = SUBCAT_IMAGES[activeCategoryId] || SUBCAT_IMAGES.cat_food;
-  const popularProducts = POPULAR_CATEGORY_PRODUCTS[activeCategoryId] || POPULAR_CATEGORY_PRODUCTS.cat_food;
+  const categoryProducts = mockProducts.filter((p) => p.categoryId === activeCategoryId);
+  const popularProducts = categoryProducts.length > 0 ? categoryProducts.slice(0, 6) : (POPULAR_CATEGORY_PRODUCTS[activeCategoryId] || POPULAR_CATEGORY_PRODUCTS.cat_food);
+
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -353,9 +330,9 @@ export default function CategoriesScreen({ navigation }) {
 
               {/* Product Info */}
               <View style={styles.prodDetails}>
-                <Text style={styles.prodBrand}>{prod.vendor}</Text>
+                <Text style={styles.prodBrand}>{prod.brand || prod.vendor}</Text>
                 <Text style={styles.prodName} numberOfLines={1}>
-                  {prod.name}
+                  {prod.name || prod.title}
                 </Text>
                 <View style={styles.priceRatingRow}>
                   <Text style={styles.prodPrice}>

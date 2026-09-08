@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**HTTN / KingsShoppers** is a full-stack e-commerce application:
+**HTTN / Litch Marketing** is a full-stack e-commerce application:
 
 - **Frontend**: Expo React Native (`httn-app/`) — targets Expo Go, Android, iOS, and Web.
 - **Backend**: Spring Boot REST API with MySQL database (separate repository / service).

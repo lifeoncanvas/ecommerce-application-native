@@ -15,7 +15,7 @@ const withTimeout = (promise, ms = 2000) => {
 
 export const WishlistProvider = ({ children }) => {
   const { user, isGuest } = useAuth();
-  const [wishlistIds, setWishlistIds] = useState(['p_jazari_1', 'p_redemp_1', 'p_capelli_1']); // Default items shown in mockup
+  const [wishlistIds, setWishlistIds] = useState([]); // Start empty
   const [loading, setLoading] = useState(false);
 
   // Sync with API in background

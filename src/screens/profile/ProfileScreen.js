@@ -49,9 +49,14 @@ import {
   Gear,
   SignOut,
   CaretRight,
+<<<<<<< HEAD
   ChartLineUp,
   MapPin,
   CreditCard,
+=======
+  CaretLeft,
+  ChartLineUp
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 } from 'phosphor-react-native';
 
 function ProfileContent({ navigation, route }) {
@@ -305,7 +310,17 @@ function ProfileContent({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+          <CaretLeft size={24} color={colors.navy || colors.textPrimary} weight="bold" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.headerBtn} />
+      </View>
+
       <ScrollView
+<<<<<<< HEAD
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -316,6 +331,26 @@ function ProfileContent({ navigation, route }) {
               <View style={styles.userDetails}>
                 <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
                 <Text style={styles.userEmail}>{user?.email || 'guest@litemarket.com'}</Text>
+=======
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Avatar Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.userInfoRow}>
+            <View style={styles.userDetails}>
+              <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
+              <Text style={styles.userEmail}>{user?.email || 'guest@litchmarketing.com'}</Text>
+              
+              {/* Loyalty membership badge */}
+              <View style={styles.membershipBadge}>
+                <Crown size={11} color={colors.gold} weight="fill" />
+                <Text style={styles.membershipText}>
+                  {points >= 500 ? 'Platinum Member' : points >= 200 ? 'Gold Member' : 'Loyalty Member'}
+                </Text>
+              </View>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 
                 {/* Loyalty membership badge */}
                 <View style={styles.membershipBadge}>
@@ -456,6 +491,33 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
+<<<<<<< HEAD
+=======
+  header: {
+    height: 52,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontFamily: 'PlusJakartaSans-Bold',
+    fontSize: 17,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  
+  // Profile Card
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
   profileCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,

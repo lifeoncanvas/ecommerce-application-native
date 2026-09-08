@@ -1,3 +1,4 @@
+import * as DocumentPicker from 'expo-document-picker';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -12,10 +13,11 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { CaretLeft, Sliders, CaretRight, Clock, MagnifyingGlass } from 'phosphor-react-native';
+import { Microphone, Camera, CaretLeft, Sliders, CaretRight, Clock, MagnifyingGlass } from 'phosphor-react-native';
 import { typography, spacing, radius } from '../../theme';
 import { products as mockProducts, vendors as mockVendors, categories as mockCategories } from '../../data/mockData';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import {
   searchProducts,
   getSearchSuggestions,
@@ -32,8 +34,21 @@ const withTimeout = (promise, ms = 2500) => {
   ]);
 };
 
-export default function SearchScreen({ navigation }) {
-  const { colors } = useTheme();
+export default function SearchScreen({ route, navigation }) {
+  const handleImageSearch = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'image/*' });
+      if (!result.canceled) {
+        setQuery('[Visual Search] Similar Products');
+        handleSearch('[Visual Search] Similar Products');
+      }
+    } catch (err) {
+      console.warn('Image search error:', err);
+    }
+  };
+
+  const { colors } = useTheme(); 
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -228,6 +243,12 @@ export default function SearchScreen({ navigation }) {
             autoFocus
             clearButtonMode="while-editing"
           />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingRight: 10 }}>
+            <Microphone size={20} color="#64748B" />
+            <TouchableOpacity onPress={handleImageSearch} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Camera size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {results.length > 0 && (
@@ -378,9 +399,9 @@ export default function SearchScreen({ navigation }) {
               <View style={styles.filterPillsRow}>
                 {[
                   { id: 'all', label: 'All Prices' },
-                  { id: 'under400', label: 'Under ₦400' },
-                  { id: '400to800', label: '₦400 - ₦800' },
-                  { id: 'over800', label: 'Over ₦800' },
+                  { id: 'under400', label: `Under ${formatPrice('400')}` },
+                  { id: '400to800', label: `${formatPrice('400')} - $800` },
+                  { id: 'over800', label: `Over ${formatPrice('800')}` },
                 ].map((item) => (
                   <TouchableOpacity
                     key={item.id}
@@ -443,12 +464,14 @@ const getStyles = (colors) => StyleSheet.create({
     height: 42,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
+    paddingLeft: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
   searchInput: {
+    flex: 1,
     ...typography.body,
     color: colors.textPrimary,
   },

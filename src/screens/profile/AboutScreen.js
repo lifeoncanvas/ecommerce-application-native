@@ -24,14 +24,22 @@ export default function AboutScreen({ navigation }) {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.logoSection}>
           <Text style={styles.logoEmoji}>👑</Text>
+<<<<<<< HEAD
           <Text style={styles.appName}>Licht Marketing</Text>
+=======
+          <Text style={styles.appName}>LitchMarketing</Text>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
           <Text style={styles.appVersion}>Version 1.0.2 (Build 12)</Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Our Mission</Text>
           <Text style={styles.cardText}>
+<<<<<<< HEAD
             Licht Marketing is a premium peer-to-peer commerce platform connecting local buyers with quality merchants. We strive to provide the fastest, safest, and most satisfying shopping experience with unified payments, live order tracking, and dynamic support tools.
+=======
+            LitchMarketing is a premium peer-to-peer commerce platform connecting local buyers with quality merchants. We strive to provide the fastest, safest, and most satisfying shopping experience with unified payments, live order tracking, and dynamic support tools.
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
           </Text>
         </View>
 
@@ -39,7 +47,11 @@ export default function AboutScreen({ navigation }) {
           <Text style={styles.cardTitle}>Application Info</Text>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Developer</Text>
+<<<<<<< HEAD
             <Text style={styles.infoValue}>Licht Marketing Dev Team</Text>
+=======
+            <Text style={styles.infoValue}>LitchMarketing Dev Team</Text>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Released</Text>
@@ -51,7 +63,11 @@ export default function AboutScreen({ navigation }) {
           </View>
         </View>
 
+<<<<<<< HEAD
         <Text style={styles.footerCopyright}>© 2026 Licht Marketing application. All rights reserved.</Text>
+=======
+        <Text style={styles.footerCopyright}>© 2026 LitchMarketing application. All rights reserved.</Text>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
       </ScrollView>
     </SafeAreaView>
   );

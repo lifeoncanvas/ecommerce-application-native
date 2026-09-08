@@ -17,7 +17,11 @@ export default function WelcomeScreen({ navigation }) {
         {/* Brand Header */}
         <View style={styles.logoContainer}>
           <Crown color={colors.gold} size={100} weight="fill" />
+<<<<<<< HEAD
           <Text style={styles.brandName}>Licht Marketing</Text>
+=======
+          <Text style={styles.brandName}>LitchMarketing</Text>
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
           <Text style={styles.tagline}>Elevate Your Lifestyle</Text>
         </View>
 

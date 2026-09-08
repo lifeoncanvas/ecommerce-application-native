@@ -31,6 +31,7 @@ import { ALL_FEED_PRODUCTS } from '../../data/mockProductsData';
 import { useWishlist } from '../../context/WishlistContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 40) / 2; // 20px padding left & right, 8px middle gap
@@ -93,134 +94,130 @@ const CATEGORY_PILLS = {
 };
 
 // ─── Rich Catalog for Product Listing Grid (Matching img 2) ─────────────────
-const RICH_LISTING_CATALOG = [
-  {
-    id: 'list_prod_1',
-    brand: 'Roadster',
-    name: 'Ruffles Detail A-Line Navy Top',
-    category: 'cat_fashion',
-    subcat: 'boutiques',
-    price: 319,
-    oldPrice: 999,
-    discount: '68% OFF',
-    bestPrice: 239,
-    delivery: 'Get it in 62 mins',
-    badgeType: 'rating',
-    ratingText: '4.5 ★ 1.9k',
-    image: require('../../../assets/images/categories/cat_2.jpg'),
-  },
-  {
-    id: 'list_prod_2',
-    brand: 'Selvia',
-    name: 'Women Striped Crepe Co-ord Set',
-    category: 'cat_fashion',
-    subcat: 'boutiques',
-    price: 425,
-    oldPrice: 1930,
-    discount: '78% OFF',
-    bestPrice: 318,
-    delivery: 'Get it in 62 mins',
-    badgeType: 'rating',
-    ratingText: '4.1 ★ 7.8k',
-    image: require('../../../assets/images/products/product_2.jpg'),
-  },
-  {
-    id: 'list_prod_3',
-    brand: 'Athena',
-    name: 'Minimalist Gold Pendant Necklace',
-    category: 'cat_fashion',
-    subcat: 'designers',
-    price: 599,
-    oldPrice: 1499,
-    discount: '60% OFF',
-    bestPrice: 499,
-    delivery: 'Tomorrow',
-    badgeType: 'tag',
-    tagText: 'Rising Star',
-    tagColor: '#4338CA',
-    image: require('../../../assets/images/products/product_3.jpg'),
-  },
-  {
-    id: 'list_prod_4',
-    brand: 'Lumiere',
-    name: 'Navy Leather Structured Tote',
-    category: 'cat_fashion',
-    subcat: 'designers',
-    price: 1250,
-    oldPrice: 2999,
-    discount: '58% OFF',
-    bestPrice: 1099,
-    delivery: 'Tomorrow',
-    badgeType: 'tag',
-    tagText: 'House of Brands',
-    tagColor: '#2563EB',
-    image: require('../../../assets/images/products/product_1.jpg'),
-  },
-  {
-    id: 'list_prod_5',
-    brand: 'Fashion Redemption',
-    name: 'Coord Set Ruffle Hem Bell Trousers',
-    category: 'cat_fashion',
-    subcat: 'boutiques',
-    price: 380,
-    oldPrice: 1900,
-    discount: '80% OFF',
-    bestPrice: 340,
-    delivery: 'Get it in 62 mins',
-    badgeType: 'rating',
-    ratingText: '4.9 ★ 2.3k',
-    image: require('../../../assets/images/products/product_2.jpg'),
-  },
-  {
-    id: 'list_prod_6',
-    brand: 'Fashion Redemption',
-    name: 'Mens Tailored Linen Summer Suit',
-    category: 'cat_fashion',
-    subcat: 'designers',
-    price: 380,
-    oldPrice: 1900,
-    discount: '80% OFF',
-    bestPrice: 340,
-    delivery: 'Tomorrow',
-    badgeType: 'rating',
-    ratingText: '4.8 ★ 1.8k',
-    image: require('../../../assets/images/products/product_4.jpg'),
-  },
-  {
-    id: 'list_prod_7',
-    brand: 'Fashion Redemption',
-    name: 'Kids Emerald Green Ruffled Dress',
-    category: 'cat_fashion',
-    subcat: 'kiddies',
-    price: 380,
-    oldPrice: 1900,
-    discount: '80% OFF',
-    bestPrice: 340,
-    delivery: 'Get it in 62 mins',
-    badgeType: 'rating',
-    ratingText: '4.9 ★ 1.6k',
-    image: require('../../../assets/images/products/product_5.jpg'),
-  },
-  {
-    id: 'list_prod_8',
-    brand: 'Kalaya Beauty',
-    name: 'Complexion 05 9-Shade Palette',
-    category: 'cat_beauty',
-    subcat: 'makeup',
-    price: 380,
-    oldPrice: 1900,
-    discount: '80% OFF',
-    bestPrice: 340,
-    delivery: 'Tomorrow',
-    badgeType: 'rating',
-    ratingText: '5.0 ★ 2.9k',
-    image: require('../../../assets/images/products/product_6.jpg'),
-  },
-];
+const RICH_LISTING_CATALOG = ALL_FEED_PRODUCTS;
+
+
+
+const SwipeableListingCard = ({ item, isSelected, onSelect, liked, onToggleLike, formatPrice, styles }) => {
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const flatListRef = React.useRef(null);
+  
+  const handleScroll = (event) => {
+    const x = event.nativeEvent.contentOffset.x;
+    const newIndex = Math.round(x / CARD_WIDTH);
+    if (newIndex !== activeIndex) {
+      setActiveIndex(newIndex);
+    }
+  };
+
+  const images = item.images && item.images.length > 0 ? item.images : [item.image];
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardPhotoWrapper}>
+        {images.length > 1 ? (
+          <FlatList
+            ref={flatListRef}
+            data={images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(_, idx) => idx.toString()}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            snapToInterval={CARD_WIDTH}
+            decelerationRate="fast"
+            style={{ width: CARD_WIDTH, height: '100%' }}
+            renderItem={({ item: img }) => (
+              <Pressable onPress={onSelect} style={{ width: CARD_WIDTH, height: '100%' }}>
+                <Image 
+                  source={img} 
+                  style={[styles.cardPhoto, { width: CARD_WIDTH, height: '100%' }]} 
+                  resizeMode="cover" 
+                  draggable={false}
+                />
+              </Pressable>
+            )}
+          />
+        ) : (
+          <Pressable onPress={onSelect} style={{ width: CARD_WIDTH, height: '100%' }}>
+            <Image 
+              source={images[0]} 
+              style={[styles.cardPhoto, { width: CARD_WIDTH, height: '100%' }]} 
+              resizeMode="cover" 
+              draggable={false}
+            />
+          </Pressable>
+        )}
+
+        {images.length > 1 && (
+          <View style={styles.galleryDots} pointerEvents="none">
+            {images.map((_, i) => (
+              <View key={i} style={[styles.galleryDot, i === activeIndex && styles.galleryDotActive]} />
+            ))}
+          </View>
+        )}
+
+        {item.badgeType === 'tag' ? (
+          <View style={[styles.tagBadge, { backgroundColor: item.tagColor || '#4338CA' }]} pointerEvents="none">
+            <Text style={styles.tagBadgeText}>{item.tagText}</Text>
+          </View>
+        ) : (
+          <View style={styles.ratingBadge} pointerEvents="none">
+            <Text style={styles.ratingBadgeText}>{item.ratingText}</Text>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.heartBtn}
+          onPress={onToggleLike}
+          activeOpacity={0.7}
+        >
+          <Heart
+            size={17}
+            color={liked ? '#E53935' : '#1E293B'}
+            weight={liked ? 'fill' : 'regular'}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity activeOpacity={0.9} onPress={onSelect} style={styles.cardBody}>
+        <Text style={styles.cardBrand}>{item.brand}</Text>
+        <Text style={styles.cardName} numberOfLines={1}>
+          {item.name}
+        </Text>
+
+        <View style={styles.priceRow}>
+          <Text style={styles.priceMain}>{formatPrice(item.price)}</Text>
+          {item.oldPrice && (
+            <Text style={styles.priceOld}>{formatPrice(item.oldPrice)}</Text>
+          )}
+          {item.discount && (
+            <Text style={styles.discountText}>{item.discount}</Text>
+          )}
+        </View>
+
+        {item.bestPrice && (
+          <Text style={styles.couponText}>
+            Best Price {formatPrice(item.bestPrice)} with coupon
+          </Text>
+        )}
+
+        {item.delivery && (
+          <View style={styles.deliveryRow}>
+            <Text style={styles.deliveryIcon}>🚚</Text>
+            <Text style={styles.deliveryText}>{item.delivery}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export default function ProductListingScreen({ route, navigation }) {
   const { colors } = useTheme();
-  const { categoryId = 'cat_fashion', subcategoryId } = route?.params || {};
+  const { formatPrice } = useCurrency();
+  const { categoryId = 'cat_fashion', subcategoryId } = (route && route.params) || {};
   const { isLiked, toggleWishlist } = useWishlist();
 
   const [selectedSubCatId, setSelectedSubCatId] = useState('all');
@@ -239,10 +236,7 @@ export default function ProductListingScreen({ route, navigation }) {
   const displayedProducts = useMemo(() => {
     let items = ALL_FEED_PRODUCTS.filter((p) => p.categoryId === categoryId);
     if (items.length === 0) {
-      items = RICH_LISTING_CATALOG.filter((p) => p.categoryId === categoryId);
-    }
-    if (items.length === 0) {
-      items = RICH_LISTING_CATALOG;
+      items = ALL_FEED_PRODUCTS;
     }
 
     if (selectedSubCatId !== 'all') {
@@ -266,9 +260,9 @@ export default function ProductListingScreen({ route, navigation }) {
 
     if (selectedPrice !== 'All') {
       items = items.filter((p) => {
-        if (selectedPrice === 'Under ₦400') return p.price < 400;
-        if (selectedPrice === '₦400 - ₦800') return p.price >= 400 && p.price <= 800;
-        if (selectedPrice === 'Over ₦800') return p.price > 800;
+        if (selectedPrice === `Under ${formatPrice(400)}`) return p.price < 400;
+        if (selectedPrice === `${formatPrice(400)} - ${formatPrice(800)}`) return p.price >= 400 && p.price <= 800;
+        if (selectedPrice === `Over ${formatPrice(800)}`) return p.price > 800;
         return true;
       });
     }
@@ -306,25 +300,23 @@ export default function ProductListingScreen({ route, navigation }) {
 
   const renderProductCard = ({ item }) => {
     const liked = isLiked(item.id);
+    const imgSrc = typeof item.image === 'number' ? item.image : (typeof item.image === 'string' ? { uri: item.image } : item.image);
+    const discountPct = item.oldPrice && item.price ? Math.round(((item.oldPrice - item.price) / item.oldPrice) * 100) : null;
 
     return (
       <TouchableOpacity
         style={styles.card}
         onPress={() => navigation.navigate('ProductDetails', buildProductRouteParams(item))}
-        activeOpacity={0.9}
+        activeOpacity={0.88}
       >
-        {/* Photo Container */}
+        {/* Photo Container matching Image 1 */}
         <View style={styles.cardPhotoWrapper}>
-          <Image source={item.image} style={styles.cardPhoto} resizeMode="cover" />
+          <Image source={imgSrc} style={styles.cardPhoto} resizeMode="cover" />
 
-          {/* Top Left Badge: Rating or Tag */}
-          {item.badgeType === 'tag' ? (
-            <View style={[styles.tagBadge, { backgroundColor: item.tagColor || '#4338CA' }]}>
-              <Text style={styles.tagBadgeText}>{item.tagText}</Text>
-            </View>
-          ) : (
-            <View style={styles.ratingBadge}>
-              <Text style={styles.ratingBadgeText}>{item.ratingText}</Text>
+          {/* Top Left Dark Discount Badge (-20%) */}
+          {discountPct > 0 && (
+            <View style={styles.darkDiscountBadge}>
+              <Text style={styles.darkDiscountText}>-{discountPct}%</Text>
             </View>
           )}
 
@@ -335,45 +327,31 @@ export default function ProductListingScreen({ route, navigation }) {
             activeOpacity={0.7}
           >
             <Heart
-              size={17}
-              color={liked ? '#E53935' : '#1E293B'}
+              size={16}
+              color={liked ? '#E11D48' : '#2D3748'}
               weight={liked ? 'fill' : 'regular'}
             />
           </TouchableOpacity>
         </View>
 
-        {/* Card Details */}
+        {/* Card Details matching Image 1 layout */}
         <View style={styles.cardBody}>
-          <Text style={styles.cardBrand}>{item.brand}</Text>
-          <Text style={styles.cardName} numberOfLines={1}>
-            {item.name}
-          </Text>
-
-          {/* Pricing Row */}
-          <View style={styles.priceRow}>
-            <Text style={styles.priceMain}>₦{item.price}</Text>
-            {item.oldPrice && (
-              <Text style={styles.priceOld}>₦{item.oldPrice}</Text>
-            )}
-            {item.discount && (
-              <Text style={styles.discountText}>{item.discount}</Text>
-            )}
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardName} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <View style={styles.ratingRow}>
+              <Text style={styles.starChar}>★</Text>
+              <Text style={styles.ratingVal}>{item.rating || (item.ratingText && item.ratingText.split(' ')[0]) || '4.9'}</Text>
+            </View>
           </View>
 
-          {/* Coupon Row */}
-          {item.bestPrice && (
-            <Text style={styles.couponText}>
-              Best Price ₦{item.bestPrice} with coupon
-            </Text>
-          )}
-
-          {/* Fast Delivery Badge */}
-          {item.delivery && (
-            <View style={styles.deliveryRow}>
-              <Text style={styles.deliveryIcon}>🚚</Text>
-              <Text style={styles.deliveryText}>{item.delivery}</Text>
-            </View>
-          )}
+          <View style={styles.priceRow}>
+            <Text style={styles.priceMain}>{formatPrice(item.price)}</Text>
+            {item.oldPrice && (
+              <Text style={styles.priceOld}>{formatPrice(item.oldPrice)}</Text>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -627,7 +605,7 @@ export default function ProductListingScreen({ route, navigation }) {
 
             {activeFilterTab === 'Filters' && (
               <View style={styles.modalBody}>
-                {['All Prices', 'Under ₦400', '₦400 - ₦800', 'Over ₦800'].map((p) => (
+                {['All Prices', `Under ${formatPrice(400)}`, `${formatPrice(400)} - ${formatPrice(800)}`, `Over ${formatPrice(800)}`].map((p) => (
                   <TouchableOpacity
                     key={p}
                     style={styles.sortOptionRow}
@@ -725,68 +703,40 @@ const styles = StyleSheet.create({
 
   // Product Grid
   gridContainer: {
-    paddingHorizontal: 14,
-    paddingTop: 4,
-    paddingBottom: 90, // Leave space for floating bottom bar
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 90,
   },
   card: {
-    width: (width - 40) / 2,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    margin: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
-    elevation: 2,
+    width: (width - 32 - 12) / 2, // Perfect 2-column calculation with 16px page padding and 12px column gap
+    marginHorizontal: 3,
+    marginBottom: 16,
   },
   cardPhotoWrapper: {
     width: '100%',
-    height: 180,
-    backgroundColor: '#F8FAFC',
+    height: ((width - 44) / 2) * 1.22, // Tall portrait image matching Image 1
+    borderRadius: 16,
+    overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#F3F4F6',
   },
   cardPhoto: {
     width: '100%',
     height: '100%',
   },
-
-  // Rating & Tag Badges
-  ratingBadge: {
+  darkDiscountBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    paddingHorizontal: 6,
+    backgroundColor: '#1E1B4B',
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
+    borderRadius: 12,
   },
-  ratingBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  tagBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  tagBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
+  darkDiscountText: {
     color: '#FFFFFF',
-    textTransform: 'uppercase',
+    fontSize: 10.5,
+    fontWeight: '800',
   },
 
   // Top-Right Wishlist Heart
@@ -794,9 +744,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -804,12 +754,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 1,
+    elevation: 2,
   },
 
   // Card Content
   cardBody: {
     padding: 10,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   cardBrand: {
     fontSize: 13,
@@ -817,10 +773,25 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   cardName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+    flex: 1,
+    marginRight: 6,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  starChar: {
+    fontSize: 11,
+    color: '#F59E0B',
+  },
+  ratingVal: {
     fontSize: 11.5,
-    fontWeight: '500',
-    color: '#64748B',
-    marginTop: 1,
+    fontWeight: '700',
+    color: '#475569',
   },
   priceRow: {
     flexDirection: 'row',
@@ -952,4 +923,24 @@ const styles = StyleSheet.create({
     color: '#A8824B',
     fontWeight: '700',
   },
+  galleryDots: {
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  galleryDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  galleryDotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 6,
+    height: 6,
+  }
 });

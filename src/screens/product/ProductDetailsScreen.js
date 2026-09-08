@@ -38,6 +38,7 @@ import { typography, spacing, radius } from '../../theme';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { resolveProduct, getRelatedMockProducts, buildProductRouteParams } from '../../utils/productResolver';
 
 const { width } = Dimensions.get('window');
@@ -70,7 +71,11 @@ const INITIAL_REVIEWS = [
     date: 'Jun 19, 2026',
     size: 'Size: XL',
     verified: true,
+<<<<<<< HEAD
     comment: 'I recently bought this product on Licht Marketing. The fabric and finish are so premium and the fit is perfect!',
+=======
+    comment: 'I recently bought this product on LitchMarketing. The fabric and finish are so premium and the fit is perfect!',
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
   },
   {
     id: 'rev_2',
@@ -94,6 +99,7 @@ const INITIAL_REVIEWS = [
 
 export default function ProductDetailsScreen({ route, navigation }) {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const { id, productId, slug, product: navProduct } = route.params || {};
   const { addItem, items: cartItems } = useCart();
   const { isLiked: checkLiked, toggleWishlist } = useWishlist();
@@ -129,7 +135,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
     '08:00 PM - 09:30 PM',
   ];
 
-  const [selectedBookingDay, setSelectedBookingDay] = useState(days[0]?.value || 'Today');
+  const [selectedBookingDay, setSelectedBookingDay] = useState((days[0] && days[0].value) || 'Today');
   const [selectedBookingSlot, setSelectedBookingSlot] = useState(slots[1]);
 
   const SIMILAR_TOPS = useMemo(() => {
@@ -137,6 +143,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
   }, [product]);
 
   // States
+  const [slideWidth, setSlideWidth] = useState(HERO_WIDTH);
   const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
   const [selectedSize, setSelectedSize] = useState('L');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -261,7 +268,11 @@ export default function ProductDetailsScreen({ route, navigation }) {
     try {
       await Share.share({
         title: `${product.brand} - ${product.title}`,
+<<<<<<< HEAD
         message: `Check out ${product.brand} (${product.title}) on Licht Marketing for ₦${product.price} (${product.discount})!`,
+=======
+        message: `Check out ${product.brand} (${product.title}) on LitchMarketing for $${product.price} (${product.discount})!`,
+>>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
       });
     } catch (e) {}
   };
@@ -303,7 +314,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
     showToast('Thank you! Your verified review has been submitted.');
   };
 
-  const totalCartCount = cartItems?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 0;
+  const totalCartCount = (cartItems && cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0)) || 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -392,9 +403,9 @@ export default function ProductDetailsScreen({ route, navigation }) {
               key={idx}
               activeOpacity={0.95}
               onPress={() => setVisualSearchVisible(true)}
-              style={styles.heroSlideWrapper}
+              style={[styles.heroSlideWrapper, { width: slideWidth }]}
             >
-              <Image source={imgSrc} style={styles.heroImage} resizeMode="cover" />
+              <Image source={imgSrc} style={[styles.heroImage, { width: slideWidth, height: 400 }]} resizeMode="cover" />
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -464,8 +475,8 @@ export default function ProductDetailsScreen({ route, navigation }) {
 
           {/* Pricing Row */}
           <View style={styles.priceRow}>
-            <Text style={styles.priceMain}>₦{product.price}</Text>
-            <Text style={styles.mrpText}>MRP ₦{product.mrp}</Text>
+            <Text style={styles.priceMain}>{formatPrice(product.price)}</Text>
+            <Text style={styles.mrpText}>MRP {formatPrice(product.mrp)}</Text>
             <Text style={styles.discountLabel}>{product.discount}</Text>
           </View>
           <Text style={styles.taxNote}>inclusive of all taxes</Text>
@@ -511,7 +522,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
               </View>
             </View>
           ) : (
-            <>
+            <React.Fragment>
               {/* ─── Color Swatches ────────────────────────────────────────────── */}
               <View style={styles.colorSection}>
                 <Text style={styles.colorLabel}>
@@ -588,7 +599,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
                   })}
                 </View>
               </View>
-            </>
+            </React.Fragment>
           )}
 
           {/* ─── Delivery & Services Box ───────────────────────────────────── */}
@@ -663,7 +674,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
                   <Text style={styles.similarBrand}>{top.brand}</Text>
                   <Text style={styles.similarName} numberOfLines={1}>{top.name}</Text>
                   <View style={styles.similarPriceRow}>
-                    <Text style={styles.similarPrice}>₦{top.price}</Text>
+                    <Text style={styles.similarPrice}>{formatPrice(top.price)}</Text>
                     <Text style={styles.similarDiscount}>{top.discount}</Text>
                   </View>
                   <TouchableOpacity
@@ -774,7 +785,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
                     <Text style={styles.recBrand}>{item.brand}</Text>
                     <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
                     <View style={styles.recPriceRow}>
-                      <Text style={styles.recPrice}>₦{item.price}</Text>
+                      <Text style={styles.recPrice}>{formatPrice(item.price)}</Text>
                       <Text style={styles.recDiscount}>{item.discount}</Text>
                     </View>
                   </TouchableOpacity>
@@ -1119,7 +1130,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
                 >
                   <Image source={item.image} style={{ width: '100%', height: 130, borderRadius: 12 }} resizeMode="cover" />
                   <Text style={[styles.similarBrand, { fontSize: 11 }]}>{item.brand}</Text>
-                  <Text style={styles.similarPrice}>₦{item.price}</Text>
+                  <Text style={styles.similarPrice}>{formatPrice(item.price)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
