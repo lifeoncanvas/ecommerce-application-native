@@ -16,12 +16,6 @@ export const normalizeProduct = (rawProduct = {}) => {
   const discount = found.discount || `${Math.round(((oldPrice - price) / oldPrice) * 100)}% OFF`;
 
   return {
-    ...product,
-    id: String(product.id || product.productId || product.slug || 'prod_default'),
-    slug: product.slug || String(product.id || 'product'),
-    brand: product.brand || product.vendor || vendor?.name || 'Licht Marketing',
-    title: product.title || product.name || 'Textured Solid V-neck Top',
-    name: product.name || product.title || 'Textured Solid V-neck Top',
     ...found,
     id: String(found.id || 'prod_default'),
     name: found.name || found.title || 'Product Item',

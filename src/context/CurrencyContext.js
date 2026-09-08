@@ -39,6 +39,8 @@ export const CurrencyProvider = ({ children }) => {
     if (currency === 'ESP') {
       const espVal = val / 1.6;
       return `₧${espVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    } else if (currency === 'NGN') {
+      return `₦${val.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     } else {
       return `$${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     }
