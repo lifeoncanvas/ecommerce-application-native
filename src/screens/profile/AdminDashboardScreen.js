@@ -17,7 +17,9 @@ import {
   ListDashes,
   Money,
   Star,
-  Bell,
+  Bank,
+  Percent,
+  ChartBar,
   Gear,
 } from 'phosphor-react-native';
 import { getAdminDashboardStats } from '../../api/admin.api';
@@ -51,10 +53,10 @@ export default function AdminDashboardScreen({ navigation }) {
     { title: 'Sellers', icon: Storefront, route: 'AdminSellers', desc: 'Approve & suspend stores', count: stats.totalVendors },
     { title: 'Products', icon: Package, route: 'AdminProducts', desc: 'Global catalog control', count: stats.totalProducts },
     { title: 'Orders', icon: ShoppingBag, route: 'AdminOrders', desc: 'View all orders', count: stats.totalOrders },
-    { title: 'Categories', icon: ListDashes, route: null, desc: 'Manage taxonomy', count: null },
-    { title: 'Payments', icon: Money, route: null, desc: 'Financial transactions', count: null },
-    { title: 'Reviews', icon: Star, route: null, desc: 'Moderate feedback', count: null },
-    { title: 'Settings', icon: Gear, route: null, desc: 'Platform config', count: null },
+    { title: 'Commissions', icon: Percent, route: 'AdminCommissions', desc: 'Set platform fees', count: null },
+    { title: 'Payments', icon: Money, route: 'AdminPayments', desc: 'Global transactions', count: null },
+    { title: 'Payouts', icon: Bank, route: 'AdminPayouts', desc: 'Process seller funds', count: null },
+    { title: 'Reports', icon: ChartBar, route: 'AdminReports', desc: 'Analytics & growth', count: null },
   ];
 
   return (

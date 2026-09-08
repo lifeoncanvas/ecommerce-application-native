@@ -14,3 +14,13 @@ export const getAdminPayments = (page = 0, size = 20) => client.get('/admin/paym
 export const getAdminReviews = (page = 0, size = 20) => client.get('/admin/reviews', { params: { page, size } });
 export const getAdminReports = () => client.get('/admin/reports');
 export const getAdminSettings = () => client.get('/admin/settings');
+
+// Commissions
+export const getAdminCommissions = () => client.get('/v1/commissions');
+export const updateAdminCommission = (countryCode, rate, description) => client.post(`/v1/commissions/${countryCode}`, { rate, description });
+
+// Payouts
+export const getAdminPayouts = (page = 0, size = 20) => client.get('/v1/merchant/admin/payouts', { params: { page, size } });
+export const approveAdminPayout = (id) => client.put(`/v1/merchant/admin/payouts/${id}/approve`);
+export const processAdminPayout = (id) => client.put(`/v1/merchant/admin/payouts/${id}/process`);
+export const failAdminPayout = (id, reason) => client.put(`/v1/merchant/admin/payouts/${id}/fail`, null, { params: { reason } });
