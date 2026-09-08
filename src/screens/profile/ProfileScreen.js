@@ -316,18 +316,6 @@ function ProfileContent({ navigation, route }) {
       </View>
 
       <ScrollView
-<<<<<<< HEAD
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Profile Avatar Card */}
-          <View style={styles.profileCard}>
-            <View style={styles.userInfoRow}>
-              <View style={styles.userDetails}>
-                <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
-                <Text style={styles.userEmail}>{user?.email || 'guest@litemarket.com'}</Text>
-=======
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -338,23 +326,14 @@ function ProfileContent({ navigation, route }) {
             <View style={styles.userDetails}>
               <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
               <Text style={styles.userEmail}>{user?.email || 'guest@litchmarketing.com'}</Text>
-              
+
               {/* Loyalty membership badge */}
               <View style={styles.membershipBadge}>
-                <Crown size={11} color={colors.gold} weight="fill" />
+                <Crown size={11} color={colors.gold || "#F59E0B"} weight="fill" />
                 <Text style={styles.membershipText}>
                   {points >= 500 ? 'Platinum Member' : points >= 200 ? 'Gold Member' : 'Loyalty Member'}
                 </Text>
               </View>
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
-
-                {/* Loyalty membership badge */}
-                <View style={styles.membershipBadge}>
-                  <Crown size={11} color="#F59E0B" weight="fill" />
-                  <Text style={styles.membershipText}>
-                    {points >= 500 ? 'Platinum Member' : points >= 200 ? 'Gold Member' : 'Loyalty Member'}
-                  </Text>
-                </View>
 
                 {/* Store Owner Quick Portal Shortcut Button */}
                 {(user?.isVendor ||
