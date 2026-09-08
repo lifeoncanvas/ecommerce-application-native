@@ -23,7 +23,7 @@ const CONTAINER_WIDTH = Math.min(SCREEN_WIDTH, 400);
 
 export default function LoginScreen({ route, navigation }) {
   const { login, loginSocial, continueAsGuest } = useAuth();
-  const { role } = route.params || { role: 'USER' };
+  const role = route?.params?.role || 'USER';
   
   // Input fields state
   const [email, setEmail] = useState('');

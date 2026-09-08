@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { LogBox, ActivityIndicator, View } from 'react-native';
+import React, { useEffect, Component } from 'react';
+import { LogBox, ActivityIndicator, View, Text, TouchableOpacity, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
@@ -41,6 +41,49 @@ console.error = (...args) => {
   originalConsoleError(...args);
 };
 
+class ErrorBoundary extends Component {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Uncaught React UI Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#FFFCEB' }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#010E2A', marginBottom: 12, textAlign: 'center' }}>
+            Licht Marketing
+          </Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: '#DC2626', marginBottom: 8, textAlign: 'center' }}>
+            Application Error Caught
+          </Text>
+          <Text style={{ fontSize: 13, color: '#4B5563', textAlign: 'center', marginBottom: 20, paddingHorizontal: 16 }}>
+            {this.state.error?.toString() || 'An unexpected error occurred.'}
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#1A2C5B', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 24 }}
+            onPress={() => {
+              if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.location.reload();
+              } else {
+                this.setState({ hasError: false, error: null });
+              }
+            }}
+          >
+            <Text style={{ color: '#F6A400', fontWeight: 'bold', fontSize: 15 }}>Reload Application</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     'PlusJakartaSans-Regular': PlusJakartaSans_400Regular,
@@ -57,7 +100,9 @@ export default function App() {
     registerForPushNotificationsAsync();
   }, []);
 
-  if (!fontsLoaded) {
+  const isReady = fontsLoaded || Platform.OS === 'web';
+
+  if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#06132F' }}>
         <ActivityIndicator size="large" color="#C9A84C" />
@@ -66,21 +111,23 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <ThemeProvider>
-          <TabBarVisibilityProvider>
-            <CurrencyProvider>
-              <WishlistProvider>
-                <CartProvider>
-                  <StatusBar style="light" />
-                  <RootNavigator />
-                </CartProvider>
-              </WishlistProvider>
-            </CurrencyProvider>
-          </TabBarVisibilityProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <TabBarVisibilityProvider>
+              <CurrencyProvider>
+                <WishlistProvider>
+                  <CartProvider>
+                    <StatusBar style="light" />
+                    <RootNavigator />
+                  </CartProvider>
+                </WishlistProvider>
+              </CurrencyProvider>
+            </TabBarVisibilityProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

@@ -408,7 +408,7 @@ export default function PaymentScreen({ route, navigation }) {
             <ActivityIndicator size="small" color={colors.navy} />
             <Text style={styles.loadingText}>Processing Payment...</Text>
           </View>
-        ) : paymentMethod === 'paystack' ? (
+        ) : paymentMethod === 'paystack' && Platform.OS !== 'web' ? (
           <Paystack
             paystackKey="pk_test_mock"
             billingEmail={user?.email || "customer@example.com"}

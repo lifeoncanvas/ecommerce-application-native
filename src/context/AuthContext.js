@@ -47,7 +47,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     async function initAuth() {
       console.log('initAuth started');
-      const startTime = Date.now();
       try {
         const onboardingCompleted = await AsyncStorage.getItem('@onboarding_completed');
         if (onboardingCompleted === 'true') {
@@ -70,11 +69,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Failed to load auth state', error);
       } finally {
-        const elapsed = Date.now() - startTime;
-        const delay = Math.max(0, 500 - elapsed); 
-        setTimeout(() => {
-          setIsLoading(false);
-        }, delay);
+        setIsLoading(false);
       }
     }
     initAuth();
