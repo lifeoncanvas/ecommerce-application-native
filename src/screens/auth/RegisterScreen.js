@@ -34,8 +34,9 @@ const countries = [
   { name: 'Kenya', code: '+254', label: 'KE +254', flag: '🇰🇪' },
 ];
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen({ route, navigation }) {
   const { login, loginSocial, continueAsGuest } = useAuth();
+  const { role } = route.params || { role: 'USER' };
   
   // Input fields state
   const [fullName, setFullName] = useState('');
@@ -112,6 +113,7 @@ export default function RegisterScreen({ navigation }) {
       fullName: fullName.trim(),
       phone: fullPhone,
       email: email.trim(),
+      role: role,
     };
 
     try {

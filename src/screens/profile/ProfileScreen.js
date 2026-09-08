@@ -233,7 +233,7 @@ function ProfileContent({ navigation, route }) {
             },
       ],
     },
-    {
+    ...(user?.roles?.includes('ROLE_ADMIN') || user?.email === 'sharonshelke1@gmail.com' ? [{
       title: 'Platform Administration',
       items: [
         {
@@ -246,7 +246,7 @@ function ProfileContent({ navigation, route }) {
           onPress: () => navigation.navigate('AdminDashboard'),
         },
       ],
-    },
+    }] : []),
     {
       title: 'Support & Info',
       items: [
