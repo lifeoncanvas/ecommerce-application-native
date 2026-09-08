@@ -8,13 +8,17 @@ import {
   ScrollView,
   FlatList,
   ActivityIndicator,
+  Image,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { CaretLeft, Storefront } from 'phosphor-react-native';
 import { typography, spacing, radius } from '../../theme';
 import ProductCard from '../../components/ProductCard';
 import { useTheme } from '../../context/ThemeContext';
 import { products as mockProducts, vendors as mockVendors } from '../../data/mockData';
+import { getStoreById } from '../../api/stores.api';
+import { getStoreProducts } from '../../api/products.api';
 import { getVendor, getVendorProducts, getVendorReviews } from '../../api/vendor.api';
+import { buildProductRouteParams } from '../../utils/productResolver';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -24,7 +28,7 @@ const withTimeout = (promise, ms = 2000) => {
 };
 
 export default function VendorStoreScreen({ route, navigation }) {
-  const { id } = route?.params || {};
+  const { id = 1 } = route?.params || {};
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
@@ -36,45 +40,31 @@ export default function VendorStoreScreen({ route, navigation }) {
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
 
-  // Fetch Vendor details, products, and reviews
+  // Fetch Vendor/Store details, products, and reviews
   const loadStorefront = useCallback(async () => {
     setLoading(true);
     try {
-      const [vendorRes, productsRes, reviewsRes] = await withTimeout(
+      // Try Store API first for store & products stored in DB
+      const storeIdNum = typeof id === 'number' ? id : (parseInt(id.replace(/\D/g, '')) || 1);
+      const [storeRes, productsRes] = await withTimeout(
         Promise.all([
-          getVendor(id),
-          getVendorProducts(id),
-          getVendorReviews(id),
+          getStoreById(storeIdNum),
+          getStoreProducts(storeIdNum),
         ]),
         2500
       );
 
-      if (vendorRes.data) setVendor(vendorRes.data);
-      if (productsRes.data) setProducts(productsRes.data || []);
-      if (reviewsRes.data) setReviews(reviewsRes.data || []);
+      if (storeRes.data) setVendor(storeRes.data);
+      if (productsRes.data && productsRes.data.length > 0) {
+        setProducts(productsRes.data.filter((p) => p.active !== false));
+      } else {
+        setProducts(mockProducts.filter((p) => (p.vendorId === id || p.storeId === storeIdNum) && p.active !== false));
+      }
     } catch (e) {
-      console.warn(`GET /api/vendor/${id} endpoints failed, using local mock data.`, e.message);
-      
-      // Offline fallback: load mock details
+      console.warn(`GET /api/stores/${id} endpoints failed, using local fallback.`, e.message);
       const matched = mockVendors.find((v) => v.id === id) || mockVendors[0];
       setVendor(matched);
-      setProducts(mockProducts.filter((p) => p.vendorId === id));
-      setReviews([
-        {
-          id: 'v_rev_1',
-          userName: 'Precious O.',
-          rating: 5,
-          comment: 'Always delivers hot and fresh meals. Highly recommended!',
-          date: '2 days ago'
-        },
-        {
-          id: 'v_rev_2',
-          userName: 'Kene C.',
-          rating: 4,
-          comment: 'Good communication and prompt package prep.',
-          date: '1 week ago'
-        }
-      ]);
+      setProducts(mockProducts.filter((p) => p.vendorId === id && p.active !== false));
     } finally {
       setLoading(false);
     }
@@ -89,9 +79,7 @@ export default function VendorStoreScreen({ route, navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={colors.navy} />
-          </Svg>
+          <CaretLeft size={24} color={colors.navy} weight="bold" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{vendor?.name}</Text>
         <View style={styles.headerBtn} />
@@ -106,7 +94,13 @@ export default function VendorStoreScreen({ route, navigation }) {
           {/* Store Banner Profile */}
           <View style={styles.storeProfile}>
             <View style={styles.logoCircle}>
-              <Text style={styles.logoEmoji}>{vendor?.emoji || '🏬'}</Text>
+              {vendor?.logoUrl ? (
+                <Image source={{ uri: vendor.logoUrl }} style={styles.storeLogoImg} resizeMode="cover" />
+              ) : (vendor?.storePhotos && vendor?.storePhotos.length > 0) ? (
+                <Image source={{ uri: vendor.storePhotos[0] }} style={styles.storeLogoImg} resizeMode="cover" />
+              ) : (
+                <Storefront size={32} color={colors.gold || '#A8824B'} weight="fill" />
+              )}
             </View>
             <Text style={styles.storeName}>{vendor?.name}</Text>
             <Text style={styles.storeTag}>Official partner • ⭐ {vendor?.rating || 4.7} rating</Text>
@@ -240,9 +234,11 @@ const getStyles = (colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing.sm,
+    overflow: 'hidden',
   },
-  logoEmoji: {
-    fontSize: 36,
+  storeLogoImg: {
+    width: '100%',
+    height: '100%',
   },
   storeName: {
     ...typography.h2,

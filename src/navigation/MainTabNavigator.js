@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from '../theme';
@@ -25,6 +26,15 @@ import VendorDashboardScreen from '../screens/profile/VendorDashboardScreen';
 import VendorStoreScreen from '../screens/profile/VendorStoreScreen';
 import ExchangeRequestScreen from '../screens/profile/ExchangeRequestScreen';
 import ExchangeListScreen from '../screens/profile/ExchangeListScreen';
+import AdminDashboardScreen from '../screens/profile/AdminDashboardScreen';
+import AdminUsersScreen from '../screens/admin/AdminUsersScreen';
+import AdminSellersScreen from '../screens/admin/AdminSellersScreen';
+import AdminProductsScreen from '../screens/admin/AdminProductsScreen';
+import AdminOrdersScreen from '../screens/admin/AdminOrdersScreen';
+import AdminCommissionsScreen from '../screens/admin/AdminCommissionsScreen';
+import AdminPaymentsScreen from '../screens/admin/AdminPaymentsScreen';
+import AdminPayoutsScreen from '../screens/admin/AdminPayoutsScreen';
+import AdminReportsScreen from '../screens/admin/AdminReportsScreen';
 import SupportScreen from '../screens/profile/SupportScreen';
 import ReturnScreen from '../screens/profile/ReturnScreen';
 import LoyaltyScreen from '../screens/profile/LoyaltyScreen';
@@ -32,16 +42,21 @@ import AboutScreen from '../screens/profile/AboutScreen';
 import PrivacyPolicyScreen from '../screens/profile/PrivacyPolicyScreen';
 import TermsConditionsScreen from '../screens/profile/TermsConditionsScreen';
 import ContactScreen from '../screens/profile/ContactScreen';
+import MyAddressesScreen from '../screens/profile/MyAddressesScreen';
+import PaymentHistoryScreen from '../screens/profile/PaymentHistoryScreen';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBarVisibility } from '../context/TabBarVisibilityContext';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { House, SquaresFour, Heart, ShoppingCart, User } from 'phosphor-react-native';
 
 const Tab = createBottomTabNavigator();
 const HomeStackNav = createNativeStackNavigator();
+const CategoriesStackNav = createNativeStackNavigator();
+const WishlistStackNav = createNativeStackNavigator();
 const CartStackNav = createNativeStackNavigator();
 const ProfileStackNav = createNativeStackNavigator();
 
 // Nested stack so Home -> Product Listing -> Product Details keeps its own history
-// while still living inside the "Home" tab.
 function HomeStack() {
   return (
     <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
@@ -49,7 +64,29 @@ function HomeStack() {
       <HomeStackNav.Screen name="ProductListing" component={ProductListingScreen} />
       <HomeStackNav.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <HomeStackNav.Screen name="Search" component={SearchScreen} />
+      <HomeStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
+      <HomeStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
     </HomeStackNav.Navigator>
+  );
+}
+
+function CategoriesStack() {
+  return (
+    <CategoriesStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <CategoriesStackNav.Screen name="CategoriesMain" component={CategoriesScreen} />
+      <CategoriesStackNav.Screen name="ProductListing" component={ProductListingScreen} />
+      <CategoriesStackNav.Screen name="ProductDetails" component={ProductDetailsScreen} />
+      <CategoriesStackNav.Screen name="Search" component={SearchScreen} />
+    </CategoriesStackNav.Navigator>
+  );
+}
+
+function WishlistStack() {
+  return (
+    <WishlistStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <WishlistStackNav.Screen name="WishlistMain" component={WishlistScreen} />
+      <WishlistStackNav.Screen name="ProductDetails" component={ProductDetailsScreen} />
+    </WishlistStackNav.Navigator>
   );
 }
 
@@ -70,6 +107,7 @@ function ProfileStack() {
   return (
     <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStackNav.Screen name="ProfileMain" component={ProfileScreen} />
+      <ProfileStackNav.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <ProfileStackNav.Screen name="MyOrders" component={MyOrdersScreen} />
       <ProfileStackNav.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <ProfileStackNav.Screen name="TrackOrder" component={TrackOrderScreen} />
@@ -79,6 +117,15 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="BecomeVendor" component={BecomeVendorScreen} />
       <ProfileStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
       <ProfileStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
+      <ProfileStackNav.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+      <ProfileStackNav.Screen name="AdminUsers" component={AdminUsersScreen} />
+      <ProfileStackNav.Screen name="AdminSellers" component={AdminSellersScreen} />
+      <ProfileStackNav.Screen name="AdminProducts" component={AdminProductsScreen} />
+      <ProfileStackNav.Screen name="AdminOrders" component={AdminOrdersScreen} />
+      <ProfileStackNav.Screen name="AdminCommissions" component={AdminCommissionsScreen} />
+      <ProfileStackNav.Screen name="AdminPayments" component={AdminPaymentsScreen} />
+      <ProfileStackNav.Screen name="AdminPayouts" component={AdminPayoutsScreen} />
+      <ProfileStackNav.Screen name="AdminReports" component={AdminReportsScreen} />
       <ProfileStackNav.Screen name="ExchangeRequest" component={ExchangeRequestScreen} />
       <ProfileStackNav.Screen name="ExchangeList" component={ExchangeListScreen} />
       <ProfileStackNav.Screen name="Support" component={SupportScreen} />
@@ -88,52 +135,165 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <ProfileStackNav.Screen name="TermsConditions" component={TermsConditionsScreen} />
       <ProfileStackNav.Screen name="Contact" component={ContactScreen} />
+      <ProfileStackNav.Screen name="MyAddresses" component={MyAddressesScreen} />
+      <ProfileStackNav.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
     </ProfileStackNav.Navigator>
   );
 }
 
-export default function MainTabNavigator() {
+// Custom Animated Tab Bar with White Background, 58px Height (-2px), and Smooth Transition
+function CustomAnimatedTabBar({ state, descriptors, navigation }) {
   const { colors, isDarkMode } = useTheme();
+  const { tabBarTranslateY } = useTabBarVisibility();
+
+  // Hide bottom navigation on Categories, ProductListing, ProductDetails screens
+  const currentRoute = state.routes[state.index];
+  const focusedRouteName = getFocusedRouteNameFromRoute(currentRoute) ?? '';
+  if (
+    focusedRouteName === 'ProductListing' ||
+    focusedRouteName === 'ProductDetails' ||
+    focusedRouteName === 'Checkout' ||
+    focusedRouteName === 'Payment' ||
+    focusedRouteName === 'OrderSuccess'
+  ) {
+    return null;
+  }
 
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: { 
-          backgroundColor: isDarkMode ? colors.surface : colors.navy, 
-          borderTopWidth: isDarkMode ? 1 : 0,
-          borderColor: colors.border,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+    <Animated.View
+      style={[
+        styles.tabBarContainer,
+        {
+          backgroundColor: isDarkMode ? colors.surface : '#FFFFFF',
+          borderColor: isDarkMode ? colors.border : '#E2E8F0',
+          transform: [{ translateY: tabBarTranslateY }],
         },
-        tabBarIcon: ({ color, size, focused }) => {
-          const iconSize = size || 22;
-          const weight = focused ? 'fill' : 'regular';
-          switch (route.name) {
-            case 'Home':
-              return <House color={color} size={iconSize} weight={weight} />;
-            case 'Categories':
-              return <SquaresFour color={color} size={iconSize} weight={weight} />;
-            case 'Wishlist':
-              return <Heart color={color} size={iconSize} weight={weight} />;
-            case 'Cart':
-              return <ShoppingCart color={color} size={iconSize} weight={weight} />;
-            case 'Profile':
-              return <User color={color} size={iconSize} weight={weight} />;
-            default:
-              return null;
+      ]}
+    >
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const label =
+          options.tabBarLabel !== undefined
+            ? options.tabBarLabel
+            : options.title !== undefined
+            ? options.title
+            : route.name;
+
+        const isFocused = state.index === index;
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name, route.params);
           }
-        }
+        };
+
+        const onLongPress = () => {
+          navigation.emit({
+            type: 'tabLongPress',
+            target: route.key,
+          });
+        };
+
+        const activeColor = colors.gold;
+        const inactiveColor = isDarkMode ? colors.textSecondary : '#64748B';
+        const color = isFocused ? activeColor : inactiveColor;
+        const weight = isFocused ? 'fill' : 'regular';
+        const iconSize = 21;
+
+        let IconComponent = House;
+        if (route.name === 'Categories') IconComponent = SquaresFour;
+        else if (route.name === 'Wishlist') IconComponent = Heart;
+        else if (route.name === 'Cart') IconComponent = ShoppingCart;
+        else if (route.name === 'Profile') IconComponent = User;
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={options.tabBarAccessibilityLabel}
+            testID={options.tabBarTestID}
+            onPress={onPress}
+            onLongPress={onLongPress}
+            style={styles.tabButton}
+            activeOpacity={0.7}
+          >
+            <IconComponent color={color} size={iconSize} weight={weight} />
+            <Text
+              style={[
+                styles.tabLabel,
+                {
+                  color,
+                  fontWeight: isFocused ? '700' : '500',
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {label}
+            </Text>
+          </TouchableOpacity>
+        );
       })}
+    </Animated.View>
+  );
+}
+
+export default function MainTabNavigator({ isVendor }) {
+  return (
+    <Tab.Navigator
+      tabBar={(props) => <CustomAnimatedTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+      initialRouteName={isVendor ? 'Profile' : 'Home'}
     >
       <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Categories" component={CategoriesScreen} />
-      <Tab.Screen name="Wishlist" component={WishlistScreen} />
+      <Tab.Screen name="Categories" component={CategoriesStack} />
+      <Tab.Screen name="Wishlist" component={WishlistStack} />
       <Tab.Screen name="Cart" component={CartStack} />
-      <Tab.Screen name="Profile" component={ProfileStack} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStack}
+        initialParams={isVendor ? { openVendorDashboard: true } : undefined}
+      />
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 58, // Reduced by 2px (from 60px)
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderTopWidth: 1,
+    paddingHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 5,
+    elevation: 6,
+    zIndex: 1000,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    gap: 3,
+  },
+  tabLabel: {
+    fontSize: 10,
+    textAlign: 'center',
+  },
+});

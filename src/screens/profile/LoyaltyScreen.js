@@ -9,13 +9,21 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { typography, spacing, radius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
-import Button from '../../components/Button';
+import { useCurrency } from '../../context/CurrencyContext';
 import { getLoyaltyStatus, redeemLoyaltyPoints } from '../../api/loyalty.api';
 import { sendLocalNotification } from '../../utils/notificationManager';
+import {
+  CaretLeft,
+  Ticket,
+  CheckCircle,
+  Clock,
+  Gift,
+  Coins,
+  Crown,
+} from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -25,7 +33,8 @@ const withTimeout = (promise, ms = 2000) => {
 };
 
 export default function LoyaltyScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors } = useTheme(); 
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
 
   const [loading, setLoading] = useState(false);
@@ -33,12 +42,11 @@ export default function LoyaltyScreen({ navigation }) {
   const [history, setHistory] = useState([]);
 
   const REWARDS = [
-    { id: 'rew_1', title: '$5 Voucher Code', cost: 100, code: 'LOYAL5', description: 'Redeem for flat $5 off coupon in cart', value: 5 },
-    { id: 'rew_2', title: '$10 Voucher Code', cost: 180, code: 'LOYAL10', description: 'Redeem for premium $10 off coupon in cart', value: 10 },
-    { id: 'rew_3', title: 'Free Delivery Code', cost: 50, code: 'LOYALFREE', description: 'Redeem for free shipping on your next order', value: 5.99 }
+    { id: 'rew_1', title: `${formatPrice('150')} Voucher Code`, cost: 100, code: 'LOYAL150', description: `Redeem for flat ${formatPrice('150')} off coupon in cart`, value: 150 },
+    { id: 'rew_2', title: `${formatPrice('300')} Voucher Code`, cost: 180, code: 'LOYAL300', description: `Redeem for premium ${formatPrice('300')} off coupon in cart`, value: 300 },
+    { id: 'rew_3', title: 'Free Delivery Code', cost: 50, code: 'LOYALFREE', description: 'Redeem for free shipping on your next order', value: 99 }
   ];
 
-  // Fetch Loyalty Status
   const loadLoyalty = useCallback(async () => {
     setLoading(true);
     try {
@@ -49,7 +57,6 @@ export default function LoyaltyScreen({ navigation }) {
       }
     } catch (e) {
       console.warn('GET /api/loyalty failed. Seeding offline defaults.', e.message);
-      // Offline mock data
       setPoints(250);
       setHistory([
         { id: 'h_1', action: 'Order checkout reward', points: '+35 pts', date: 'Jan 22, 2026' },
@@ -65,7 +72,6 @@ export default function LoyaltyScreen({ navigation }) {
     loadLoyalty();
   }, [loadLoyalty]);
 
-  // Redeem points action
   const handleRedeem = async (reward) => {
     if (points < reward.cost) {
       Alert.alert('Insufficient Balance', 'You need more loyalty points to redeem this reward.');
@@ -97,17 +103,14 @@ export default function LoyaltyScreen({ navigation }) {
   };
 
   const saveCouponAndDeduct = async (reward) => {
-    // 1. Deduct points locally
     const newBalance = points - reward.cost;
     setPoints(newBalance);
 
-    // 2. Add to points history
     setHistory((prev) => [
       { id: `h_new_${Date.now()}`, action: `Redeemed ${reward.title}`, points: `-${reward.cost} pts`, date: 'Just Now' },
       ...prev
     ]);
 
-    // 3. Save redeemed coupon into local coupons database so it shows up in Cart Modal!
     try {
       const stored = await AsyncStorage.getItem('@local_coupons');
       let localCoupons = [];
@@ -124,7 +127,6 @@ export default function LoyaltyScreen({ navigation }) {
       console.warn('Failed to save coupon to local database', err);
     }
 
-    // 4. Send notification
     sendLocalNotification(
       'Reward Redeemed! 🎉',
       `Redeemed "${reward.code}". Coupon added to your available cart list.`
@@ -141,9 +143,7 @@ export default function LoyaltyScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={colors.navy} />
-          </Svg>
+          <CaretLeft size={24} color={colors.navy} weight="bold" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Loyalty Rewards</Text>
         <View style={styles.headerBtn} />
@@ -155,14 +155,17 @@ export default function LoyaltyScreen({ navigation }) {
         </View>
       ) : (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {/* Gold Balance Display Card */}
+          {/* VIP Metal Loyalty Card */}
           <View style={styles.goldCard}>
-            <Text style={styles.goldCardLabel}>Loyalty Balance</Text>
+            <View style={styles.goldCardHeader}>
+              <Text style={styles.goldCardLabel}>Loyalty Balance</Text>
+              <Crown size={26} color="#F59E0B" weight="fill" />
+            </View>
             <View style={styles.pointsRow}>
               <Text style={styles.pointsVal}>{points}</Text>
               <Text style={styles.pointsUnit}>PTS</Text>
             </View>
-            <Text style={styles.goldCardDesc}>Earn 1 point for every $1 spent. Redeem for discount coupons.</Text>
+            <Text style={styles.goldCardDesc}>Earn 1 point for every ${formatPrice('10')} spent. Redeem for discount coupons.</Text>
           </View>
 
           {/* Redeemable Rewards list */}
@@ -170,18 +173,31 @@ export default function LoyaltyScreen({ navigation }) {
           <View style={styles.rewardsList}>
             {REWARDS.map((rew) => (
               <View key={rew.id} style={styles.rewardItem}>
+                <View style={styles.rewardTicketLeft}>
+                  <Text style={styles.ticketValueText}>
+                    {rew.id === 'rew_3' ? 'FREE' : rew.id === 'rew_1' ? `${formatPrice('150')}` : `${formatPrice('300')}`}
+                  </Text>
+                  <Text style={styles.ticketUnitText}>OFF</Text>
+                </View>
+                
+                {/* Dotted separator strip */}
+                <View style={styles.ticketDivider} />
+
                 <View style={styles.rewardInfo}>
                   <Text style={styles.rewardTitle}>{rew.title}</Text>
                   <Text style={styles.rewardDesc}>{rew.description}</Text>
                   <Text style={styles.rewardCostText}>{rew.cost} Points</Text>
                 </View>
-                <TouchableOpacity
-                  style={[styles.redeemBtn, points < rew.cost && styles.redeemBtnDisabled]}
-                  onPress={() => handleRedeem(rew)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.redeemBtnText}>Redeem</Text>
-                </TouchableOpacity>
+                
+                <View style={styles.redeemBtnContainer}>
+                  <TouchableOpacity
+                    style={[styles.redeemBtn, points < rew.cost && styles.redeemBtnDisabled]}
+                    onPress={() => handleRedeem(rew)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.redeemBtnText}>Redeem</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
@@ -191,9 +207,12 @@ export default function LoyaltyScreen({ navigation }) {
           <View style={styles.historyList}>
             {history.map((hist) => (
               <View key={hist.id} style={styles.historyItem}>
-                <View>
-                  <Text style={styles.historyAction}>{hist.action}</Text>
-                  <Text style={styles.historyDate}>{hist.date}</Text>
+                <View style={styles.historyTextContainer}>
+                  <Coins size={16} color={hist.points.startsWith('+') ? colors.success : colors.error} weight="regular" />
+                  <View style={{ marginLeft: 8 }}>
+                    <Text style={styles.historyAction}>{hist.action}</Text>
+                    <Text style={styles.historyDate}>{hist.date}</Text>
+                  </View>
                 </View>
                 <Text
                   style={[
@@ -215,7 +234,7 @@ export default function LoyaltyScreen({ navigation }) {
 const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F8FAFC',
   },
   header: {
     height: 52,
@@ -237,6 +256,7 @@ const getStyles = (colors) => StyleSheet.create({
     ...typography.h3,
     color: colors.textPrimary,
     fontWeight: '800',
+    fontSize: 17,
   },
   loadingWrapper: {
     flex: 1,
@@ -251,23 +271,30 @@ const getStyles = (colors) => StyleSheet.create({
     padding: spacing.lg,
   },
   goldCard: {
-    backgroundColor: colors.gold,
-    borderRadius: radius.md,
+    backgroundColor: '#1E293B', // Luxury Midnight Blue
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#F59E0B', // Rich Gold Border
     padding: spacing.lg,
-    alignItems: 'center',
     marginBottom: spacing.lg,
-    shadowColor: '#000',
+    shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 5,
+    shadowRadius: 10,
     elevation: 4,
+  },
+  goldCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
   },
   goldCardLabel: {
     ...typography.caption,
-    color: '#FFFFFF',
+    color: '#D4AF37', // Gold text
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   pointsRow: {
     flexDirection: 'row',
@@ -275,33 +302,35 @@ const getStyles = (colors) => StyleSheet.create({
     marginVertical: spacing.xs,
   },
   pointsVal: {
-    fontSize: 38,
-    fontWeight: '800',
+    fontSize: 40,
+    fontWeight: '900',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   pointsUnit: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
-    marginLeft: 4,
+    color: '#D4AF37',
+    marginLeft: 6,
     marginBottom: 6,
   },
   goldCardDesc: {
     ...typography.caption,
     color: '#FFFFFF',
     fontSize: 11,
-    textAlign: 'center',
+    textAlign: 'left',
     lineHeight: 16,
-    opacity: 0.9,
+    opacity: 0.85,
+    marginTop: 2,
   },
   sectionTitle: {
     ...typography.caption,
     color: colors.textSecondary,
     fontSize: 10,
-    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: spacing.md,
     marginTop: spacing.md,
   },
   rewardsList: {
@@ -309,42 +338,81 @@ const getStyles = (colors) => StyleSheet.create({
     marginBottom: spacing.lg,
   },
   rewardItem: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rewardTicketLeft: {
+    width: 68,
+    height: 86,
+    backgroundColor: '#FFFBEB', // soft gold tint
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ticketValueText: {
+    ...typography.bodyBold,
+    fontSize: 17,
+    color: '#B45309', // Dark amber/gold
+    fontWeight: '800',
+  },
+  ticketUnitText: {
+    ...typography.caption,
+    fontSize: 9,
+    color: '#B45309',
+    fontWeight: '800',
+    marginTop: -2,
+    letterSpacing: 0.2,
+  },
+  ticketDivider: {
+    width: 1,
+    height: '60%',
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginHorizontal: 1,
   },
   rewardInfo: {
     flex: 1,
+    paddingHorizontal: spacing.md,
   },
   rewardTitle: {
     ...typography.bodyBold,
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: 13,
   },
   rewardDesc: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 11,
+    fontSize: 10.5,
     marginTop: 2,
   },
   rewardCostText: {
     ...typography.bodyBold,
-    color: colors.gold,
-    fontSize: 12,
+    color: '#B87A00',
+    fontSize: 11,
     marginTop: 4,
+  },
+  redeemBtnContainer: {
+    paddingRight: spacing.md,
   },
   redeemBtn: {
     backgroundColor: colors.navy,
     borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
     paddingVertical: 8,
   },
   redeemBtnDisabled: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.disabled,
+    opacity: 0.5,
   },
   redeemBtnText: {
     ...typography.button,
@@ -353,29 +421,39 @@ const getStyles = (colors) => StyleSheet.create({
     fontWeight: '700',
   },
   historyList: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
-    overflow: 'hidden',
+    paddingHorizontal: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
   },
   historyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.md,
-    borderBottomWidth: 0.5,
-    borderColor: colors.border,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  historyTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   historyAction: {
-    ...typography.bodyBold,
+    ...typography.body,
     color: colors.textPrimary,
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '600',
   },
   historyDate: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 10,
+    fontSize: 11,
     marginTop: 2,
   },
   historyPoints: {

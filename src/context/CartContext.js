@@ -39,29 +39,38 @@ export const CartProvider = ({ children }) => {
   }, []);
 
   // Add Item
-  const addItem = async (productId, quantity = 1) => {
+  const addItem = async (productId, quantity = 1, customProductData = null) => {
     try {
       await withTimeout(addToCartApi(productId, quantity), 2000);
       await refreshCart();
     } catch (e) {
       console.warn('Cart API add failed, adding to local fallback cart state.');
-      const product = products.find((p) => p.id === productId);
-      if (!product) return;
+      const product = customProductData || products.find((p) => p.id === productId) || { id: productId, name: 'Product', price: 999 };
 
       setLocalItems((prev) => {
-        const existing = prev.find((item) => item.id === productId);
+        const existing = prev.find((item) => String(item.id) === String(productId));
         if (existing) {
           return prev.map((item) =>
-            item.id === productId ? { ...item, quantity: item.quantity + quantity } : item
+            String(item.id) === String(productId) ? { ...item, quantity: item.quantity + quantity } : item
           );
         }
         return [
           ...prev,
           {
             id: product.id,
-            name: product.name,
-            price: product.price,
-            emoji: product.emoji,
+            name: product.name || product.title || 'Product',
+            brand: product.brand || 'Vero Moda',
+            price: Number(product.price) || 999,
+            oldPrice: product.oldPrice || product.mrp || null,
+            discount: product.discount || null,
+            badges: product.badges || ['Fast delivery', 'Trendy'],
+            image: product.image,
+            size: customProductData?.size || (customProductData?.isBooking ? '' : 'L'),
+            color: customProductData?.color || (customProductData?.isBooking ? '' : 'Fuchsia'),
+            colorHex: customProductData?.colorHex || (customProductData?.isBooking ? '' : '#BA5392'),
+            isBooking: !!customProductData?.isBooking,
+            bookingDay: customProductData?.bookingDay || null,
+            bookingTimeSlot: customProductData?.bookingTimeSlot || null,
             quantity: quantity,
           },
         ];
@@ -82,7 +91,7 @@ export const CartProvider = ({ children }) => {
     } catch (e) {
       console.warn('Cart API update failed, adjusting local state.');
       setLocalItems((prev) =>
-        prev.map((item) => (item.id === itemId ? { ...item, quantity } : item))
+        prev.map((item) => (String(item.id) === String(itemId) ? { ...item, quantity } : item))
       );
     }
   };
@@ -94,7 +103,7 @@ export const CartProvider = ({ children }) => {
       await refreshCart();
     } catch (e) {
       console.warn('Cart API remove failed, adjusting local state.');
-      setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
+      setLocalItems((prev) => prev.filter((item) => String(item.id) !== String(itemId)));
     }
   };
 

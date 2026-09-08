@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../theme';
+import { useCurrency } from '../../context/CurrencyContext';
 import Button from '../../components/Button';
 import {
   getNotifications,
@@ -30,6 +31,7 @@ export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const { formatPrice } = useCurrency();
 
   // Fetch notifications
   const loadNotifications = useCallback(async () => {
@@ -60,7 +62,7 @@ export default function NotificationsScreen({ navigation }) {
         {
           id: 'notif_3',
           title: 'Refund Processed 💳',
-          message: 'The refund of $45.50 for order ORD-723910 has been successfully credited to your PayPal.',
+          message: 'The refund of $1,290.00 for order ORD-723910 has been successfully credited to your payment method.',
           date: 'Jan 15, 2026',
           read: true,
           type: 'billing',

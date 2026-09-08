@@ -1,3 +1,4 @@
+import * as DocumentPicker from 'expo-document-picker';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -10,17 +11,21 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
+  Image,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { Microphone, Camera, CaretLeft, Sliders, CaretRight, Clock, MagnifyingGlass } from 'phosphor-react-native';
 import { typography, spacing, radius } from '../../theme';
 import { products as mockProducts, vendors as mockVendors, categories as mockCategories } from '../../data/mockData';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import {
   searchProducts,
   getSearchSuggestions,
   getSearchFilters,
   getSearchHistory,
 } from '../../api/products.api';
+import { buildProductRouteParams } from '../../utils/productResolver';
+import { CURRENCY } from '../../utils/currency';
 
 const withTimeout = (promise, ms = 2500) => {
   return Promise.race([
@@ -29,8 +34,21 @@ const withTimeout = (promise, ms = 2500) => {
   ]);
 };
 
-export default function SearchScreen({ navigation }) {
-  const { colors } = useTheme();
+export default function SearchScreen({ route, navigation }) {
+  const handleImageSearch = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'image/*' });
+      if (!result.canceled) {
+        setQuery('[Visual Search] Similar Products');
+        handleSearch('[Visual Search] Similar Products');
+      }
+    } catch (err) {
+      console.warn('Image search error:', err);
+    }
+  };
+
+  const { colors } = useTheme(); 
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -143,12 +161,12 @@ export default function SearchScreen({ navigation }) {
       items = items.filter((p) => p.vendorId === selectedVendorId);
     }
     if (priceRange !== 'all') {
-      if (priceRange === 'under20') {
-        items = items.filter((p) => p.price < 20);
-      } else if (priceRange === '20to100') {
-        items = items.filter((p) => p.price >= 20 && p.price <= 100);
-      } else if (priceRange === 'over100') {
-        items = items.filter((p) => p.price > 100);
+      if (priceRange === 'under400') {
+        items = items.filter((p) => p.price < 400);
+      } else if (priceRange === '400to800') {
+        items = items.filter((p) => p.price >= 400 && p.price <= 800);
+      } else if (priceRange === 'over800') {
+        items = items.filter((p) => p.price > 800);
       }
     }
 
@@ -166,28 +184,33 @@ export default function SearchScreen({ navigation }) {
 
   const renderResultItem = ({ item }) => {
     const vendor = mockVendors.find((v) => v.id === item.vendorId);
+    const resolved = mockProducts.find((p) => String(p.id) === String(item.id));
+    const imageSource = resolved?.image || (item.images && item.images.length > 0 ? { uri: item.images[0] } : null);
+
     return (
       <TouchableOpacity
         style={styles.resultItem}
-        onPress={() => navigation.navigate('ProductDetails', { id: item.id })}
+        onPress={() => navigation.navigate('ProductDetails', buildProductRouteParams(item))}
         activeOpacity={0.8}
       >
         <View style={styles.emojiContainer}>
-          <Text style={styles.emojiText}>{item.emoji || '🎁'}</Text>
+          {imageSource ? (
+            <Image source={imageSource} style={styles.resultImage} resizeMode="cover" />
+          ) : (
+            <Text style={styles.emojiText}>{item.emoji || '🎁'}</Text>
+          )}
         </View>
         <View style={styles.infoContainer}>
           <Text style={styles.itemBrand}>{vendor?.name || 'Brand'}</Text>
           <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
           <View style={styles.ratingPriceRow}>
-            <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+            <Text style={styles.itemPrice}>{CURRENCY.format(item.price)}</Text>
             <View style={styles.bullet} />
             <Text style={styles.starText}>★</Text>
             <Text style={styles.ratingText}>{item.rating}</Text>
           </View>
         </View>
-        <Svg width="18" height="18" viewBox="0 0 24 24" style={styles.arrowIcon}>
-          <Path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" fill={colors.textSecondary} />
-        </Svg>
+        <CaretRight size={18} color="#94A3B8" weight="bold" />
       </TouchableOpacity>
     );
   };
@@ -196,17 +219,17 @@ export default function SearchScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       {/* Search Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Svg width="24" height="24" viewBox="0 0 24 24">
-            <Path
-              d="M15 19 L8 12 L15 5"
-              stroke={colors.navy}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </Svg>
+        <TouchableOpacity
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+          style={styles.backButton}
+        >
+          <CaretLeft size={24} color={colors.navy} weight="bold" />
         </TouchableOpacity>
 
         <View style={styles.searchBarContainer}>
@@ -220,16 +243,17 @@ export default function SearchScreen({ navigation }) {
             autoFocus
             clearButtonMode="while-editing"
           />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingRight: 10 }}>
+            <Microphone size={20} color="#64748B" />
+            <TouchableOpacity onPress={handleImageSearch} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Camera size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {results.length > 0 && (
           <TouchableOpacity style={styles.filterBtn} onPress={() => setShowFiltersModal(true)}>
-            <Svg width="20" height="20" viewBox="0 0 24 24">
-              <Path
-                d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"
-                fill={colors.navy}
-              />
-            </Svg>
+            <Sliders size={22} color={colors.navy} weight="bold" />
           </TouchableOpacity>
         )}
       </View>
@@ -260,9 +284,7 @@ export default function SearchScreen({ navigation }) {
                       handleSearch(item);
                     }}
                   >
-                    <Svg width="14" height="14" viewBox="0 0 24 24" style={styles.historyIcon}>
-                      <Path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm3.3 11.5L11 11V6h1.5v4.25l3.7 2.2-.9 1.55z" fill={colors.textSecondary} />
-                    </Svg>
+                    <Clock size={16} color={colors.textSecondary} style={styles.historyIcon} />
                     <Text style={styles.historyItemText}>{item}</Text>
                   </TouchableOpacity>
                 ))}
@@ -293,12 +315,7 @@ export default function SearchScreen({ navigation }) {
               style={styles.suggestionRow}
               onPress={() => handleSuggestionPress(item)}
             >
-              <Svg width="16" height="16" viewBox="0 0 24 24" style={styles.suggestionIcon}>
-                <Path
-                  d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
-                  fill={colors.textSecondary}
-                />
-              </Svg>
+              <MagnifyingGlass size={16} color={colors.textSecondary} style={styles.suggestionIcon} />
               <Text style={styles.suggestionText}>{item}</Text>
             </TouchableOpacity>
           ))}
@@ -382,9 +399,9 @@ export default function SearchScreen({ navigation }) {
               <View style={styles.filterPillsRow}>
                 {[
                   { id: 'all', label: 'All Prices' },
-                  { id: 'under20', label: 'Under $20' },
-                  { id: '20to100', label: '$20 to $100' },
-                  { id: 'over100', label: 'Over $100' },
+                  { id: 'under400', label: `Under ${formatPrice('400')}` },
+                  { id: '400to800', label: `${formatPrice('400')} - $800` },
+                  { id: 'over800', label: `Over ${formatPrice('800')}` },
                 ].map((item) => (
                   <TouchableOpacity
                     key={item.id}
@@ -447,12 +464,14 @@ const getStyles = (colors) => StyleSheet.create({
     height: 42,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
+    paddingLeft: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
   searchInput: {
+    flex: 1,
     ...typography.body,
     color: colors.textPrimary,
   },
@@ -558,12 +577,17 @@ const getStyles = (colors) => StyleSheet.create({
     borderColor: colors.border,
   },
   emojiContainer: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: radius.sm,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  resultImage: {
+    width: '100%',
+    height: '100%',
   },
   emojiText: {
     fontSize: 24,

@@ -1,48 +1,87 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { typography, radius, spacing } from '../theme';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { radius } from '../theme';
 import { vendors } from '../data/mockData';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrency } from '../context/CurrencyContext';
+import { buildProductRouteParams } from '../utils/productResolver';
 
 export default function ProductCard({ product, onPress }) {
-  const vendor = vendors.find((v) => v.id === product.vendorId);
-  const discount = product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
+  const navigation = useNavigation();
+  const vendor = vendors.find((v) => v.id === product?.vendorId);
+  const discount = product?.oldPrice
+    ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
+    : 0;
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
 
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      navigation.navigate('ProductDetails', buildProductRouteParams(product));
+    }
+  };
+
+  // Badge configuration based on product tag
+  const getBadgeConfig = () => {
+    if (!product?.tag) return null;
+    const tagLower = product.tag.toLowerCase();
+    if (tagLower === 'new') {
+      return { backgroundColor: colors.blue500Alt || '#2952CC', text: 'NEW' };
+    } else if (tagLower === 'sale' || tagLower === 'flash sale') {
+      return { backgroundColor: colors.gold400 || '#F6A400', text: 'SALE' };
+    } else if (tagLower === 'sold out' || product.stock === 0) {
+      return { backgroundColor: colors.grey400 || '#9CA3AF', text: 'SOLD OUT' };
+    }
+    return { backgroundColor: colors.blue500Alt || '#2952CC', text: product.tag.toUpperCase() };
+  };
+
+  const badge = getBadgeConfig();
+
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.85}>
       {/* Top Section: Visual */}
       <View style={styles.imageContainer}>
-        {product.tag && (
-          <View style={styles.tagBadge}>
-            <Text style={styles.tagText}>{product.tag.toUpperCase()}</Text>
+        {badge && (
+          <View style={[styles.tagBadge, { backgroundColor: badge.backgroundColor }]}>
+            <Text style={styles.tagText}>{badge.text}</Text>
           </View>
         )}
-        <Text style={styles.emojiText}>{product.emoji || '🎁'}</Text>
+        {product?.image ? (
+          typeof product.image === 'number' ? (
+            <Image source={product.image} style={styles.cardPhoto} resizeMode="cover" />
+          ) : (
+            <Image source={{ uri: product.image }} style={styles.cardPhoto} resizeMode="cover" />
+          )
+        ) : (
+          <Text style={styles.emojiText}>{product?.emoji || '🎁'}</Text>
+        )}
       </View>
 
       {/* Bottom Section: Details */}
       <View style={styles.info}>
         <Text style={styles.brand} numberOfLines={1}>
-          {vendor?.name || 'Brand'}
+          {product?.brand || vendor?.name || 'LitchMarketing'}
         </Text>
-        <Text style={styles.name} numberOfLines={1}>
-          {product.name}
+        <Text style={styles.name} numberOfLines={2}>
+          {product?.name || product?.title || 'Product'}
         </Text>
 
         {/* Rating */}
         <View style={styles.ratingRow}>
           <Text style={styles.star}>★</Text>
-          <Text style={styles.ratingText}>{product.rating || '4.5'}</Text>
+          <Text style={styles.ratingText}>{product?.rating || '4.5'}</Text>
         </View>
 
         {/* Prices */}
         <View style={styles.priceRow}>
-          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-          {product.oldPrice && (
+          <Text style={styles.price}>{formatPrice(product?.price ? Number(product.price).toFixed(2) : '999.00')}</Text>
+          {product?.oldPrice && (
             <>
-              <Text style={styles.oldPrice}>${product.oldPrice.toFixed(2)}</Text>
+              <Text style={styles.oldPrice}>{formatPrice(Number(product.oldPrice).toFixed(2))}</Text>
               <Text style={styles.discount}>{discount}% Off</Text>
             </>
           )}
@@ -55,97 +94,108 @@ export default function ProductCard({ product, onPress }) {
 const getStyles = (colors) => StyleSheet.create({
   card: {
     flex: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.r12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 2,
-    marginBottom: spacing.sm,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 16,
   },
   imageContainer: {
-    height: 120,
-    backgroundColor: colors.background,
+    height: 140,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  cardPhoto: {
+    width: '100%',
+    height: '100%',
   },
   tagBadge: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: colors.navy,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
+    top: 8,
+    left: 8,
+    zIndex: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.r4,
   },
   tagText: {
-    ...typography.caption,
     color: '#FFFFFF',
-    fontSize: 7,
+    fontSize: 9,
+    fontFamily: 'Inter',
     fontWeight: '700',
+    letterSpacing: 0.5,
   },
   emojiText: {
-    fontSize: 42,
+    fontSize: 48,
   },
   info: {
-    padding: spacing.sm,
+    padding: 14,
   },
   brand: {
-    ...typography.caption,
+    fontSize: 11.5,
+    fontFamily: 'Inter',
     color: colors.textSecondary,
     fontWeight: '700',
-    fontSize: 9,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   name: {
-    ...typography.bodyBold,
+    fontSize: 14,
+    fontFamily: 'Inter',
     color: colors.textPrimary,
-    fontSize: 12,
-    marginTop: 2,
+    fontWeight: '600',
+    lineHeight: 18,
+    height: 36,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 6,
   },
   star: {
     color: colors.gold,
-    fontSize: 11,
-    marginRight: 2,
+    fontSize: 12,
+    marginRight: 3,
   },
   ratingText: {
-    ...typography.caption,
+    fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.textSecondary,
-    fontSize: 10,
     fontWeight: '600',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 4,
-    gap: 4,
+    marginTop: 8,
+    gap: 6,
   },
   price: {
-    ...typography.bodyBold,
+    fontSize: 16,
+    fontFamily: 'Inter',
     color: colors.textPrimary,
-    fontSize: 12,
+    fontWeight: '700',
   },
   oldPrice: {
-    ...typography.caption,
+    fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.textSecondary,
     textDecorationLine: 'line-through',
-    fontSize: 10,
   },
   discount: {
-    ...typography.caption,
+    fontSize: 11,
+    fontFamily: 'Inter',
     color: colors.error,
-    fontSize: 9,
     fontWeight: '700',
   },
 });

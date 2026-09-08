@@ -8,14 +8,27 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { getOrders, cancelOrder } from '../../api/orders.api';
 import { sendLocalNotification } from '../../utils/notificationManager';
 import { useTheme } from '../../context/ThemeContext';
+import { products as mockProducts } from '../../data/mockData';
+import { ALL_FEED_PRODUCTS } from '../../data/mockProductsData';
+import {
+  CaretLeft,
+  ArrowsCounterClockwise,
+  CheckCircle,
+  XCircle,
+  Truck,
+  Clock,
+  Package,
+  CaretRight,
+  Gift,
+} from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -30,13 +43,11 @@ export default function MyOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch orders from API and merge with local AsyncStorage orders
   const loadOrders = useCallback(async () => {
     setLoading(true);
     let apiOrders = [];
     let localOrders = [];
 
-    // 1. Fetch from AsyncStorage (orders placed in this session)
     try {
       const stored = await AsyncStorage.getItem('@local_orders');
       if (stored) localOrders = JSON.parse(stored);
@@ -44,7 +55,6 @@ export default function MyOrdersScreen({ navigation }) {
       console.warn('Failed to load local orders from storage', e.message);
     }
 
-    // 2. Fetch from backend API
     try {
       const res = await withTimeout(getOrders(), 2000);
       apiOrders = res.data || [];
@@ -52,24 +62,20 @@ export default function MyOrdersScreen({ navigation }) {
       console.warn('Failed to fetch orders from API. Using local & mock fallbacks.', e.message);
     }
 
-    // Merge
     let merged = [...localOrders, ...apiOrders];
 
-    // Check if we have at least one delivered order to test return/refund flow.
-    // If not, prepend the demo delivered order to the list.
     const hasDelivered = merged.some(o => o.status?.toLowerCase() === 'delivered');
     if (!hasDelivered) {
       const demoDeliveredOrder = {
         id: 'ORD-984321',
         date: 'Jan 23, 2026',
-        totalAmount: 129.99,
+        totalAmount: 1290,
         status: 'Delivered',
-        items: [{ id: 'p_redemp_1', name: 'DISHWA FASHION Kurtas', price: 129.99, quantity: 1, emoji: '👗', size: 'S' }],
+        items: [{ id: 'p_redemp_1', name: 'DISHWA FASHION Kurtas', price: 1290, quantity: 1, emoji: '👗', size: 'S' }],
         paymentMethod: 'Stripe Card',
         statusSubtext: 'On Thu, 23 Jan, 1:57 PM'
       };
       
-      // Prepend so it appears at the top of the list for easy access
       merged = [demoDeliveredOrder, ...merged];
       
       try {
@@ -79,7 +85,6 @@ export default function MyOrdersScreen({ navigation }) {
       }
     }
 
-    // De-duplicate by ID
     const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
     setOrders(unique);
     setLoading(false);
@@ -89,7 +94,6 @@ export default function MyOrdersScreen({ navigation }) {
     loadOrders();
   }, [loadOrders]);
 
-  // Handle Order Cancellation
   const handleCancelOrder = (orderId) => {
     Alert.alert(
       'Cancel Order',
@@ -102,11 +106,9 @@ export default function MyOrdersScreen({ navigation }) {
           onPress: async () => {
             try {
               await withTimeout(cancelOrder(orderId), 2000);
-              // Update state
               setOrders((prev) =>
                 prev.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled', statusSubtext: 'This order was cancelled' } : o))
               );
-              // Update AsyncStorage
               const stored = await AsyncStorage.getItem('@local_orders');
               if (stored) {
                 const list = JSON.parse(stored);
@@ -117,13 +119,9 @@ export default function MyOrdersScreen({ navigation }) {
                 'Order Cancelled 🛑',
                 `Your order #${orderId} has been successfully cancelled.`
               );
-              Alert.alert(
-                'Order Cancelled 🛑',
-                `Order #${orderId} has been successfully cancelled.`
-              );
+              Alert.alert('Order Cancelled 🛑', `Order #${orderId} has been successfully cancelled.`);
             } catch (e) {
               console.warn('API Cancel failed. Executing locally.', e.message);
-              // Fallback local update
               setOrders((prev) =>
                 prev.map((o) => (o.id === orderId ? { ...o, status: 'Cancelled', statusSubtext: 'This order was cancelled' } : o))
               );
@@ -137,10 +135,7 @@ export default function MyOrdersScreen({ navigation }) {
                 'Order Cancelled (Offline) 🛑',
                 `Your order #${orderId} has been successfully cancelled locally.`
               );
-              Alert.alert(
-                'Order Cancelled 🛑',
-                `Order #${orderId} has been successfully cancelled (Offline Mode).`
-              );
+              Alert.alert('Order Cancelled 🛑', `Order #${orderId} has been successfully cancelled (Offline Mode).`);
             }
           }
         }
@@ -156,9 +151,27 @@ export default function MyOrdersScreen({ navigation }) {
         return colors.error;
       case 'in transit':
       case 'shipped':
-        return colors.navyLight;
+        return colors.blue500Alt || colors.info;
       default:
-        return colors.gold;
+        return colors.gold600;
+    }
+  };
+
+  const renderStatusIcon = (status) => {
+    const iconSize = 15;
+    switch (status?.toLowerCase()) {
+      case 'delivered':
+        return <CheckCircle size={iconSize} color={colors.success} weight="fill" />;
+      case 'cancelled':
+        return <XCircle size={iconSize} color={colors.error} weight="fill" />;
+      case 'in transit':
+      case 'shipped':
+        return <Truck size={iconSize} color={colors.blue500Alt || colors.info} weight="fill" />;
+      case 'placed':
+      case 'processing':
+        return <Clock size={iconSize} color={colors.gold600} weight="fill" />;
+      default:
+        return <Package size={iconSize} color={colors.grey600} weight="fill" />;
     }
   };
 
@@ -167,19 +180,22 @@ export default function MyOrdersScreen({ navigation }) {
     const isTransit = item.status?.toLowerCase() === 'in transit' || item.status?.toLowerCase() === 'shipped';
     const isPlaced = item.status?.toLowerCase() === 'placed' || item.status?.toLowerCase() === 'processing';
     const isCancelled = item.status?.toLowerCase() === 'cancelled';
+    const statusColor = getStatusColor(item.status);
 
     return (
-      <View style={styles.orderCard}>
+      <View style={[styles.orderCard, { borderLeftColor: statusColor }]}>
         {/* Status Line */}
         <View style={styles.cardHeader}>
           <View style={styles.statusInfoRow}>
-            <View style={[styles.statusIconBox, { borderColor: getStatusColor(item.status) }]}>
-              <Text style={styles.statusBoxIcon}>{isDelivered ? '📦✓' : '📦'}</Text>
+            <View style={[styles.statusIconBox, { backgroundColor: statusColor + '10', borderColor: statusColor + '30' }]}>
+              {renderStatusIcon(item.status)}
             </View>
             <View style={styles.statusTexts}>
-              <Text style={[styles.statusLabel, { color: getStatusColor(item.status) }]}>
-                {item.status || 'Placed'}
-              </Text>
+              <View style={[styles.statusPill, { backgroundColor: statusColor + '15' }]}>
+                <Text style={[styles.statusLabel, { color: statusColor }]}>
+                  {item.status || 'Placed'}
+                </Text>
+              </View>
               <Text style={styles.statusSubtext}>{item.statusSubtext || 'Placed'}</Text>
             </View>
           </View>
@@ -187,23 +203,33 @@ export default function MyOrdersScreen({ navigation }) {
         </View>
 
         {/* Items List inside card */}
-        {item.items && item.items.map((prod, idx) => (
-          <TouchableOpacity
-            key={idx}
-            style={styles.productRow}
-            onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
-            activeOpacity={0.7}
-          >
-            <View style={styles.productEmojiBox}>
-              <Text style={styles.productEmoji}>{prod.emoji || '🎁'}</Text>
-            </View>
-            <View style={styles.productDetails}>
-              <Text style={styles.productName} numberOfLines={1}>{prod.name}</Text>
-              <Text style={styles.productMeta}>Size: {prod.size || 'M'} • Qty: {prod.quantity || 1}</Text>
-            </View>
-            <Text style={styles.chevron}>❯</Text>
-          </TouchableOpacity>
-        ))}
+        {item.items && item.items.map((prod, idx) => {
+          const resolved = [...mockProducts, ...ALL_FEED_PRODUCTS].find(
+            (p) => String(p.id) === String(prod.id) || String(p.id) === String(prod.productId)
+          );
+
+          return (
+            <TouchableOpacity
+              key={idx}
+              style={styles.productRow}
+              onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
+              activeOpacity={0.7}
+            >
+              <View style={styles.productPhotoBox}>
+                {resolved?.image ? (
+                  <Image source={resolved.image} style={styles.productPhoto} resizeMode="cover" />
+                ) : (
+                  <Gift size={20} color={colors.grey600} weight="regular" />
+                )}
+              </View>
+              <View style={styles.productDetails}>
+                <Text style={styles.productName} numberOfLines={1}>{prod.name}</Text>
+                <Text style={styles.productMeta}>Size: {prod.size || 'M'} • Qty: {prod.quantity || 1}</Text>
+              </View>
+              <CaretRight size={16} color={colors.grey400} weight="bold" />
+            </TouchableOpacity>
+          );
+        })}
 
         <View style={styles.divider} />
 
@@ -272,7 +298,6 @@ export default function MyOrdersScreen({ navigation }) {
             </TouchableOpacity>
           )}
 
-          {/* Refund Pending or Exchange Pending statuses */}
           {!isDelivered && !isTransit && !isPlaced && !isCancelled && (
             <TouchableOpacity
               style={styles.actionButtonSecondary}
@@ -291,13 +316,11 @@ export default function MyOrdersScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-          <Svg width="22" height="22" viewBox="0 0 24 24">
-            <Path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={colors.navy} />
-          </Svg>
+          <CaretLeft size={24} color={colors.navy} weight="bold" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Orders</Text>
         <TouchableOpacity style={styles.headerBtn} onPress={loadOrders}>
-          <Text style={styles.refreshEmoji}>🔄</Text>
+          <ArrowsCounterClockwise size={20} color={colors.navy} weight="bold" />
         </TouchableOpacity>
       </View>
 
@@ -327,7 +350,7 @@ export default function MyOrdersScreen({ navigation }) {
 const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F8FAFC', // Sleek background color for listing
   },
   header: {
     height: 52,
@@ -349,9 +372,7 @@ const getStyles = (colors) => StyleSheet.create({
     ...typography.h3,
     color: colors.textPrimary,
     fontWeight: '800',
-  },
-  refreshEmoji: {
-    fontSize: 18,
+    fontSize: 17,
   },
   loadingWrapper: {
     flex: 1,
@@ -363,12 +384,18 @@ const getStyles = (colors) => StyleSheet.create({
     padding: spacing.md,
   },
   orderCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.md,
     borderWidth: 1,
+    borderLeftWidth: 4.5, // Color stripe matching status
     borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.md,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -384,27 +411,32 @@ const getStyles = (colors) => StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: radius.sm,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.sm,
-    backgroundColor: colors.background,
-  },
-  statusBoxIcon: {
-    fontSize: 14,
   },
   statusTexts: {
     justifyContent: 'center',
   },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
   statusLabel: {
     ...typography.bodyBold,
-    fontSize: 13,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   statusSubtext: {
     ...typography.caption,
     color: colors.textSecondary,
     fontSize: 10,
-    marginTop: 1,
+    marginTop: 2,
   },
   orderId: {
     ...typography.caption,
@@ -414,23 +446,25 @@ const getStyles = (colors) => StyleSheet.create({
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
     padding: spacing.sm,
     marginBottom: spacing.xs,
   },
-  productEmojiBox: {
+  productPhotoBox: {
     width: 48,
     height: 48,
     borderRadius: radius.xs,
-    backgroundColor: colors.surface,
+    backgroundColor: '#EDF2F7',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
-  productEmoji: {
-    fontSize: 22,
+  productPhoto: {
+    width: '100%',
+    height: '100%',
   },
   productDetails: {
     flex: 1,
@@ -446,11 +480,6 @@ const getStyles = (colors) => StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 11,
     marginTop: 2,
-  },
-  chevron: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    paddingHorizontal: spacing.xs,
   },
   divider: {
     height: 0.5,
@@ -477,7 +506,7 @@ const getStyles = (colors) => StyleSheet.create({
     fontWeight: '700',
   },
   actionButtonSecondary: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: 8,

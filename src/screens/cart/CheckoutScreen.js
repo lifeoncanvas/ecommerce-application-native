@@ -18,9 +18,11 @@ import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { getAddresses, getShippingRates, addAddress } from '../../api/orders.api';
 import { getCoupons, applyCoupon } from '../../api/coupons.api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CURRENCY } from '../../utils/currency';
 
 const withTimeout = (promise, ms = 2000) => {
   return Promise.race([
@@ -29,9 +31,11 @@ const withTimeout = (promise, ms = 2000) => {
   ]);
 };
 
-export default function CheckoutScreen({ navigation }) {
+export default function CheckoutScreen({ route, navigation }) {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
+  const { isBooking, selectedItems } = route.params || {};
   const {
     items,
     discountAmount,
@@ -62,7 +66,7 @@ export default function CheckoutScreen({ navigation }) {
       console.warn('GET /api/coupons failed. Loading mock coupons.', e.message);
       apiCoupons = [
         { code: 'TECH20', description: 'Get 20% off on electronics and gadget orders', value: 20 },
-        { code: 'FREESHIP', description: 'Free shipping on orders above $30', value: 5.99 },
+        { code: 'FREESHIP', description: `Free shipping on orders above ${formatPrice('990')}`, value: 99 },
         { code: 'HTTN10', description: 'Get a flat 10% discount on food orders', value: 10 }
       ];
     }
@@ -142,7 +146,7 @@ export default function CheckoutScreen({ navigation }) {
       ];
       const mockRates = [
         { id: 'rate_standard', name: 'Standard Delivery', price: 0, time: '3-5 business days' },
-        { id: 'rate_express', name: 'Express Shipping', price: 15, time: '1-2 business days' }
+        { id: 'rate_express', name: 'Express Shipping', price: 99, time: '1-2 business days' }
       ];
 
       setAddresses(mockAddresses);
@@ -224,7 +228,9 @@ export default function CheckoutScreen({ navigation }) {
     navigation.navigate('Payment', {
       addressId: selectedAddressId,
       shippingRateId: selectedRateId,
-      totalAmount: total
+      totalAmount: total,
+      selectedItems: selectedItems || items,
+      isBooking: isBooking,
     });
   };
 
@@ -303,7 +309,7 @@ export default function CheckoutScreen({ navigation }) {
                     <Text style={styles.rateTime}>{rate.time}</Text>
                   </View>
                   <Text style={styles.ratePrice}>
-                    {rate.price === 0 ? 'FREE' : `$${rate.price.toFixed(2)}`}
+                    {rate.price === 0 ? 'FREE' : CURRENCY.format(rate.price)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -316,23 +322,23 @@ export default function CheckoutScreen({ navigation }) {
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+                <Text style={styles.summaryValue}>{CURRENCY.format(subtotal)}</Text>
               </View>
               {discountAmount > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Discount</Text>
-                  <Text style={styles.discountValue}>-${discountAmount.toFixed(2)}</Text>
+                  <Text style={styles.discountValue}>-{CURRENCY.format(discountAmount)}</Text>
                 </View>
               )}
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Shipping Cost</Text>
                 <Text style={styles.summaryValue}>
-                  {shippingCost === 0 ? 'FREE' : `$${shippingCost.toFixed(2)}`}
+                  {shippingCost === 0 ? 'FREE' : CURRENCY.format(shippingCost)}
                 </Text>
               </View>
               <View style={[styles.summaryRow, styles.grandTotalRow]}>
                 <Text style={styles.grandLabel}>Total Payment</Text>
-                <Text style={styles.grandValue}>${total.toFixed(2)}</Text>
+                <Text style={styles.grandValue}>{CURRENCY.format(total)}</Text>
               </View>
             </View>
           </View>
@@ -538,7 +544,9 @@ export default function CheckoutScreen({ navigation }) {
                 >
                   <View style={styles.couponCardHeader}>
                     <Text style={styles.couponCodeText}>{c.code}</Text>
-                    <Text style={styles.couponValueTag}>SAVE ${c.value}</Text>
+                    <Text style={styles.couponValueTag}>
+                      {c.code.includes('10') || c.code.includes('20') ? `SAVE ${c.value}%` : `SAVE ${CURRENCY.format(c.value)}`}
+                    </Text>
                   </View>
                   <Text style={styles.couponDescText}>{c.description}</Text>
                   <Text style={styles.applyHint}>Tap to apply promo code</Text>

@@ -26,11 +26,11 @@ const deleteToken = async () => {
 
 
 // Set this to false when you want to connect your Spring Boot database.
-export const IS_OFFLINE = false;
+export const IS_OFFLINE = true;
 
 // Android uses 10.0.2.2 for localhost, iOS uses localhost
 const LOCAL_IP = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-export const BASE_URL = `http://${LOCAL_IP}:8082/api`;
+export const BASE_URL = `http://${LOCAL_IP}:8084/api`;
 
 const client = axios.create({
   baseURL: BASE_URL,
@@ -57,17 +57,24 @@ client.interceptors.request.use(async (config) => {
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
-    console.error('API Error:', error.message, error.config?.url);
-    if (error.response?.status === 401) {
+    console.error('API Error:', error?.message, error?.config?.url);
+    if (error?.response?.status === 401) {
       // token expired/invalid — clear it, navigate user to Login from AuthContext
       await deleteToken();
     }
     
-    // Graceful fallback for missing backend endpoints or type mismatch (500/404)
-    if (error.response?.status === 500 || error.response?.status === 404) {
-      console.warn(`Endpoint ${error.config?.url} is missing or failing on the backend. Falling back gracefully.`);
-      // Return a fake successful response with empty data to prevent the UI from crashing
-      return Promise.resolve({ data: { items: [], content: [] } });
+    // Graceful fallback for missing backend endpoints, network failures, or offline backend
+    if (
+      !error?.response || 
+      error?.response?.status === 500 || 
+      error?.response?.status === 404 || 
+      error?.message === 'Network Error' || 
+      error?.code === 'ERR_NETWORK' ||
+      error?.message === 'Running in offline/mock mode'
+    ) {
+      console.warn(`Endpoint ${error?.config?.url} failed or backend is offline. Falling back gracefully.`);
+      // Return a fake successful response with safe fallback data structure to prevent UI crashes
+      return Promise.resolve({ data: [] });
     }
     
     return Promise.reject(error);

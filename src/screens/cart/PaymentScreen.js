@@ -16,14 +16,18 @@ import Button from '../../components/Button';
 import { useCart } from '../../context/CartContext';
 import { createOrder } from '../../api/orders.api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CURRENCY } from '../../utils/currency';
 import { useTheme } from '../../context/ThemeContext';
 import {
   processStripePayment,
   processPaypalPayment,
   processEspeesPayment,
   verifyPayment,
+  verifyPaystackPayment,
 } from '../../api/payment.api';
 import { sendLocalNotification } from '../../utils/notificationManager';
+import Paystack from '../../components/PaystackWrapper';
+import { useAuth } from '../../context/AuthContext';
 
 const withTimeout = (promise, ms = 2500) => {
   return Promise.race([
@@ -35,10 +39,11 @@ const withTimeout = (promise, ms = 2500) => {
 export default function PaymentScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const { addressId, shippingRateId, totalAmount } = route?.params || {};
+  const { addressId, shippingRateId, totalAmount, isBooking, selectedItems } = (route && route.params) || {};
   const { clear, items } = useCart();
+  const { user } = useAuth();
   
-  const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe', 'paypal', 'espees'
+  const [paymentMethod, setPaymentMethod] = useState('paystack'); // 'stripe', 'paypal', 'espees', 'paystack'
   const [loading, setLoading] = useState(false);
 
   // Stripe input states
@@ -90,7 +95,7 @@ export default function PaymentScreen({ route, navigation }) {
           items: items,
           totalAmount,
           status: 'Placed',
-          paymentMethod: paymentMethod === 'stripe' ? 'Stripe Card' : paymentMethod === 'paypal' ? 'PayPal' : 'Espees Wallet',
+          paymentMethod: paymentMethod === 'paystack' ? 'Paystack' : paymentMethod === 'stripe' ? 'Stripe Card' : paymentMethod === 'paypal' ? 'PayPal' : 'Espees Wallet',
           addressId,
           shippingRateId
         };
@@ -105,22 +110,28 @@ export default function PaymentScreen({ route, navigation }) {
       let payPayload = { amount: totalAmount };
       let paymentResponse;
 
+      let paymentReference;
+
       // 1. Process payment gateway API
-      if (paymentMethod === 'stripe') {
+      if (paymentMethod === 'paystack') {
+        // Paystack handles its own UI flow. We shouldn't hit this unless it's a fallback.
+        paymentReference = 'PAYSTACK-' + Date.now();
+      } else if (paymentMethod === 'stripe') {
         payPayload = { ...payPayload, cardName, cardNumber: cardNumber.replace(/\s/g, ''), cardExpiry, cardCvv };
         paymentResponse = await withTimeout(processStripePayment(payPayload), 2500);
+        paymentReference = paymentResponse.data?.reference || 'REF-' + Date.now();
+        await withTimeout(verifyPayment({ reference: paymentReference }), 2000);
       } else if (paymentMethod === 'paypal') {
         payPayload = { ...payPayload, email: paypalEmail };
         paymentResponse = await withTimeout(processPaypalPayment(payPayload), 2500);
+        paymentReference = paymentResponse.data?.reference || 'REF-' + Date.now();
+        await withTimeout(verifyPayment({ reference: paymentReference }), 2000);
       } else {
         payPayload = { ...payPayload, walletId: espeesId, pin: espeesPin };
         paymentResponse = await withTimeout(processEspeesPayment(payPayload), 2500);
+        paymentReference = paymentResponse.data?.reference || 'REF-' + Date.now();
+        await withTimeout(verifyPayment({ reference: paymentReference }), 2000);
       }
-
-      const paymentReference = paymentResponse.data?.reference || 'REF-' + Date.now();
-
-      // 2. Verify payment status
-      await withTimeout(verifyPayment({ reference: paymentReference }), 2000);
 
       // 3. Create the final order on backend
       const orderPayload = {
@@ -140,7 +151,7 @@ export default function PaymentScreen({ route, navigation }) {
       setLoading(false);
       sendLocalNotification(
         'Order Placed Successfully! 📦',
-        `Your order #${mockOrderId} has been created. Total: $${totalAmount.toFixed(2)}`
+        `Your order #${mockOrderId} has been created. Total: ${CURRENCY.format(totalAmount)}`
       );
       Alert.alert(
         'Order Confirmed! 🎉',
@@ -148,7 +159,12 @@ export default function PaymentScreen({ route, navigation }) {
         [
           {
             text: 'View Receipt',
-            onPress: () => navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount })
+            onPress: () => navigation.navigate('OrderSuccess', {
+              orderId: mockOrderId,
+              totalAmount,
+              isBooking,
+              selectedItems,
+            })
           }
         ]
       );
@@ -161,7 +177,7 @@ export default function PaymentScreen({ route, navigation }) {
       setLoading(false);
       sendLocalNotification(
         'Order Placed (Offline) 📦',
-        `Your order #${mockOrderId} has been saved locally. Total: $${totalAmount.toFixed(2)}`
+        `Your order #${mockOrderId} has been saved locally. Total: ${CURRENCY.format(totalAmount)}`
       );
       Alert.alert(
         'Order Confirmed! 🎉',
@@ -169,10 +185,48 @@ export default function PaymentScreen({ route, navigation }) {
         [
           {
             text: 'View Receipt',
-            onPress: () => navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount })
+            onPress: () => navigation.navigate('OrderSuccess', {
+              orderId: mockOrderId,
+              totalAmount,
+              isBooking,
+              selectedItems,
+            })
           }
         ]
       );
+    }
+  };
+
+  const handlePaystackSuccess = async (response) => {
+    setLoading(true);
+    const mockOrderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+    const reference = response?.transactionRef?.reference || 'REF-' + Date.now();
+    
+    try {
+      // Verify with backend
+      await verifyPaystackPayment(reference);
+      
+      // Create Order
+      const orderPayload = {
+        orderId: mockOrderId,
+        items: items,
+        addressId,
+        shippingRateId,
+        paymentMethod: 'paystack',
+        paymentReference: reference,
+        totalAmount
+      };
+      await createOrder(orderPayload);
+      
+      await clear();
+      setLoading(false);
+      sendLocalNotification('Order Placed Successfully! 📦', `Your order #${mockOrderId} has been created via Paystack.`);
+      navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount, isBooking, selectedItems });
+    } catch (e) {
+      // Fallback
+      await clear();
+      setLoading(false);
+      navigation.navigate('OrderSuccess', { orderId: mockOrderId, totalAmount, isBooking, selectedItems });
     }
   };
 
@@ -201,6 +255,14 @@ export default function PaymentScreen({ route, navigation }) {
         <Text style={styles.sectionTitle}>Select Payment Method</Text>
         <View style={styles.methodSelector}>
           <TouchableOpacity
+            style={[styles.methodBtn, paymentMethod === 'paystack' && styles.methodBtnActive]}
+            onPress={() => setPaymentMethod('paystack')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.methodIcon}>🇳🇬</Text>
+            <Text style={[styles.methodLabel, paymentMethod === 'paystack' && styles.methodLabelActive]}>Paystack</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.methodBtn, paymentMethod === 'stripe' && styles.methodBtnActive]}
             onPress={() => setPaymentMethod('stripe')}
             activeOpacity={0.8}
@@ -228,6 +290,13 @@ export default function PaymentScreen({ route, navigation }) {
 
         {/* Payment Forms */}
         <View style={styles.formContainer}>
+          {paymentMethod === 'paystack' && (
+            <View style={styles.form}>
+              <Text style={styles.fieldLabel}>Paystack Gateway (Nigeria)</Text>
+              <Text style={styles.formHint}>You will be directed to Paystack's secure checkout to complete your transaction via Card, Bank Transfer, or USSD.</Text>
+            </View>
+          )}
+
           {paymentMethod === 'stripe' && (
             <View style={styles.form}>
               <Text style={styles.fieldLabel}>Cardholder Name</Text>
@@ -328,7 +397,7 @@ export default function PaymentScreen({ route, navigation }) {
         {/* Pricing Summary card */}
         <View style={styles.priceSummary}>
           <Text style={styles.priceSummaryLabel}>Final Amount to Pay</Text>
-          <Text style={styles.priceSummaryValue}>${totalAmount.toFixed(2)}</Text>
+          <Text style={styles.priceSummaryValue}>{CURRENCY.format(totalAmount)}</Text>
         </View>
       </ScrollView>
 
@@ -339,8 +408,26 @@ export default function PaymentScreen({ route, navigation }) {
             <ActivityIndicator size="small" color={colors.navy} />
             <Text style={styles.loadingText}>Processing Payment...</Text>
           </View>
+        ) : paymentMethod === 'paystack' && Platform.OS !== 'web' ? (
+          <Paystack
+            paystackKey="pk_test_mock"
+            billingEmail={user?.email || "customer@example.com"}
+            amount={totalAmount}
+            currency="NGN"
+            onCancel={(e) => {
+              Alert.alert('Payment Cancelled', 'You cancelled the Paystack transaction.');
+            }}
+            onSuccess={(res) => handlePaystackSuccess(res)}
+            ref={(ref) => {
+              this.paystackWebViewRef = ref;
+            }}
+            autoStart={false}
+            renderButton={(submit) => (
+               <Button title={`Pay Securely ${CURRENCY.format(totalAmount)}`} onPress={submit} />
+            )}
+          />
         ) : (
-          <Button title={`Pay Now $${totalAmount.toFixed(2)}`} onPress={handlePayment} />
+          <Button title={`Pay Now ${CURRENCY.format(totalAmount)}`} onPress={handlePayment} />
         )}
       </View>
     </SafeAreaView>

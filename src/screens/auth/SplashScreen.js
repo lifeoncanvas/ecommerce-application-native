@@ -1,75 +1,64 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, ActivityIndicator, Dimensions } from 'react-native';
-import { colors, typography } from '../../theme';
-import { Crown } from 'phosphor-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  ActivityIndicator,
+  Dimensions,
+  Image,
+} from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+// Exact background color of the logo file — used as a fallback fill
+// so there's no flash of a different color before the image loads.
+const NAVY_EDGE = '#06132F';
+const GOLD       = '#C9A84C';
 
 export default function SplashScreen() {
-  const logoScale = useRef(new Animated.Value(0.85)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const sloganOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale    = useRef(new Animated.Value(0.85)).current;
+  const logoOpacity  = useRef(new Animated.Value(0)).current;
   const loaderOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Run an entry animation sequence
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoScale, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(logoScale,   { toValue: 1, duration: 900, useNativeDriver: true }),
       ]),
-      Animated.timing(textOpacity, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(sloganOpacity, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(loaderOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
+      Animated.timing(loaderOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
   }, []);
 
   return (
     <View style={styles.container}>
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: logoOpacity,
-            transform: [{ scale: logoScale }],
-          },
-        ]}
-      >
-        {/* Crown Icon */}
-        <Crown color={colors.gold} size={110} weight="fill" />
 
-        <Animated.Text style={[styles.title, { opacity: textOpacity }]}>
-          KingsShoppers
-        </Animated.Text>
-        <Animated.Text style={[styles.slogan, { opacity: sloganOpacity }]}>
-          Premium Shopping Experience
-        </Animated.Text>
-      </Animated.View>
+      {/* Full-bleed background — the same navy gradient + grain texture
+          from the logo artwork, elongated to cover the whole screen so
+          the logo sits inside a continuation of its own background
+          rather than a separately-rendered gradient. */}
+      <Image
+        source={require('../../../assets/images/splash-bg.png')}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
 
+      {/* Full logo artwork (crown + wordmark + tagline baked in) */}
+      <View style={styles.centerBlock}>
+        <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }] }}>
+          <Image
+            source={require('../../../assets/images/logo-full.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </View>
+
+      {/* Bottom loader */}
       <Animated.View style={[styles.loaderContainer, { opacity: loaderOpacity }]}>
-        <ActivityIndicator size="small" color={colors.gold} style={styles.spinner} />
-        <Text style={styles.footerText}>v1.0.0</Text>
+        <ActivityIndicator size="small" color={GOLD} />
+        <Text style={styles.versionText}>v1.0.0</Text>
       </Animated.View>
     </View>
   );
@@ -78,40 +67,33 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.navy,
+    backgroundColor: NAVY_EDGE,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  content: {
+  centerBlock: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 32,
   },
-  title: {
-    ...typography.h1,
-    color: colors.textInverse,
-    marginTop: 20,
-    letterSpacing: 4,
-    fontWeight: '800',
-  },
-  slogan: {
-    ...typography.caption,
-    color: colors.goldLight,
-    marginTop: 8,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+  logoImage: {
+    // Logo file is a large square (1254x1254) containing crown + wordmark + tagline.
+    // Sized wide enough to read the wordmark clearly without dominating the screen.
+    width: width * 0.72,
+    height: width * 0.72,
+    maxWidth: 340,
+    maxHeight: 340,
   },
   loaderContainer: {
     position: 'absolute',
     bottom: 50,
     alignItems: 'center',
+    gap: 8,
   },
-  spinner: {
-    marginBottom: 10,
-  },
-  footerText: {
-    ...typography.caption,
-    color: colors.textSecondary,
+  versionText: {
     fontSize: 10,
+    color: GOLD,
+    opacity: 0.4,
     letterSpacing: 1,
   },
 });

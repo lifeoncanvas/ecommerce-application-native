@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "KingsShoppers",
+    "name": "Licht Marketing",
     "slug": "httn-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,7 +23,8 @@
       }
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ]
   }
 }

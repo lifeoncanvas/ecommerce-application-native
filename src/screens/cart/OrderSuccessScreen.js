@@ -3,20 +3,132 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-na
 import Svg, { Path, Circle } from 'react-native-svg';
 import { typography, spacing, radius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { CURRENCY } from '../../utils/currency';
 
 export default function OrderSuccessScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const { orderId, totalAmount } = route.params || { orderId: 'ORD-000000', totalAmount: 0.00 };
+  const { orderId, totalAmount, isBooking, selectedItems } = route.params || { orderId: 'ORD-000000', totalAmount: 0.00 };
 
   const handleContinueShopping = () => {
-    // Reset back to HomeMain tab and clear CartStack history
+    // Reset back to CartMain tab and clear CartStack history
     navigation.reset({
       index: 0,
       routes: [{ name: 'CartMain' }],
     });
     navigation.navigate('Home');
   };
+
+  if (isBooking) {
+    const bookingItem = selectedItems?.[0] || {
+      name: 'Premium Service Booking',
+      brand: 'Litch Marketing Partner',
+      bookingDay: 'Today',
+      bookingTimeSlot: '12:00 PM - 01:30 PM',
+    };
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.bookingTitle}>Booking Confirmed! 🎉</Text>
+          <Text style={styles.bookingSubtitle}>Your reservation has been secured. Present this ticket at the venue.</Text>
+
+          {/* Styled Entry Ticket */}
+          <View style={styles.ticketCard}>
+            {/* Left/Right punched notches */}
+            <View style={[styles.ticketNotch, styles.notchLeft]} />
+            <View style={[styles.ticketNotch, styles.notchRight]} />
+
+            {/* Ticket Header */}
+            <View style={styles.ticketHeader}>
+              <Text style={styles.ticketCategory}>OFFICIAL ENTRY TICKET</Text>
+              <Text style={styles.ticketBrand}>{bookingItem.brand}</Text>
+            </View>
+
+            {/* Ticket Content */}
+            <View style={styles.ticketBody}>
+              <Text style={styles.ticketItemName}>{bookingItem.name}</Text>
+              
+              <View style={styles.ticketDetailsRow}>
+                <View style={styles.ticketDetailCol}>
+                  <Text style={styles.ticketDetailLabel}>DATE</Text>
+                  <Text style={styles.ticketDetailVal}>{bookingItem.bookingDay}</Text>
+                </View>
+                <View style={styles.ticketDetailCol}>
+                  <Text style={styles.ticketDetailLabel}>TIME SLOT</Text>
+                  <Text style={styles.ticketDetailVal}>{bookingItem.bookingTimeSlot}</Text>
+                </View>
+              </View>
+
+              <View style={styles.ticketDetailsRow}>
+                <View style={styles.ticketDetailCol}>
+                  <Text style={styles.ticketDetailLabel}>TICKET NO.</Text>
+                  <Text style={styles.ticketDetailVal}>{orderId || 'BKG-098431'}</Text>
+                </View>
+                <View style={styles.ticketDetailCol}>
+                  <Text style={styles.ticketDetailLabel}>STATUS</Text>
+                  <Text style={[styles.ticketDetailVal, { color: '#16A34A', fontWeight: '800' }]}>CONFIRMED</Text>
+                </View>
+              </View>
+
+              <View style={styles.ticketDetailsRow}>
+                <View style={styles.ticketDetailCol}>
+                  <Text style={styles.ticketDetailLabel}>TOTAL PAID</Text>
+                  <Text style={styles.ticketDetailVal}>{CURRENCY.format(totalAmount)}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Dashed Perforated Divider */}
+            <View style={styles.ticketDividerPattern} />
+
+            {/* Barcode Section */}
+            <View style={styles.barcodeSection}>
+              <View style={styles.barcodeLines}>
+                {[1, 2, 1, 3, 1, 2, 3, 1, 2, 1, 3, 1, 2, 2, 1, 3, 1].map((w, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      width: w * 2.2,
+                      height: 44,
+                      backgroundColor: '#1E293B',
+                      marginHorizontal: 1.5,
+                    }}
+                  />
+                ))}
+              </View>
+              <Text style={styles.barcodeText}>{orderId || 'BKG-098431'}</Text>
+            </View>
+          </View>
+
+          {/* Action buttons */}
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.continueBtn}
+              onPress={handleContinueShopping}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.continueBtnText}>Explore More Services</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.trackBtn}
+              onPress={() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'CartMain' }],
+                });
+                navigation.navigate('Profile');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.trackBtnText}>My Bookings</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -53,7 +165,7 @@ export default function OrderSuccessScreen({ route, navigation }) {
           <View style={styles.divider} />
           <View style={styles.row}>
             <Text style={styles.label}>Total Amount Paid</Text>
-            <Text style={styles.grandValue}>${totalAmount.toFixed(2)}</Text>
+            <Text style={styles.grandValue}>{CURRENCY.format(totalAmount)}</Text>
           </View>
         </View>
 
@@ -219,5 +331,127 @@ const getStyles = (colors) => StyleSheet.create({
     ...typography.button,
     color: colors.navy,
     fontWeight: '700',
+  },
+  bookingTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#06132F',
+    textAlign: 'center',
+  },
+  bookingSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 6,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  ticketCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  ticketNotch: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FAF9F5',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    zIndex: 5,
+  },
+  notchLeft: {
+    left: -12,
+    top: '73%',
+  },
+  notchRight: {
+    right: -12,
+    top: '73%',
+  },
+  ticketHeader: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 12,
+    alignItems: 'center',
+  },
+  ticketCategory: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#A8824B',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  ticketBrand: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#06132F',
+    marginTop: 4,
+  },
+  ticketBody: {
+    paddingVertical: 16,
+  },
+  ticketItemName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#334155',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  ticketDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  ticketDetailCol: {
+    flex: 1,
+  },
+  ticketDetailLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  ticketDetailVal: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#06132F',
+    marginTop: 2,
+  },
+  ticketDividerPattern: {
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 1,
+    width: '100%',
+    marginVertical: 10,
+  },
+  barcodeSection: {
+    alignItems: 'center',
+    paddingTop: 12,
+  },
+  barcodeLines: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  barcodeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    letterSpacing: 3,
+    marginTop: 6,
+    textTransform: 'uppercase',
   },
 });

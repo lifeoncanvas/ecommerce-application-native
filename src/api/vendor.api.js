@@ -7,6 +7,9 @@ export const getVendorReviews = (id) => client.get(`/vendor/${id}/reviews`);
 export const registerVendor = (payload) =>
   client.post('/vendor/register', payload);
 
+export const updateVendorProfile = (payload) =>
+  client.put('/vendor/profile', payload);
+
 export const uploadVendorDocument = (formData) => {
   return client.post('/upload/vendor', formData, {
     headers: {
@@ -31,8 +34,13 @@ export const uploadProductImages = (formData) => {
 };
 
 export const acceptVendorOrder = (id) =>
-  client.put(`/vendor/orders/${id}/accept`);
+  client.put(`/orders/status/${id}`, { status: 'CONFIRMED' });
 export const dispatchVendorOrder = (id) =>
-  client.put(`/vendor/orders/${id}/dispatch`);
+  client.put(`/orders/status/${id}`, { status: 'SHIPPED' });
 export const deliverVendorOrder = (id) =>
-  client.put(`/vendor/orders/${id}/delivered`);
+  client.put(`/orders/status/${id}`, { status: 'DELIVERED' });
+
+// Merchant Earnings & Payouts
+export const getVendorEarnings = () => client.get('/v1/merchant/earnings');
+export const getVendorPayouts = (params) => client.get('/v1/merchant/payouts', { params });
+export const requestVendorPayout = (amount) => client.post('/v1/merchant/payouts', { amount });

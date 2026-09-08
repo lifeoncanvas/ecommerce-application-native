@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getWishlist, addToWishlist, removeFromWishlist } from '../api/cart.api';
 import { products as mockProducts } from '../data/mockData';
+import { ALL_FEED_PRODUCTS } from '../data/mockProductsData';
 import { useAuth } from './AuthContext';
 
 const WishlistContext = createContext(null);
@@ -14,7 +15,7 @@ const withTimeout = (promise, ms = 2000) => {
 
 export const WishlistProvider = ({ children }) => {
   const { user, isGuest } = useAuth();
-  const [wishlistIds, setWishlistIds] = useState(['p_jazari_1', 'p_redemp_1', 'p_capelli_1']); // Default items shown in mockup
+  const [wishlistIds, setWishlistIds] = useState([]); // Start empty
   const [loading, setLoading] = useState(false);
 
   // Sync with API in background
@@ -60,7 +61,10 @@ export const WishlistProvider = ({ children }) => {
 
   // Map wishlist IDs to full mock product objects for the list view
   const wishlistItems = wishlistIds
-    .map((id) => mockProducts.find((p) => p.id === id))
+    .map((id) => {
+      const allProducts = [...mockProducts, ...ALL_FEED_PRODUCTS];
+      return allProducts.find((p) => String(p.id) === String(id));
+    })
     .filter(Boolean);
 
   return (
