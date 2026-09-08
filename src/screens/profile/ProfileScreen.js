@@ -466,8 +466,6 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-<<<<<<< HEAD
-=======
   header: {
     height: 52,
     borderBottomWidth: 1,
@@ -492,7 +490,6 @@ const styles = StyleSheet.create({
   },
   
   // Profile Card
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
   profileCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
