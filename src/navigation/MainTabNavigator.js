@@ -26,6 +26,7 @@ import VendorDashboardScreen from '../screens/profile/VendorDashboardScreen';
 import VendorStoreScreen from '../screens/profile/VendorStoreScreen';
 import ExchangeRequestScreen from '../screens/profile/ExchangeRequestScreen';
 import ExchangeListScreen from '../screens/profile/ExchangeListScreen';
+import AdminDashboardScreen from '../screens/profile/AdminDashboardScreen';
 import SupportScreen from '../screens/profile/SupportScreen';
 import ReturnScreen from '../screens/profile/ReturnScreen';
 import LoyaltyScreen from '../screens/profile/LoyaltyScreen';

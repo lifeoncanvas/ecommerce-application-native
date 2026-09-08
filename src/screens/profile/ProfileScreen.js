@@ -56,6 +56,18 @@ function ProfileContent({ navigation, route }) {
   const { user, logout } = useAuth();
   const themeContext = useTheme();
 
+  // Debug log to verify component mount
+  console.log('ProfileContent mounted, user:', user);
+
+  // If no user is loaded yet, show a placeholder instead of crashing
+  if (!user) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 16, color: '#555' }}>Loading user information…</Text>
+      </SafeAreaView>
+    );
+  }
+
   const [points, setPoints] = useState(250);
   const [orderCount, setOrderCount] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
