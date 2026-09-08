@@ -26,7 +26,7 @@ import {
   verifyPaystackPayment,
 } from '../../api/payment.api';
 import { sendLocalNotification } from '../../utils/notificationManager';
-import { Paystack } from 'react-native-paystack-webview';
+import Paystack from '../../components/PaystackWrapper';
 import { useAuth } from '../../context/AuthContext';
 
 const withTimeout = (promise, ms = 2500) => {
@@ -39,7 +39,7 @@ const withTimeout = (promise, ms = 2500) => {
 export default function PaymentScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const { addressId, shippingRateId, totalAmount, isBooking, selectedItems } = route?.params || {};
+  const { addressId, shippingRateId, totalAmount, isBooking, selectedItems } = (route && route.params) || {};
   const { clear, items } = useCart();
   const { user } = useAuth();
   

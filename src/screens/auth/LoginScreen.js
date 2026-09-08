@@ -23,7 +23,7 @@ const CONTAINER_WIDTH = Math.min(SCREEN_WIDTH, 400);
 
 export default function LoginScreen({ route, navigation }) {
   const { login, loginSocial, continueAsGuest } = useAuth();
-  const role = route?.params?.role || 'USER';
+  const role = (route && route.params && route.params.role) ? route.params.role : 'USER';
   
   // Input fields state
   const [email, setEmail] = useState('');
@@ -140,12 +140,12 @@ export default function LoginScreen({ route, navigation }) {
           {/* White Bottom Sheet Form Card */}
           <View style={styles.formCard}>
             {generalError ? <Text style={styles.generalErrorText}>{generalError}</Text> : null}
-            {route.params?.verificationSuccess && !generalError ? (
+            {(route && route.params && route.params.verificationSuccess) && !generalError ? (
               <Text style={styles.successMessageText}>
                 Account verified successfully! Please log in.
               </Text>
             ) : null}
-            {route.params?.passwordResetSuccess && !generalError ? (
+            {(route && route.params && route.params.passwordResetSuccess) && !generalError ? (
               <Text style={styles.successMessageText}>
                 Password reset successful! Please log in.
               </Text>

@@ -36,7 +36,7 @@ const countries = [
 
 export default function RegisterScreen({ route, navigation }) {
   const { login, loginSocial, continueAsGuest } = useAuth();
-  const role = route?.params?.role || 'USER';
+  const role = (route && route.params && route.params.role) ? route.params.role : 'USER';
   
   // Input fields state
   const [fullName, setFullName] = useState('');
