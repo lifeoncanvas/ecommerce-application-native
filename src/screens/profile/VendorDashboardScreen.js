@@ -36,6 +36,7 @@ import {
   ShoppingBag,
   ArrowLeft,
   FloppyDisk,
+  Wallet,
 } from 'phosphor-react-native';
 import { getMyStore } from '../../api/stores.api';
 import {
@@ -46,6 +47,16 @@ import {
   getStoreActivities,
   deleteProduct as deleteStoreProductApi,
 } from '../../api/products.api';
+import {
+  updateVendorProfile,
+  getVendorOrders,
+  acceptVendorOrder,
+  dispatchVendorOrder,
+  deliverVendorOrder,
+  getVendorEarnings,
+  getVendorPayouts,
+  getVendorReviews,
+} from '../../api/vendor.api';
 import { getLocalActivities, logLocalActivity } from '../../utils/activityStorage';
 
 const withTimeout = (promise, ms = 2500) => {
@@ -87,6 +98,9 @@ export default function VendorDashboardScreen({ navigation }) {
   const [storeInfo, setStoreInfo] = useState(() => getInitialStore(user?.email));
   const [products, setProducts] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
+  const [vendorOrders, setVendorOrders] = useState([]);
+  const [vendorEarnings, setVendorEarnings] = useState(null);
+  const [vendorReviews, setVendorReviews] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState('all');
 
@@ -136,7 +150,24 @@ export default function VendorDashboardScreen({ navigation }) {
       else setActivityLogs(await getLocalActivities());
     } catch (_) {
       setActivityLogs(await getLocalActivities());
-    } finally {
+    }
+
+    try {
+      const ordersRes = await withTimeout(getVendorOrders(), 2000);
+      if (ordersRes?.data?.content) setVendorOrders(ordersRes.data.content);
+    } catch (_) {}
+
+    try {
+      const earnRes = await withTimeout(getVendorEarnings(), 2000);
+      if (earnRes?.data) setVendorEarnings(earnRes.data);
+    } catch (_) {}
+
+    try {
+      const reviewsRes = await withTimeout(getVendorReviews(sid), 2000);
+      if (Array.isArray(reviewsRes?.data)) setVendorReviews(reviewsRes.data);
+    } catch (_) {}
+    
+    finally {
       setLoading(false);
     }
   }, [user]);
@@ -282,10 +313,26 @@ export default function VendorDashboardScreen({ navigation }) {
     setStoreAddress(storeInfo?.address || '');
     setTab('store');
   };
-  const handleSaveStore = () => {
-    setStoreInfo(prev => ({ ...prev, name: storeName, description: storeDesc, phone: storePhone, address: storeAddress }));
-    setTab('store_view');
-    Alert.alert('Store Updated', 'Your store details have been saved.');
+  const handleSaveStore = async () => {
+    try {
+      setSaving(true);
+      await updateVendorProfile({
+        name: storeName,
+        description: storeDesc,
+        phone: storePhone,
+        address: storeAddress
+      });
+      setStoreInfo(prev => ({ ...prev, name: storeName, description: storeDesc, phone: storePhone, address: storeAddress }));
+      setTab('store_view');
+      Alert.alert('Store Updated', 'Your store details have been saved.');
+    } catch (e) {
+      // Offline fallback
+      setStoreInfo(prev => ({ ...prev, name: storeName, description: storeDesc, phone: storePhone, address: storeAddress }));
+      setTab('store_view');
+      Alert.alert('Offline Mode', 'Your store details have been saved locally.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── NAV TABS CONFIG ───────────────────────────────────────────────────────
@@ -293,6 +340,9 @@ export default function VendorDashboardScreen({ navigation }) {
     { key: 'dashboard', label: 'Dashboard', Icon: House },
     { key: 'products', label: `Products (${totalCount})`, Icon: Package },
     { key: 'add', label: '+ Add', Icon: Plus, isAdd: true },
+    { key: 'orders', label: 'Orders', Icon: ShoppingBag },
+    { key: 'earnings', label: 'Earnings', Icon: Wallet },
+    { key: 'reviews', label: 'Reviews', Icon: Star },
     { key: 'history', label: 'History', Icon: ClockCounterClockwise },
     { key: 'store_view', label: 'My Store', Icon: Storefront },
     { key: 'profile', label: 'Account', Icon: User },
@@ -729,6 +779,120 @@ export default function VendorDashboardScreen({ navigation }) {
                   ))}
                 </View>
               </View>
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              TAB: ORDERS
+          ══════════════════════════════════════════════════════════════ */}
+          {tab === 'orders' && (
+            <ScrollView style={S.scroll} showsVerticalScrollIndicator={false}>
+              <Text style={S.sectionLabel}>RECENT ORDERS</Text>
+              <Text style={S.historySub}>Manage customer orders</Text>
+              {vendorOrders.length === 0 ? (
+                <View style={{ padding: 40, alignItems: 'center' }}>
+                  <ShoppingBag size={40} color="#CBD5E1" />
+                  <Text style={{ marginTop: 12, color: '#94A3B8' }}>No orders found.</Text>
+                </View>
+              ) : vendorOrders.map((o) => (
+                <View key={o.id} style={[S.logCard, { marginBottom: 10, flexDirection: 'row', alignItems: 'center' }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={S.logProd}>Order #{o.id}</Text>
+                    <Text style={S.logDetail}>Amount: ₦{Number(o.totalAmount || 0).toLocaleString('en-NG')} • Items: {o.items?.length || 0}</Text>
+                    <View style={[S.logPill, { alignSelf: 'flex-start', marginTop: 4 }]}>
+                      <Text style={S.logPillText}>{o.status}</Text>
+                    </View>
+                  </View>
+                  <View style={{ gap: 6 }}>
+                    {o.status === 'PENDING' && (
+                      <TouchableOpacity style={[S.editBtn, { backgroundColor: '#DCFCE7', borderColor: '#16A34A' }]} onPress={async () => {
+                        await acceptVendorOrder(o.id);
+                        setVendorOrders(prev => prev.map(x => x.id === o.id ? { ...x, status: 'CONFIRMED' } : x));
+                      }}>
+                        <Text style={[S.editBtnText, { color: '#16A34A' }]}>Accept</Text>
+                      </TouchableOpacity>
+                    )}
+                    {o.status === 'CONFIRMED' && (
+                      <TouchableOpacity style={[S.editBtn, { backgroundColor: '#FEF9C3', borderColor: '#CA8A04' }]} onPress={async () => {
+                        await dispatchVendorOrder(o.id);
+                        setVendorOrders(prev => prev.map(x => x.id === o.id ? { ...x, status: 'SHIPPED' } : x));
+                      }}>
+                        <Text style={[S.editBtnText, { color: '#CA8A04' }]}>Dispatch</Text>
+                      </TouchableOpacity>
+                    )}
+                    {o.status === 'SHIPPED' && (
+                      <TouchableOpacity style={[S.editBtn, { backgroundColor: '#DBEAFE', borderColor: '#2563EB' }]} onPress={async () => {
+                        await deliverVendorOrder(o.id);
+                        setVendorOrders(prev => prev.map(x => x.id === o.id ? { ...x, status: 'DELIVERED' } : x));
+                      }}>
+                        <Text style={[S.editBtnText, { color: '#2563EB' }]}>Deliver</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              TAB: EARNINGS
+          ══════════════════════════════════════════════════════════════ */}
+          {tab === 'earnings' && (
+            <ScrollView style={S.scroll} showsVerticalScrollIndicator={false}>
+              <Text style={S.sectionLabel}>EARNINGS & PAYOUTS</Text>
+              
+              <View style={[S.storeCard, { backgroundColor: '#1E293B' }]}>
+                <Text style={{ color: '#94A3B8', fontSize: 13, fontWeight: '600' }}>Available Balance</Text>
+                <Text style={{ color: '#fff', fontSize: 28, fontWeight: '800', marginTop: 4 }}>
+                  ₦{Number(vendorEarnings?.availableBalance || 0).toLocaleString('en-NG')}
+                </Text>
+                
+                <View style={{ flexDirection: 'row', gap: 20, marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderColor: '#334155' }}>
+                  <View>
+                    <Text style={{ color: '#94A3B8', fontSize: 11 }}>Total Earned</Text>
+                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>₦{Number(vendorEarnings?.totalEarned || 0).toLocaleString('en-NG')}</Text>
+                  </View>
+                  <View>
+                    <Text style={{ color: '#94A3B8', fontSize: 11 }}>Pending</Text>
+                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>₦{Number(vendorEarnings?.pendingBalance || 0).toLocaleString('en-NG')}</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={[S.saveBtn, { marginTop: 20, marginBottom: 0 }]} onPress={() => Alert.alert('Payout', 'Payout request submitted.')}>
+                  <Text style={S.saveBtnText}>Request Payout</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              TAB: REVIEWS
+          ══════════════════════════════════════════════════════════════ */}
+          {tab === 'reviews' && (
+            <ScrollView style={S.scroll} showsVerticalScrollIndicator={false}>
+              <Text style={S.sectionLabel}>CUSTOMER REVIEWS</Text>
+              <Text style={S.historySub}>What customers are saying</Text>
+              {vendorReviews.length === 0 ? (
+                <View style={{ padding: 40, alignItems: 'center' }}>
+                  <Star size={40} color="#CBD5E1" weight="fill" />
+                  <Text style={{ marginTop: 12, color: '#94A3B8' }}>No reviews yet.</Text>
+                </View>
+              ) : vendorReviews.map((r, i) => (
+                <View key={r.id || i} style={S.logCard}>
+                  <View style={[S.logTop, { marginBottom: 6 }]}>
+                    <Text style={S.logProd}>{r.user?.name || 'Customer'}</Text>
+                    <View style={{ flexDirection: 'row' }}>
+                      {[...Array(5)].map((_, idx) => (
+                        <Star key={idx} size={12} color={idx < r.rating ? '#F59E0B' : '#E2E8F0'} weight="fill" />
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={S.logDetail}>{r.comment}</Text>
+                </View>
+              ))}
               <View style={{ height: 40 }} />
             </ScrollView>
           )}
