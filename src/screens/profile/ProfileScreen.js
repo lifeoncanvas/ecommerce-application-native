@@ -32,6 +32,7 @@ class ErrorBoundary extends Component {
 
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { colors, spacing } from '../../theme';
 import { getLoyaltyStatus } from '../../api/loyalty.api';
 import { getOrders } from '../../api/orders.api';
 import {
