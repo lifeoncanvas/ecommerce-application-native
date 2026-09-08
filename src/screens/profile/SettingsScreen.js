@@ -13,24 +13,18 @@ import {
 import { typography, spacing, radius } from '../../theme';
 import { getSettings, updateSettings, deleteAccount } from '../../api/profile.api';
 import { useTheme } from '../../context/ThemeContext';
-<<<<<<< HEAD
 import { useAuth } from '../../context/AuthContext';
-=======
 import { useCurrency } from '../../context/CurrencyContext';
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 import {
   CaretLeft,
   Bell,
   Moon,
   ShieldCheck,
   EnvelopeSimpleOpen,
-<<<<<<< HEAD
   Trash,
   Warning,
-=======
   CurrencyDollar,
   CheckCircle,
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 } from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2000) => {
@@ -42,11 +36,8 @@ const withTimeout = (promise, ms = 2000) => {
 
 export default function SettingsScreen({ navigation }) {
   const { colors, isDarkMode, toggleDarkMode } = useTheme();
-<<<<<<< HEAD
   const { logout } = useAuth();
-=======
   const { currency, changeCurrency } = useCurrency();
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
   const styles = getStyles(colors);
 
   const [loading, setLoading] = useState(false);

@@ -40,11 +40,8 @@ export default function EditProfileScreen({ navigation }) {
   const styles = getStyles(colors);
 
   const [name, setName] = useState(user?.fullName || user?.name || 'Guest User');
-<<<<<<< HEAD
   const [email, setEmail] = useState(user?.email || 'guest@litemarket.com');
-=======
   const [email, setEmail] = useState(user?.email || 'guest@litchmarketing.com');
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
   const [phone, setPhone] = useState(user?.phone || '+234 809 123 4567');
   const [avatar, setAvatar] = useState(user?.avatar || '👤');
 

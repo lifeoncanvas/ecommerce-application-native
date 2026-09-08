@@ -16,8 +16,6 @@ import {
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-<<<<<<< HEAD
-=======
 import { useCurrency } from '../../context/CurrencyContext';
 import { products as mockProducts, categories as mockCategories } from '../../data/mockData';
 import * as DocumentPicker from 'expo-document-picker';
@@ -31,7 +29,6 @@ import {
   deleteProduct as deleteStoreProductApi,
 } from '../../api/products.api';
 import { getLocalActivities, logLocalActivity } from '../../utils/activityStorage';
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 import {
   CaretLeft,
   Package,
@@ -86,13 +83,10 @@ const EMOJI_OPTIONS = ['👟', '👕', '🎒', '🍔', '🥤', '📱', '🎁', '
 
 export default function VendorDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
-<<<<<<< HEAD
   const { colors } = useTheme();
-=======
   const { colors } = useTheme(); 
   const { formatPrice } = useCurrency();
   const styles = getStyles(colors);
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 
   const getInitialStore = (email) => {
     const e = (email || '').toLowerCase();
@@ -202,12 +196,10 @@ export default function VendorDashboardScreen({ navigation }) {
   const inactiveCount = totalCount - activeCount;
   const outOfStockCount = products.filter(p => (p.stockQuantity ?? 0) === 0).length;
 
-<<<<<<< HEAD
   const filtered = products.filter(p => {
     if (filterMode === 'active' && p.active === false) return false;
     if (filterMode === 'inactive' && p.active !== false) return false;
     if (searchQuery.trim()) return p.name.toLowerCase().includes(searchQuery.toLowerCase());
-=======
   // Toggle Active / Inactive Soft Removal
   const handleToggleActiveStatus = async (product) => {
     const nextState = !product.active;
@@ -475,7 +467,6 @@ export default function VendorDashboardScreen({ navigation }) {
     if (searchQuery.trim()) {
       return p.name.toLowerCase().includes(searchQuery.toLowerCase());
     }
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
     return true;
   });
 
@@ -809,18 +800,15 @@ export default function VendorDashboardScreen({ navigation }) {
                           </View>
                         </View>
 
-<<<<<<< HEAD
                         <View style={S.prodPriceRow}>
                           <Text style={S.prodPrice}>₦{Number(p.price).toLocaleString('en-NG')}</Text>
                           {p.discountPrice && (
                             <Text style={S.prodSale}>₦{Number(p.discountPrice).toLocaleString('en-NG')} sale</Text>
-=======
                         {/* Price Row in Dollars */}
                         <View style={styles.prodPriceRow}>
                           <Text style={styles.prodPriceVal}>{formatPrice(Number(item.price).toLocaleString('en-NG'))}</Text>
                           {item.oldPrice && (
                             <Text style={styles.prodOldPrice}>{formatPrice(Number(item.oldPrice).toLocaleString('en-NG'))}</Text>
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
                           )}
                         </View>
                         <Text style={S.prodStock}>Stock: {p.stockQuantity ?? 0} units</Text>
@@ -892,11 +880,9 @@ export default function VendorDashboardScreen({ navigation }) {
                 </View>
               )}
 
-<<<<<<< HEAD
               {/* PRODUCT NAME */}
               <View style={S.field}>
                 <Text style={S.fieldLabel}>Product Name <Text style={S.required}>*</Text></Text>
-=======
               {/* Customer Storefront Card */}
               <View style={styles.customerStoreCard}>
                 <View style={styles.customerHeaderBanner}>
@@ -1123,7 +1109,6 @@ export default function VendorDashboardScreen({ navigation }) {
               {/* Name */}
               <View style={styles.inputGroup}>
                 <Text style={styles.fieldLabel}>Product Name *</Text>
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
                 <TextInput
                   style={[S.input, nameErr && S.inputErr]}
                   value={formName}
@@ -1134,12 +1119,10 @@ export default function VendorDashboardScreen({ navigation }) {
                 {nameErr ? <Text style={S.errText}>{nameErr}</Text> : null}
               </View>
 
-<<<<<<< HEAD
               {/* PRICE + DISCOUNT */}
               <View style={S.rowFields}>
                 <View style={[S.field, { flex: 1 }]}>
                   <Text style={S.fieldLabel}>Price (₦) <Text style={S.required}>*</Text></Text>
-=======
               {/* Price Diff Preview if editing */}
               {editingProduct && prodPrice.trim() && parseFloat(prodPrice) !== editingProduct.price ? (
                 <View style={styles.priceDiffCard}>
@@ -1154,7 +1137,6 @@ export default function VendorDashboardScreen({ navigation }) {
               <View style={styles.rowTwoCols}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.fieldLabel}>Price ($) *</Text>
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
                   <TextInput
                     style={[S.input, priceErr && S.inputErr]}
                     value={formPrice}
@@ -1165,14 +1147,11 @@ export default function VendorDashboardScreen({ navigation }) {
                   />
                   {priceErr ? <Text style={S.errText}>{priceErr}</Text> : null}
                 </View>
-<<<<<<< HEAD
                 <View style={[S.field, { flex: 1 }]}>
                   <Text style={S.fieldLabel}>Sale Price (₦)</Text>
-=======
 
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.fieldLabel}>Discount Price ($)</Text>
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
                   <TextInput
                     style={S.input}
                     value={formDiscount}

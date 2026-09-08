@@ -29,11 +29,8 @@ export default function ContactScreen({ navigation }) {
 
   const [loading, setLoading] = useState(false);
   const [supportInfo, setSupportInfo] = useState({
-<<<<<<< HEAD
     email: 'support@litemarket.com',
-=======
     email: 'support@litchmarketing.com',
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
     phone: '+1 (800) 123-4567',
     address: '100 Innovation Way, Suite 400, NY'
   });

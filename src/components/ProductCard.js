@@ -64,11 +64,8 @@ export default function ProductCard({ product, onPress }) {
       {/* Bottom Section: Details */}
       <View style={styles.info}>
         <Text style={styles.brand} numberOfLines={1}>
-<<<<<<< HEAD
           {product?.brand || vendor?.name || 'Licht Marketing'}
-=======
           {product?.brand || vendor?.name || 'LitchMarketing'}
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
         </Text>
         <Text style={styles.name} numberOfLines={2}>
           {product?.name || product?.title || 'Product'}
