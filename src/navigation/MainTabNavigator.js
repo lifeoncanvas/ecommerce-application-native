@@ -26,6 +26,15 @@ import VendorDashboardScreen from '../screens/profile/VendorDashboardScreen';
 import VendorStoreScreen from '../screens/profile/VendorStoreScreen';
 import ExchangeRequestScreen from '../screens/profile/ExchangeRequestScreen';
 import ExchangeListScreen from '../screens/profile/ExchangeListScreen';
+import AdminDashboardScreen from '../screens/profile/AdminDashboardScreen';
+import AdminUsersScreen from '../screens/admin/AdminUsersScreen';
+import AdminSellersScreen from '../screens/admin/AdminSellersScreen';
+import AdminProductsScreen from '../screens/admin/AdminProductsScreen';
+import AdminOrdersScreen from '../screens/admin/AdminOrdersScreen';
+import AdminCommissionsScreen from '../screens/admin/AdminCommissionsScreen';
+import AdminPaymentsScreen from '../screens/admin/AdminPaymentsScreen';
+import AdminPayoutsScreen from '../screens/admin/AdminPayoutsScreen';
+import AdminReportsScreen from '../screens/admin/AdminReportsScreen';
 import SupportScreen from '../screens/profile/SupportScreen';
 import ReturnScreen from '../screens/profile/ReturnScreen';
 import LoyaltyScreen from '../screens/profile/LoyaltyScreen';
@@ -33,6 +42,8 @@ import AboutScreen from '../screens/profile/AboutScreen';
 import PrivacyPolicyScreen from '../screens/profile/PrivacyPolicyScreen';
 import TermsConditionsScreen from '../screens/profile/TermsConditionsScreen';
 import ContactScreen from '../screens/profile/ContactScreen';
+import MyAddressesScreen from '../screens/profile/MyAddressesScreen';
+import PaymentHistoryScreen from '../screens/profile/PaymentHistoryScreen';
 import { useTheme } from '../context/ThemeContext';
 import { useTabBarVisibility } from '../context/TabBarVisibilityContext';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -106,6 +117,15 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="BecomeVendor" component={BecomeVendorScreen} />
       <ProfileStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
       <ProfileStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
+      <ProfileStackNav.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+      <ProfileStackNav.Screen name="AdminUsers" component={AdminUsersScreen} />
+      <ProfileStackNav.Screen name="AdminSellers" component={AdminSellersScreen} />
+      <ProfileStackNav.Screen name="AdminProducts" component={AdminProductsScreen} />
+      <ProfileStackNav.Screen name="AdminOrders" component={AdminOrdersScreen} />
+      <ProfileStackNav.Screen name="AdminCommissions" component={AdminCommissionsScreen} />
+      <ProfileStackNav.Screen name="AdminPayments" component={AdminPaymentsScreen} />
+      <ProfileStackNav.Screen name="AdminPayouts" component={AdminPayoutsScreen} />
+      <ProfileStackNav.Screen name="AdminReports" component={AdminReportsScreen} />
       <ProfileStackNav.Screen name="ExchangeRequest" component={ExchangeRequestScreen} />
       <ProfileStackNav.Screen name="ExchangeList" component={ExchangeListScreen} />
       <ProfileStackNav.Screen name="Support" component={SupportScreen} />
@@ -115,6 +135,8 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <ProfileStackNav.Screen name="TermsConditions" component={TermsConditionsScreen} />
       <ProfileStackNav.Screen name="Contact" component={ContactScreen} />
+      <ProfileStackNav.Screen name="MyAddresses" component={MyAddressesScreen} />
+      <ProfileStackNav.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
     </ProfileStackNav.Navigator>
   );
 }

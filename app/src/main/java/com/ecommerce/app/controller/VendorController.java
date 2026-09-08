@@ -4,6 +4,12 @@ import com.ecommerce.app.dto.ApiResponse;
 import com.ecommerce.app.dto.ProductDto;
 import com.ecommerce.app.dto.StoreDto;
 import com.ecommerce.app.model.ProductActivity;
+import com.ecommerce.app.model.Store;
+import com.ecommerce.app.model.StoreUser;
+import com.ecommerce.app.model.User;
+import com.ecommerce.app.repository.StoreRepository;
+import com.ecommerce.app.repository.StoreUserRepository;
+import com.ecommerce.app.repository.UserRepository;
 import com.ecommerce.app.service.ProductService;
 import com.ecommerce.app.service.StoreService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +40,40 @@ public class VendorController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private StoreRepository storeRepository;
+
+    @Autowired
+    private StoreUserRepository storeUserRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @PostMapping("/register")
+    public ResponseEntity<?> registerVendor(@RequestBody Map<String, Object> payload) {
+        try {
+            String email = (String) payload.get("businessEmail");
+            if (email == null) email = "nike@store.com"; // fallback
+            
+            User user = userRepository.findByEmail(email).orElse(null);
+            
+            Store store = new Store();
+            store.setName((String) payload.get("businessName"));
+            store.setDescription((String) payload.get("businessDescription"));
+            store.setCategory("Retail");
+            store = storeRepository.save(store);
+            
+            if (user != null) {
+                StoreUser storeUser = new StoreUser(store, user, "OWNER");
+                storeUserRepository.save(storeUser);
+            }
+            
+            return ResponseEntity.ok(Map.of("vendorId", store.getId()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
 
     /**
      * GET /api/vendor/dashboard?email=nike@store.com

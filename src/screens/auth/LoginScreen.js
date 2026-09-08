@@ -23,6 +23,7 @@ const CONTAINER_WIDTH = Math.min(SCREEN_WIDTH, 400);
 
 export default function LoginScreen({ route, navigation }) {
   const { login, loginSocial, continueAsGuest } = useAuth();
+  const role = (route && route.params && route.params.role) ? route.params.role : 'USER';
   
   // Input fields state
   const [email, setEmail] = useState('');
@@ -34,6 +35,9 @@ export default function LoginScreen({ route, navigation }) {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [generalError, setGeneralError] = useState('');
+
+  // Seller Action Modal state
+  const [sellerModalVisible, setSellerModalVisible] = useState(false);
 
   // Handle email & password form validation
   const validateForm = () => {
@@ -136,12 +140,12 @@ export default function LoginScreen({ route, navigation }) {
           {/* White Bottom Sheet Form Card */}
           <View style={styles.formCard}>
             {generalError ? <Text style={styles.generalErrorText}>{generalError}</Text> : null}
-            {route.params?.verificationSuccess && !generalError ? (
+            {(route && route.params && route.params.verificationSuccess) && !generalError ? (
               <Text style={styles.successMessageText}>
                 Account verified successfully! Please log in.
               </Text>
             ) : null}
-            {route.params?.passwordResetSuccess && !generalError ? (
+            {(route && route.params && route.params.passwordResetSuccess) && !generalError ? (
               <Text style={styles.successMessageText}>
                 Password reset successful! Please log in.
               </Text>
@@ -273,6 +277,15 @@ export default function LoginScreen({ route, navigation }) {
               )}
             </TouchableOpacity>
 
+            {/* Become a Seller Button */}
+            <TouchableOpacity
+              style={styles.sellerBannerButton}
+              onPress={() => setSellerModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sellerBannerText}>Become a Seller / Seller Portal</Text>
+            </TouchableOpacity>
+
             {/* Footer Navigation Link */}
             <TouchableOpacity
               onPress={() => navigation.navigate('Register')}
@@ -286,6 +299,49 @@ export default function LoginScreen({ route, navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal / Options for Seller */}
+      {sellerModalVisible && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Seller Portal</Text>
+            <Text style={styles.modalSubTitle}>Choose an option to proceed as a Licht Marketing Seller:</Text>
+
+            {/* Option 1: Register as Seller */}
+            <TouchableOpacity
+              style={[styles.modalOptionBtn, { backgroundColor: '#1A2C5B' }]}
+              onPress={() => {
+                setSellerModalVisible(false);
+                navigation.navigate('VendorRegister');
+              }}
+            >
+              <Text style={[styles.modalOptionBtnText, { color: '#F6A400' }]}>Register as Seller</Text>
+            </TouchableOpacity>
+
+            {/* Option 2: Sign In as Seller */}
+            <TouchableOpacity
+              style={[styles.modalOptionBtn, { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#D1D5DB' }]}
+              onPress={() => {
+                setSellerModalVisible(false);
+                if (!email) {
+                  setEmail('store@vendor.com');
+                  setPassword('password123');
+                }
+              }}
+            >
+              <Text style={[styles.modalOptionBtnText, { color: '#1F2937' }]}>Sign In as Seller (Demo Store)</Text>
+            </TouchableOpacity>
+
+            {/* Cancel Button */}
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setSellerModalVisible(false)}
+            >
+              <Text style={styles.modalCloseBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -489,8 +545,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#F6A400', // Gold color text
   },
+  sellerBannerButton: {
+    height: 44,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  sellerBannerText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    color: '#B45309',
+  },
   footerLink: {
-    marginTop: 24,
+    marginTop: 20,
     alignSelf: 'center',
     paddingVertical: 4,
   },
@@ -503,4 +574,65 @@ const styles = StyleSheet.create({
     color: '#010E2A',
     fontFamily: 'Inter-Bold',
   },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 1000,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: 'Inter-Bold',
+    color: '#010E2A',
+    marginBottom: 8,
+  },
+  modalSubTitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#4B5563',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalOptionBtn: {
+    width: '100%',
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  modalOptionBtnText: {
+    fontSize: 15,
+    fontFamily: 'Inter-Bold',
+  },
+  modalCloseBtn: {
+    marginTop: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  modalCloseBtnText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#6B7280',
+  },
 });
+

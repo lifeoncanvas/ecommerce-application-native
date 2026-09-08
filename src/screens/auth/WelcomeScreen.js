@@ -23,27 +23,32 @@ export default function WelcomeScreen({ navigation }) {
 
         {/* Buttons Action Group */}
         <View style={styles.buttonContainer}>
-          {/* Login Button - Filled Gold (Premium) */}
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate('Login', { role: 'USER' })}
             activeOpacity={0.8}
           >
-            <Text style={styles.loginButtonText}>Login</Text>
+            <Text style={styles.loginButtonText}>Customer Login / Register</Text>
           </TouchableOpacity>
 
-          {/* Register Button - Border Gold */}
           <TouchableOpacity
             style={styles.registerButton}
-            onPress={() => navigation.navigate('Register')}
+            onPress={() => navigation.navigate('Login', { role: 'STORE_OWNER' })}
             activeOpacity={0.8}
           >
-            <Text style={styles.registerButtonText}>Register</Text>
+            <Text style={styles.registerButtonText}>Seller Portal</Text>
           </TouchableOpacity>
 
-          {/* Guest Mode Link */}
           <TouchableOpacity
             style={styles.guestButton}
+            onPress={() => navigation.navigate('Login', { role: 'ADMIN' })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.guestButtonText}>Admin Access</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.guestButton, { marginTop: spacing.md }]}
             onPress={continueAsGuest}
             activeOpacity={0.7}
           >

@@ -5,8 +5,10 @@ import com.ecommerce.app.dto.LoginRequest;
 import com.ecommerce.app.dto.ResetPasswordRequest;
 import com.ecommerce.app.model.EmailVerificationOtp;
 import com.ecommerce.app.model.User;
+import com.ecommerce.app.model.StoreUser;
 import com.ecommerce.app.repository.EmailVerificationOtpRepository;
 import com.ecommerce.app.repository.UserRepository;
+import com.ecommerce.app.repository.StoreUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class AuthService {
@@ -29,6 +33,9 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private StoreUserRepository storeUserRepository;
 
     public void registerUser(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -101,7 +108,7 @@ public class AuthService {
         generateAndSendOtp(user);
     }
 
-    public String loginUser(LoginRequest request) {
+    public Map<String, Object> loginUser(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
@@ -117,7 +124,26 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        return "mock-jwt-token-for-" + user.getEmail();
+        String token = "mock-jwt-token-for-" + user.getEmail();
+        Optional<StoreUser> storeUserOpt = storeUserRepository.findByUser(user);
+
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("name", user.getName());
+        userMap.put("email", user.getEmail());
+        if (storeUserOpt.isPresent()) {
+            userMap.put("role", "STORE_OWNER");
+            userMap.put("isVendor", true);
+            userMap.put("storeName", storeUserOpt.get().getStore().getName());
+        } else {
+            userMap.put("role", "CUSTOMER");
+            userMap.put("isVendor", false);
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        response.put("user", userMap);
+
+        return response;
     }
 
     public void requestPasswordReset(String email) {

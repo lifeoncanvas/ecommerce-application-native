@@ -17,7 +17,7 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {user || isGuest ? (
+      {user ? (
         <MainTabNavigator isVendor={isVendor} />
       ) : (
         <AuthStack isOnboardingCompleted={isOnboardingCompleted} />
