@@ -19,4 +19,5 @@ export const updateSettings = (payload) => client.put('/settings', payload);
 export const changePassword = (payload) => client.put('/users/change-password', payload);
 
 // 28. Delete Account
-export const deleteAccount = () => client.delete('/users/profile');
+export const deleteAccount = () => client.delete('/users');
+
