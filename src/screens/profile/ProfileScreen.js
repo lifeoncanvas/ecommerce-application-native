@@ -49,14 +49,10 @@ import {
   Gear,
   SignOut,
   CaretRight,
-<<<<<<< HEAD
   ChartLineUp,
   MapPin,
   CreditCard,
-=======
   CaretLeft,
-  ChartLineUp
->>>>>>> d23c49f95801b8e92c120c2eaefe59139c2b238a
 } from 'phosphor-react-native';
 
 function ProfileContent({ navigation, route }) {
