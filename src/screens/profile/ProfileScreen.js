@@ -326,7 +326,7 @@ function ProfileContent({ navigation, route }) {
           <View style={styles.userInfoRow}>
             <View style={styles.userDetails}>
               <Text style={styles.userName}>{user?.fullName || user?.name || 'Guest User'}</Text>
-              <Text style={styles.userEmail}>{user?.email || 'guest@litchmarketing.com'}</Text>
+              <Text style={styles.userEmail}>{user?.email || 'guest@lichtmarketing.com'}</Text>
 
               {/* Loyalty membership badge */}
               <View style={styles.membershipBadge}>

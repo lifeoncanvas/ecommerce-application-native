@@ -106,9 +106,9 @@ export default function VendorRegisterScreen({ navigation }) {
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
-            <Image source={require('../../../assets/images/logo.png')} style={styles.crownImage} />
+            <Image source={require('../../../assets/images/crown_logo.png')} style={styles.crownImage} />
             <Text style={styles.headerTitle}>Become a Seller</Text>
-            <Text style={styles.subHeaderTitle}>Register your store on Letch Market</Text>
+            <Text style={styles.subHeaderTitle}>Register your store on Licht Marketing</Text>
           </View>
 
           <View style={styles.formCard}>
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   headerBlock: { paddingTop: Platform.OS === 'ios' ? 10 : 8, paddingBottom: 10, width: '100%', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   backButton: { position: 'absolute', top: Platform.OS === 'ios' ? 10 : 8, left: 20, padding: 8 },
   backText: { fontSize: 14, fontFamily: 'Inter-SemiBold', color: '#2952CC' },
-  crownImage: { width: 70, height: 45, resizeMode: 'contain', backgroundColor: 'transparent', marginTop: 4, marginBottom: 2 },
+  crownImage: { width: 160, height: 65, resizeMode: 'contain', backgroundColor: 'transparent', marginTop: 4, marginBottom: 2 },
   headerTitle: { fontSize: 26, fontWeight: '500', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#010E2A', alignSelf: 'flex-start', paddingLeft: 24, marginTop: 2 },
   subHeaderTitle: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#6B7280', alignSelf: 'flex-start', paddingLeft: 24, marginBottom: 4 },
   formCard: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingHorizontal: 24, paddingTop: 22, flex: 1, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 5 },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { typography, spacing, radius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -23,15 +23,18 @@ export default function AboutScreen({ navigation }) {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.logoSection}>
-          <Text style={styles.logoEmoji}>👑</Text>
-          <Text style={styles.appName}>LitchMarketing</Text>
+          <Image
+            source={require('../../../assets/images/crown_logo.png')}
+            style={{ width: 240, height: 110, resizeMode: 'contain', marginBottom: 8 }}
+          />
+          <Text style={styles.appTagline}>Illuminating Every Dimension...</Text>
           <Text style={styles.appVersion}>Version 1.0.2 (Build 12)</Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Our Mission</Text>
           <Text style={styles.cardText}>
-            LitchMarketing is a premium peer-to-peer commerce platform connecting local buyers with quality merchants. We strive to provide the fastest, safest, and most satisfying shopping experience with unified payments, live order tracking, and dynamic support tools.
+            Licht Marketing Communications Limited is a premium multi-vendor commerce platform connecting local buyers with quality merchants. We strive to provide the fastest, safest, and most satisfying shopping experience with unified payments, live order tracking, and dynamic support tools.
           </Text>
         </View>
 
@@ -39,7 +42,7 @@ export default function AboutScreen({ navigation }) {
           <Text style={styles.cardTitle}>Application Info</Text>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Developer</Text>
-            <Text style={styles.infoValue}>LitchMarketing Dev Team</Text>
+            <Text style={styles.infoValue}>Licht Marketing Dev Team</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Released</Text>
@@ -51,7 +54,7 @@ export default function AboutScreen({ navigation }) {
           </View>
         </View>
 
-        <Text style={styles.footerCopyright}>© 2026 LitchMarketing application. All rights reserved.</Text>
+        <Text style={styles.footerCopyright}>© 2026 Licht Marketing Communications Limited. All rights reserved.</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -93,14 +96,11 @@ const getStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     marginVertical: spacing.xl,
   },
-  logoEmoji: {
-    fontSize: 64,
-    marginBottom: spacing.sm,
-  },
-  appName: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    fontWeight: '800',
+  appTagline: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontStyle: 'italic',
   },
   appVersion: {
     ...typography.caption,

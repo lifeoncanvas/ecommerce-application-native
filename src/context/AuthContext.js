@@ -69,7 +69,10 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Failed to load auth state', error);
       } finally {
-        setIsLoading(false);
+        // Keep splash screen active for at least 3 seconds on launch/refresh
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 3000);
       }
     }
     initAuth();
