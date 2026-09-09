@@ -47,6 +47,7 @@ import {
   getHomeRecommended,
 } from '../../api/products.api';
 import { buildProductRouteParams } from '../../utils/productResolver';
+import SplashScreen from '../auth/SplashScreen';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 44) / 2; // 2-column grid with 16px side margin + 12px gap
@@ -317,13 +318,34 @@ export default function HomeScreen({ navigation }) {
           ]),
           2500
         );
-      setBanners(bannersRes.data?.data || bannersRes.data?.items || []);
-      setHomeCategories(catsRes.data?.data || catsRes.data?.items || []);
-      setFeaturedProducts(featRes.data?.data || featRes.data?.items || []);
-      setFlashProducts(flashRes.data?.data || flashRes.data?.items || []);
-      setLatestProducts(latestRes.data?.data || latestRes.data?.items || []);
-      setPopularProducts(popularRes.data?.data || popularRes.data?.items || []);
-      setRecProducts(recRes.data?.data || recRes.data?.items || []);
+      const extractData = (res) => {
+        if (!res || !res.data) return null;
+        if (Array.isArray(res.data) && res.data.length > 0) return res.data;
+        if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) return res.data.data;
+        if (res.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) return res.data.items;
+        return null;
+      };
+
+      const b = extractData(bannersRes);
+      if (b) setBanners(b);
+
+      const c = extractData(catsRes);
+      if (c) setHomeCategories(c);
+
+      const fp = extractData(featRes);
+      if (fp) setFeaturedProducts(fp);
+
+      const fs = extractData(flashRes);
+      if (fs) setFlashProducts(fs);
+
+      const lp = extractData(latestRes);
+      if (lp) setLatestProducts(lp);
+
+      const pop = extractData(popularRes);
+      if (pop) setPopularProducts(pop);
+
+      const rp = extractData(recRes);
+      if (rp) setRecProducts(rp);
     } catch (e) {
       console.warn('Home endpoints failed, utilizing unified mockData fallback.', e.message);
       setBanners(fallbackPromoBanners);
@@ -473,11 +495,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.navy} />
-      </SafeAreaView>
-    );
+    return <SplashScreen />;
   }
 
   return (
@@ -530,7 +548,11 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate('Search')}
             activeOpacity={0.9}
           >
-            <Text style={styles.searchCrown}>👑</Text>
+            <Image
+              source={require('../../../assets/images/crown_logo.png')}
+              style={styles.searchLogoImg}
+              resizeMode="contain"
+            />
             <Text style={styles.searchPlaceholder}>&quot;Omnia&quot;</Text>
             <MagnifyingGlass size={18} color="#111" weight="regular" />
           </TouchableOpacity>
@@ -1033,7 +1055,10 @@ const getStyles = (colors) => StyleSheet.create({
     borderColor: '#222',
     gap: 8,
   },
-  searchCrown: { fontSize: 15 },
+  searchLogoImg: {
+    width: 22,
+    height: 22,
+  },
   searchPlaceholder: {
     fontSize: 13,
     color: '#888',

@@ -71,7 +71,7 @@ const INITIAL_REVIEWS = [
     date: 'Jun 19, 2026',
     size: 'Size: XL',
     verified: true,
-    comment: 'I recently bought this product on LitchMarketing. The fabric and finish are so premium and the fit is perfect!',
+    comment: 'I recently bought this product on Licht Marketing. The fabric and finish are so premium and the fit is perfect!',
   },
   {
     id: 'rev_2',
@@ -264,7 +264,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
     try {
       await Share.share({
         title: `${product.brand} - ${product.title}`,
-        message: `Check out ${product.brand} (${product.title}) on LitchMarketing for $${product.price} (${product.discount})!`,
+        message: `Check out ${product.brand} (${product.title}) on Licht Marketing for $${product.price} (${product.discount})!`,
       });
     } catch (e) {}
   };
@@ -1184,8 +1184,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   crownLogo: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 32,
   },
   hdrRightActions: {
     flexDirection: 'row',

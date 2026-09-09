@@ -125,11 +125,11 @@ export default function LoginScreen({ route, navigation }) {
               <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
 
-            {/* Custom Premium Gold Crown SVG */}
+            {/* Licht Marketing Logo */}
             <View style={styles.crownWrapper}>
               <Image
-                source={require('../../../assets/images/logo.png')}
-                style={{ width: 110, height: 70, resizeMode: 'contain' }}
+                source={require('../../../assets/images/crown_logo.png')}
+                style={{ width: 220, height: 90, resizeMode: 'contain' }}
               />
             </View>
 

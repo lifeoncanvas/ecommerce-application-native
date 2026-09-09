@@ -24,6 +24,8 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 
+import SplashScreen from './src/screens/auth/SplashScreen';
+
 // Silence the Expo Go push token warning to prevent LogBox blocker overlay
 LogBox.ignoreLogs([
   'expo-notifications: Android Push notifications',
@@ -97,17 +99,16 @@ export default function App() {
   });
 
   useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.body.style.backgroundColor = '#112347';
+    }
     registerForPushNotificationsAsync();
   }, []);
 
-  const isReady = fontsLoaded || Platform.OS === 'web';
+  const isReady = fontsLoaded;
 
   if (!isReady) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#06132F' }}>
-        <ActivityIndicator size="large" color="#C9A84C" />
-      </View>
-    );
+    return <SplashScreen />;
   }
 
   return (

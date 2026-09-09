@@ -173,9 +173,9 @@ export default function RegisterScreen({ route, navigation }) {
               <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
 
-            {/* Crown Logo - transparent background */}
+            {/* Licht Marketing Logo */}
             <Image
-              source={require('../../../assets/images/logo.png')}
+              source={require('../../../assets/images/crown_logo.png')}
               style={styles.crownImage}
             />
 
@@ -362,7 +362,7 @@ export default function RegisterScreen({ route, navigation }) {
                 style={[styles.footerLink, { marginTop: 10 }]}
               >
                 <Text style={styles.footerText}>
-                  Want to sell on Letch Market? <Text style={[styles.footerTextBold, { color: '#F6A400' }]}>Become a Seller</Text>
+                  Want to sell on Licht Marketing? <Text style={[styles.footerTextBold, { color: '#F6A400' }]}>Become a Seller</Text>
                 </Text>
               </TouchableOpacity>
             </View>
@@ -460,8 +460,8 @@ const styles = StyleSheet.create({
     color: '#010E2A',
   },
   crownImage: {
-    width: 90,
-    height: 58,
+    width: 180,
+    height: 75,
     resizeMode: 'contain',
     backgroundColor: 'transparent',
     marginTop: 4,

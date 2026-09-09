@@ -380,8 +380,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   centerCrownLogo: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 32,
   },
   iconBtn: {
     width: 36,

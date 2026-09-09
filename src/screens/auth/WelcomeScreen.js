@@ -1,10 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Image } from 'react-native';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
-
-import { Crown } from 'phosphor-react-native';
 
 const { height } = Dimensions.get('window');
 
@@ -16,9 +14,11 @@ export default function WelcomeScreen({ navigation }) {
       <View style={styles.content}>
         {/* Brand Header */}
         <View style={styles.logoContainer}>
-          <Crown color={colors.gold} size={100} weight="fill" />
-          <Text style={styles.brandName}>LitchMarketing</Text>
-          <Text style={styles.tagline}>Elevate Your Lifestyle</Text>
+          <Image
+            source={require('../../../assets/images/crown_logo.png')}
+            style={{ width: 280, height: 140, resizeMode: 'contain' }}
+          />
+          <Text style={styles.tagline}>Illuminating Every Dimension...</Text>
         </View>
 
         {/* Buttons Action Group */}

@@ -7,14 +7,14 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Platform,
 } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-// Exact background color of the logo file — used as a fallback fill
-// so there's no flash of a different color before the image loads.
-const NAVY_EDGE = '#06132F';
-const GOLD       = '#C9A84C';
+// Exact Logo Dark Navy background fill
+const BG_COLOR    = '#112347';
+const ACCENT_GOLD = '#F6A400';
 
 export default function SplashScreen() {
   const logoScale    = useRef(new Animated.Value(0.85)).current;
@@ -22,6 +22,9 @@ export default function SplashScreen() {
   const loaderOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.body.style.backgroundColor = BG_COLOR;
+    }
     Animated.sequence([
       Animated.parallel([
         Animated.timing(logoOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
@@ -34,21 +37,11 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Full-bleed background — the same navy gradient + grain texture
-          from the logo artwork, elongated to cover the whole screen so
-          the logo sits inside a continuation of its own background
-          rather than a separately-rendered gradient. */}
-      <Image
-        source={require('../../../assets/images/splash-bg.png')}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-      />
-
-      {/* Full logo artwork (crown + wordmark + tagline baked in) */}
+      {/* Full logo artwork (Mark + Text artwork) */}
       <View style={styles.centerBlock}>
-        <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }] }}>
+        <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }], alignItems: 'center' }}>
           <Image
-            source={require('../../../assets/images/logo-full.png')}
+            source={require('../../../assets/images/splash_logo.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />
@@ -57,7 +50,7 @@ export default function SplashScreen() {
 
       {/* Bottom loader */}
       <Animated.View style={[styles.loaderContainer, { opacity: loaderOpacity }]}>
-        <ActivityIndicator size="small" color={GOLD} />
+        <ActivityIndicator size="small" color={ACCENT_GOLD} />
         <Text style={styles.versionText}>v1.0.0</Text>
       </Animated.View>
     </View>
@@ -67,22 +60,20 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: NAVY_EDGE,
+    backgroundColor: BG_COLOR,
     alignItems: 'center',
     justifyContent: 'center',
   },
   centerBlock: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
   },
   logoImage: {
-    // Logo file is a large square (1254x1254) containing crown + wordmark + tagline.
-    // Sized wide enough to read the wordmark clearly without dominating the screen.
-    width: width * 0.72,
-    height: width * 0.72,
-    maxWidth: 340,
-    maxHeight: 340,
+    width: width * 0.88,
+    height: width * 0.55,
+    maxWidth: 400,
+    maxHeight: 260,
   },
   loaderContainer: {
     position: 'absolute',
@@ -91,9 +82,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   versionText: {
-    fontSize: 10,
-    color: GOLD,
-    opacity: 0.4,
+    fontSize: 11,
+    color: ACCENT_GOLD,
+    fontWeight: '600',
+    opacity: 0.9,
     letterSpacing: 1,
   },
 });

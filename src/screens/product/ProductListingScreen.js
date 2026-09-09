@@ -656,8 +656,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   crownLogo: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 32,
   },
 
   // Category Title
