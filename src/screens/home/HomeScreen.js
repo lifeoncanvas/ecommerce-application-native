@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -35,6 +37,7 @@ import { useWishlist } from '../../context/WishlistContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTabBarVisibility } from '../../context/TabBarVisibilityContext';
+import useResponsive from '../../hooks/useResponsive';
 import { categories as mockCategories, vendors, products as mockProducts } from '../../data/mockData';
 import { ALL_FEED_PRODUCTS } from '../../data/mockProductsData';
 import {
@@ -47,10 +50,9 @@ import {
   getHomeRecommended,
 } from '../../api/products.api';
 import { buildProductRouteParams } from '../../utils/productResolver';
+import { getCurrentLocationAddressAsync } from '../../utils/locationManager';
 import SplashScreen from '../auth/SplashScreen';
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 44) / 2; // 2-column grid with 16px side margin + 12px gap
 const PAGE_SIZE = 6;
 
 // ─── Exact Cropped Static Local Assets ──────────────────────────────────────
@@ -91,6 +93,9 @@ const CATEGORY_BAR_ITEMS = [
   { id: 'cat_electronics', name: 'Electronics', image: require('../../../assets/images/products/electronics/phone.jpg') },
   { id: 'cat_services', name: 'Services', image: require('../../../assets/images/categories/cat_4.jpg') },
   { id: 'cat_beauty', name: 'Beauty', image: require('../../../assets/images/categories/cat_5.jpg') },
+  { id: 'cat_home', name: 'Home', image: require('../../../assets/images/products/home/plant.jpg') },
+  { id: 'cat_food_bakery', name: 'Bakery', image: require('../../../assets/images/products/food/croissant.jpg') },
+  { id: 'cat_parfum', name: 'Parfum', image: require('../../../assets/images/products/beauty/ysl perfume.jpg') },
 ];
 
 const VENDOR_IMGS = [
@@ -159,6 +164,35 @@ const SAVED_ADDRESSES = [
 export default function HomeScreen({ navigation }) {
   const { colors, isDarkMode } = useTheme();
   const { formatPrice } = useCurrency();
+  const responsive = useResponsive();
+  const {
+    width,
+    height,
+    gridColumns,
+    horizontalPadding,
+    isSmallPhone,
+    isStandardPhone,
+    isLargePhone,
+    isTablet,
+    isLargeTablet,
+    contentMaxWidth,
+    containerWidth,
+    productGridGap,
+    cardWidth,
+    brandTileWidth,
+    brandImageSize,
+    brandGridGap,
+    brandFontSize,
+    brandRowGap,
+  } = responsive;
+
+  const bannerWidth = containerWidth;
+  const bannerHeight = Math.round(height * 0.45);
+
+  const catGap = isSmallPhone ? 10 : isStandardPhone ? 12 : 16;
+  const availableCatWidth = containerWidth - (horizontalPadding * 2);
+  const catItemWidth = Math.floor((availableCatWidth - (catGap * 4)) / 4.5);
+
   const styles = getStyles(colors);
   const { user } = useAuth();
   const { isLiked, toggleWishlist } = useWishlist();
@@ -230,23 +264,60 @@ export default function HomeScreen({ navigation }) {
   // Address selection states
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState('Kharadi · Pune');
-  const [pincodeInput, setPincodeInput] = useState('411036');
+  const [pincodeInput, setPincodeInput] = useState('411014');
+  const [isLocating, setIsLocating] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const acceptLocation = (location, pincode) => {
+    setSelectedLocation(location);
+    if (pincode) setPincodeInput(pincode);
+    setAddressModalVisible(false);
+  };
+
+  // Reload saved default delivery address whenever screen comes into focus
+  // (handles returning from SelectDeliveryLocationScreen after saving an address)
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      (async () => {
+        try {
+          const saved = await AsyncStorage.getItem('@default_delivery_address');
+          if (saved && isMounted) {
+            const parsed = JSON.parse(saved);
+            if (parsed.display) {
+              setSelectedLocation(parsed.display);
+              if (parsed.pincode) setPincodeInput(parsed.pincode);
+            }
+          }
+        } catch (err) {
+          // Fallback silently to default saved location
+        }
+      })();
+      return () => {
+        isMounted = false;
+      };
+    }, [])
+  );
+
   const handleCheckPincode = () => {
     if (pincodeInput.trim().length === 6) {
-      setSelectedLocation(`Pincode: ${pincodeInput} · Pune`);
-      setAddressModalVisible(false);
+      acceptLocation(`Pincode: ${pincodeInput} · Pune`, pincodeInput);
     } else {
       Alert.alert('Invalid Pincode', 'Please enter a valid 6-digit pincode.');
     }
   };
 
   const handleUseCurrentLocation = () => {
-    setSelectedLocation('Aundh · Pune');
-    setPincodeInput('411007');
     setAddressModalVisible(false);
+    navigation.navigate('SelectDeliveryLocation', {
+      onLocationConfirmed: (newAddr) => {
+        if (newAddr && newAddr.display) {
+          setSelectedLocation(newAddr.display);
+          if (newAddr.pincode) setPincodeInput(newAddr.pincode);
+        }
+      },
+    });
   };
 
   const handleOpenFilter = () => setFilterModalVisible(true);
@@ -300,7 +371,7 @@ export default function HomeScreen({ navigation }) {
   }, [startBannerAutoPlay]);
 
   const handleBannerScroll = (e) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+    const idx = Math.round(e.nativeEvent.contentOffset.x / bannerWidth);
     if (idx !== activeBannerIndex) {
       setActiveBannerIndex(idx);
       startBannerAutoPlay();
@@ -381,7 +452,7 @@ export default function HomeScreen({ navigation }) {
     return (
       <TouchableOpacity
         key={item.id || index}
-        style={[styles.gridCard, isSelected && styles.gridCardSelected]}
+        style={[styles.gridCard, { width: cardWidth }, isSelected && styles.gridCardSelected]}
         onPress={() => {
           setSelectedProductIndex(index);
           navigation.navigate('ProductDetails', buildProductRouteParams(item));
@@ -575,23 +646,46 @@ export default function HomeScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.navy]} />}
       >
 
-        {/* ─── Category strip — horizontal photo tiles ──────────── */}
+        {/* ─── Category strip — 4 visible + 0.5 peeked horizontal tiles ─── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catStrip}
+          contentContainerStyle={{
+            paddingLeft: horizontalPadding,
+            paddingRight: horizontalPadding,
+            paddingVertical: 12,
+          }}
         >
-          {CATEGORY_BAR_ITEMS.map((cat) => (
+          {CATEGORY_BAR_ITEMS.map((cat, idx) => (
             <TouchableOpacity
               key={cat.id}
-              style={styles.catItem}
+              style={{
+                alignItems: 'center',
+                width: catItemWidth,
+                marginRight: idx === CATEGORY_BAR_ITEMS.length - 1 ? 0 : catGap,
+              }}
               onPress={() => navigation.navigate('ProductListing', { categoryId: cat.id })}
               activeOpacity={0.82}
             >
-              <View style={styles.catTile}>
-                <Image source={cat.image} style={styles.catTileImg} resizeMode="cover" />
+              <View style={{
+                width: catItemWidth,
+                height: catItemWidth,
+                borderRadius: Math.round(catItemWidth * 0.22),
+                overflow: 'hidden',
+                marginBottom: 5,
+                backgroundColor: '#F3F4F6',
+              }}>
+                <Image source={cat.image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
               </View>
-              <Text style={styles.catLabel} numberOfLines={1}>{cat.name}</Text>
+              <Text style={{
+                fontSize: catItemWidth > 75 ? 12 : 10,
+                color: '#333',
+                fontWeight: '600',
+                textAlign: 'center',
+                width: catItemWidth,
+              }} numberOfLines={1}>
+                {cat.name}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -607,9 +701,10 @@ export default function HomeScreen({ navigation }) {
             keyExtractor={(_, i) => String(i)}
             onScroll={handleBannerScroll}
             scrollEventThrottle={16}
-            getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+            getItemLayout={(_, index) => ({ length: bannerWidth, offset: bannerWidth * index, index })}
+            style={{ width: bannerWidth, height: bannerHeight }}
             renderItem={({ item }) => (
-              <View style={[styles.bannerImage, { position: 'relative', overflow: 'hidden' }]}>
+              <View style={[styles.bannerImage, { width: bannerWidth, height: bannerHeight, position: 'relative', overflow: 'hidden' }]}>
                 <Image source={item.image} style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]} resizeMode="cover" />
                 <View style={styles.bannerOverlay}>
                   <Text style={styles.bannerPromo}>{item.promo}</Text>
@@ -626,27 +721,52 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* ─── Curated Brands — 2-row × 4-col grid ────────────────────── */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeaderRow}>
+        {/* ─── Curated Brands — 2-row × 4-col grid (4 on top, 4 on bottom following container) ────────────────────── */}
+        <View style={[styles.sectionContainer, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+          <View style={[styles.sectionHeaderRow, { paddingHorizontal: horizontalPadding }]}>
             <Text style={styles.sectionTitle}>Top Brands</Text>
           </View>
-          <View style={styles.vendorGrid}>
-            {VENDOR_IMGS.map((img, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={styles.vendorTile}
-                onPress={() => navigation.navigate('ProductListing', { vendorId: vendors[idx]?.id })}
-                activeOpacity={0.82}
-              >
-                <View style={styles.vendorImgWrapper}>
-                  <Image source={img} style={styles.vendorTileImg} resizeMode="cover" />
-                </View>
-                <Text style={styles.vendorTileName} numberOfLines={1}>
-                  {VENDOR_NAMES[idx] || vendors[idx]?.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <View style={[styles.vendorGrid, { paddingHorizontal: horizontalPadding }]}>
+            {/* Top Row: 4 items */}
+            <View style={[styles.vendorRow, { justifyContent: 'space-between' }]}>
+              {VENDOR_IMGS.slice(0, 4).map((img, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={[styles.vendorTile, { width: brandTileWidth }]}
+                  onPress={() => navigation.navigate('ProductListing', { vendorId: vendors[idx]?.id })}
+                  activeOpacity={0.82}
+                >
+                  <View style={[styles.vendorImgWrapper, { width: brandImageSize, height: brandImageSize, borderRadius: Math.round(brandImageSize * 0.22) }]}>
+                    <Image source={img} style={styles.vendorTileImg} resizeMode="cover" />
+                  </View>
+                  <Text style={[styles.vendorTileName, { width: brandTileWidth, fontSize: brandFontSize }]} numberOfLines={1}>
+                    {VENDOR_NAMES[idx] || vendors[idx]?.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Bottom Row: 4 items */}
+            <View style={[styles.vendorRow, { justifyContent: 'space-between', marginTop: brandRowGap }]}>
+              {VENDOR_IMGS.slice(4, 8).map((img, idx) => {
+                const actualIdx = idx + 4;
+                return (
+                  <TouchableOpacity
+                    key={actualIdx}
+                    style={[styles.vendorTile, { width: brandTileWidth }]}
+                    onPress={() => navigation.navigate('ProductListing', { vendorId: vendors[actualIdx]?.id })}
+                    activeOpacity={0.82}
+                  >
+                    <View style={[styles.vendorImgWrapper, { width: brandImageSize, height: brandImageSize, borderRadius: Math.round(brandImageSize * 0.22) }]}>
+                      <Image source={img} style={styles.vendorTileImg} resizeMode="cover" />
+                    </View>
+                    <Text style={[styles.vendorTileName, { width: brandTileWidth, fontSize: brandFontSize }]} numberOfLines={1}>
+                      {VENDOR_NAMES[actualIdx] || vendors[actualIdx]?.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
 
@@ -662,7 +782,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
-              {flashProducts.map((p) => renderHorizontalCard(p, true))}
+              {(Array.isArray(flashProducts) ? flashProducts : []).map((p) => renderHorizontalCard(p, true))}
             </ScrollView>
           </View>
         )}
@@ -687,7 +807,7 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.sectionTitle}>Featured Products</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
-              {featuredProducts.map((p) => renderHorizontalCard(p))}
+              {(Array.isArray(featuredProducts) ? featuredProducts : []).map((p) => renderHorizontalCard(p))}
             </ScrollView>
           </View>
         )}
@@ -699,7 +819,7 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.sectionTitle}>Services</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
-              {serviceProducts.map((p) => renderHorizontalCard(p))}
+              {(Array.isArray(serviceProducts) ? serviceProducts : []).map((p) => renderHorizontalCard(p))}
             </ScrollView>
           </View>
         )}
@@ -732,9 +852,9 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* ─── Exact Product Cards Grid (with Asynchronous Load More) ──── */}
-        <View style={styles.productGridSection}>
-          <View style={styles.productGrid}>
-            {feedProducts.map((p, i) => renderExactProductCard(p, i))}
+        <View style={[styles.productGridSection, { paddingHorizontal: horizontalPadding }]}>
+          <View style={[styles.productGrid, { columnGap: productGridGap }]}>
+            {(Array.isArray(feedProducts) ? feedProducts : []).map((p, i) => renderExactProductCard(p, i))}
           </View>
 
           {/* Asynchronous Loading Indicator on Swipe/Scroll */}
@@ -908,10 +1028,9 @@ export default function HomeScreen({ navigation }) {
                       key={idx}
                       style={styles.suggestionItem}
                       onPress={() => {
-                        setSelectedLocation(loc);
+                        acceptLocation(loc);
                         setSearchMode(false);
                         setSearchQuery('');
-                        setAddressModalVisible(false);
                       }}
                     >
                       <MapPin size={18} color="#64748B" weight="regular" />
@@ -941,9 +1060,17 @@ export default function HomeScreen({ navigation }) {
                   <TouchableOpacity
                     style={styles.locationActionItem}
                     onPress={handleUseCurrentLocation}
+                    disabled={isLocating}
+                    activeOpacity={0.7}
                   >
-                    <Compass size={20} color="#DC2626" weight="regular" />
-                    <Text style={styles.locationActionText}>Use my current location</Text>
+                    {isLocating ? (
+                      <ActivityIndicator size="small" color="#032757" style={{ marginRight: 8 }} />
+                    ) : (
+                      <Compass size={20} color="#032757" weight="regular" />
+                    )}
+                    <Text style={styles.locationActionText}>
+                      {isLocating ? 'Detecting current location...' : 'Use my current location'}
+                    </Text>
                     <Text style={styles.arrowIndicator}>›</Text>
                   </TouchableOpacity>
 
@@ -972,9 +1099,7 @@ export default function HomeScreen({ navigation }) {
                         key={addr.id}
                         style={[styles.addressCard, isSelected && styles.addressCardActive]}
                         onPress={() => {
-                          setSelectedLocation(addr.display);
-                          setPincodeInput(addr.pincode);
-                          setAddressModalVisible(false);
+                          acceptLocation(addr.display, addr.pincode);
                         }}
                         activeOpacity={0.8}
                       >
@@ -1028,6 +1153,12 @@ const getStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+  },
+  locationRowHighlighted: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
   },
   locationDot: { fontSize: 8, color: '#333' },
   locationText: {
@@ -1091,7 +1222,7 @@ const getStyles = (colors) => StyleSheet.create({
 
   // Banner Carousel
   bannerWrapper: { marginVertical: 4 },
-  bannerImage:   { width, height: 235 },
+  bannerImage:   { width: '100%', height: '100%' },
   bannerDots: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -1105,24 +1236,20 @@ const getStyles = (colors) => StyleSheet.create({
   // Curated Brands 2x4 Grid
   sectionContainer: { marginTop: 4, marginBottom: 8 },
   vendorGrid: {
+    width: '100%',
+  },
+  vendorRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    rowGap: 16,
-    columnGap: 20,
-    justifyContent: 'center',
+    alignItems: 'flex-start',
+    width: '100%',
   },
   vendorTile: {
-    width: 72,
     alignItems: 'center',
   },
   vendorImgWrapper: {
-    width: 66,
-    height: 66,
-    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#F3F4F6',
-    marginBottom: 4,
+    marginBottom: 5,
   },
   vendorTileImg: {
     width: '100%',
@@ -1133,7 +1260,6 @@ const getStyles = (colors) => StyleSheet.create({
     color: '#222',
     fontWeight: '500',
     textAlign: 'center',
-    width: 72,
   },
 
   // Filter chips
@@ -1158,15 +1284,17 @@ const getStyles = (colors) => StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 6,
     marginBottom: 16,
+    width: '100%',
+    maxWidth: 1200,
+    alignSelf: 'center',
   },
   productGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     rowGap: 18,
   },
   gridCard: {
-    width: CARD_WIDTH,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     overflow: 'hidden',
@@ -1179,7 +1307,7 @@ const getStyles = (colors) => StyleSheet.create({
   },
   gridCardPhoto: {
     width: '100%',
-    height: CARD_WIDTH * 1.32, // Perfect portrait aspect ratio matching mockup
+    aspectRatio: 0.76, // Elegant portrait aspect ratio matching mockup
     borderRadius: 14,
     overflow: 'hidden',
     position: 'relative',

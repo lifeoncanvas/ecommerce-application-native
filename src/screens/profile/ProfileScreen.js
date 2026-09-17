@@ -54,6 +54,7 @@ import {
   MapPin,
   CreditCard,
   CaretLeft,
+  Sparkle,
 } from 'phosphor-react-native';
 
 function ProfileContent({ navigation, route }) {
@@ -230,7 +231,7 @@ function ProfileContent({ navigation, route }) {
               Icon: Storefront,
               iconBg: '#FFFBEB',
               iconColor: '#D97706',
-              onPress: () => navigation.navigate('BecomeVendor'),
+              onPress: () => navigation.navigate('VendorRegister'),
             },
       ],
     },
@@ -277,6 +278,15 @@ function ProfileContent({ navigation, route }) {
           iconBg: '#F3F4F6',
           iconColor: '#4B5563',
           onPress: () => navigation.navigate('About'),
+        },
+        {
+          id: 'onboarding',
+          title: 'App Walkthrough',
+          subtitle: 'View the welcome onboarding screens',
+          Icon: Sparkle,
+          iconBg: '#FEF3C7',
+          iconColor: '#D97706',
+          onPress: () => navigation.navigate('Onboarding'),
         },
       ],
     },

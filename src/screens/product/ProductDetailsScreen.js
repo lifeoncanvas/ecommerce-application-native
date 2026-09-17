@@ -40,9 +40,7 @@ import { useWishlist } from '../../context/WishlistContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { resolveProduct, getRelatedMockProducts, buildProductRouteParams } from '../../utils/productResolver';
-
-const { width } = Dimensions.get('window');
-const HERO_WIDTH = width;
+import useResponsive from '../../hooks/useResponsive';
 
 // ─── Default Color Swatches ──────────────────────────────────────────────────
 const COLOR_SWATCHES = [
@@ -107,7 +105,13 @@ export default function ProductDetailsScreen({ route, navigation }) {
 
   const isLiked = checkLiked(product.id);
 
-  const isBooking = product.categoryId === 'cat_services' || product.categoryId === 'cat_food';
+  const isBooking = !!(
+    product.isBooking ||
+    product.categoryId === 'cat_services' ||
+    product.categoryId === 'cat_food' ||
+    (typeof product.category === 'string' &&
+      (product.category.toLowerCase().includes('service') || product.category.toLowerCase().includes('food')))
+  );
 
   const days = useMemo(() => {
     const arr = [];
@@ -132,17 +136,26 @@ export default function ProductDetailsScreen({ route, navigation }) {
   ];
 
   const [selectedBookingDay, setSelectedBookingDay] = useState((days[0] && days[0].value) || 'Today');
-  const [selectedBookingSlot, setSelectedBookingSlot] = useState(slots[1]);
+  const [selectedBookingSlot, setSelectedBookingSlot] = useState(null);
 
   const SIMILAR_TOPS = useMemo(() => {
     return getRelatedMockProducts(product.categoryId, product.id, 3);
   }, [product]);
 
+  const responsive = useResponsive();
+  const { width: windowWidth, containerWidth, isMobile, cardWidth } = responsive;
+  const heroWidth = isMobile ? windowWidth : containerWidth;
+  const heroHeight = isMobile ? Math.round(windowWidth * 1.05) : Math.min(600, Math.round(heroWidth * 0.75));
+  const recCardWidth = Math.max(140, Math.floor((heroWidth - 48) / 2));
+
   // States
-  const [slideWidth, setSlideWidth] = useState(HERO_WIDTH);
+  const slideWidth = heroWidth;
   const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
-  const [selectedSize, setSelectedSize] = useState('L');
+  const [selectedSize, setSelectedSize] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [sizePromptVisible, setSizePromptVisible] = useState(false);
+  const [slotPromptVisible, setSlotPromptVisible] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
   const [galleryImages, setGalleryImages] = useState(product.gallery || [product.image]);
 
   // Update gallery images when product changes
@@ -211,52 +224,137 @@ export default function ProductDetailsScreen({ route, navigation }) {
     setSelectedSize(sz.label);
   };
 
-  // Add to Bag Action
-  const handleAddToCart = async () => {
+  const handleModalSelectSize = (sz) => {
+    if (sz.disabled) {
+      Alert.alert('Out of Stock', `Size ${sz.label} is currently out of stock.`);
+      return;
+    }
+    setSelectedSize(sz.label);
+    setSizePromptVisible(false);
+    if (pendingAction === 'buy_now') {
+      proceedToCheckout(sz.label);
+    } else {
+      executeAddToCart(sz.label);
+    }
+  };
+
+  const handleModalSelectSlot = (s) => {
+    setSelectedBookingSlot(s);
+    setSlotPromptVisible(false);
+    if (pendingAction === 'buy_now') {
+      proceedToCheckout(undefined, undefined, selectedBookingDay, s);
+    } else {
+      executeAddToCart(undefined, undefined, selectedBookingDay, s);
+    }
+  };
+
+  const executeAddToCart = async (sizeToUse, colorToUse, dayToUse, slotToUse) => {
+    const finalSize = sizeToUse !== undefined ? sizeToUse : selectedSize;
+    const finalColor = colorToUse !== undefined ? colorToUse : selectedColor;
+    const finalDay = dayToUse !== undefined ? dayToUse : selectedBookingDay;
+    const finalSlot = slotToUse !== undefined ? slotToUse : selectedBookingSlot;
+
     try {
       await addItem(product.id, 1, {
         id: product.id,
-        name: product.title,
+        name: product.title || product.name,
+        title: product.title || product.name,
         brand: product.brand,
         price: product.price,
         image: product.image,
-        size: isBooking ? '' : selectedSize,
-        color: isBooking ? '' : selectedColor.name,
-        colorHex: isBooking ? '' : selectedColor.hex,
+        size: isBooking ? '' : (finalSize || ''),
+        color: isBooking ? '' : (finalColor?.name || ''),
+        colorHex: isBooking ? '' : (finalColor?.hex || ''),
         isBooking: isBooking,
-        bookingDay: isBooking ? selectedBookingDay : null,
-        bookingTimeSlot: isBooking ? selectedBookingSlot : null,
+        categoryId: product.categoryId,
+        category: product.category,
+        bookingDay: isBooking ? finalDay : null,
+        bookingTimeSlot: isBooking ? finalSlot : null,
       });
       if (isBooking) {
-        showToast(`Added booking for ${product.brand} (${selectedBookingDay} @ ${selectedBookingSlot})!`);
+        showToast(`Added booking for ${product.brand} (${finalDay} @ ${finalSlot})!`);
       } else {
-        showToast(`Added ${product.brand} (Size ${selectedSize}, ${selectedColor.name}) to Bag!`);
+        showToast(`Added ${product.brand} (Size ${finalSize || 'Selected'}, ${finalColor?.name || 'Default'}) to Bag!`);
       }
     } catch (e) {
       showToast(isBooking ? `Added booking for ${product.brand}!` : `Added ${product.brand} to Bag!`);
     }
   };
 
-  // Buy Now Action
-  const handleBuyNow = async () => {
-    try {
-      await addItem(product.id, 1, {
-        id: product.id,
-        name: product.title,
-        brand: product.brand,
-        price: product.price,
-        image: product.image,
-        size: isBooking ? '' : selectedSize,
-        color: isBooking ? '' : selectedColor.name,
-        colorHex: isBooking ? '' : selectedColor.hex,
-        isBooking: isBooking,
-        bookingDay: isBooking ? selectedBookingDay : null,
-        bookingTimeSlot: isBooking ? selectedBookingSlot : null,
-      });
-      navigation.navigate('Cart');
-    } catch (e) {
-      navigation.navigate('Cart');
+  // Add to Bag Action
+  const handleAddToCart = async () => {
+    if (!isBooking && !selectedSize) {
+      setPendingAction('add_to_cart');
+      setSizePromptVisible(true);
+      return;
     }
+    if (isBooking && !selectedBookingSlot) {
+      setPendingAction('add_to_cart');
+      setSlotPromptVisible(true);
+      return;
+    }
+    executeAddToCart();
+  };
+
+  // Direct Checkout Procedure
+  const proceedToCheckout = async (sizeToUse, colorToUse, dayToUse, slotToUse) => {
+    const finalSize = sizeToUse !== undefined ? sizeToUse : selectedSize;
+    const finalColor = colorToUse !== undefined ? colorToUse : selectedColor;
+    const finalDay = dayToUse !== undefined ? dayToUse : selectedBookingDay;
+    const finalSlot = slotToUse !== undefined ? slotToUse : selectedBookingSlot;
+
+    const itemData = {
+      id: product.id,
+      name: product.title || product.name,
+      title: product.title || product.name,
+      brand: product.brand,
+      price: product.price,
+      image: product.image,
+      size: isBooking ? '' : (finalSize || ''),
+      color: isBooking ? '' : (finalColor?.name || ''),
+      colorHex: isBooking ? '' : (finalColor?.hex || ''),
+      isBooking: isBooking,
+      categoryId: product.categoryId,
+      category: product.category,
+      bookingDay: isBooking ? finalDay : null,
+      bookingTimeSlot: isBooking ? finalSlot : null,
+      quantity: 1,
+    };
+
+    try {
+      await addItem(product.id, 1, itemData);
+    } catch (e) {}
+
+    // Directly navigate to Checkout page!
+    try {
+      navigation.navigate('Checkout', {
+        isBooking: isBooking,
+        selectedItems: [itemData],
+      });
+    } catch (e) {
+      navigation.navigate('Cart', {
+        screen: 'Checkout',
+        params: {
+          isBooking: isBooking,
+          selectedItems: [itemData],
+        },
+      });
+    }
+  };
+
+  // Buy Now Action
+  const handleBuyNow = () => {
+    if (!isBooking && !selectedSize) {
+      setPendingAction('buy_now');
+      setSizePromptVisible(true);
+      return;
+    }
+    if (isBooking && !selectedBookingSlot) {
+      setPendingAction('buy_now');
+      setSlotPromptVisible(true);
+      return;
+    }
+    proceedToCheckout();
   };
 
   // Share Action
@@ -337,10 +435,13 @@ export default function ProductDetailsScreen({ route, navigation }) {
         <View style={styles.hdrRightActions}>
           <TouchableOpacity
             style={styles.hdrBtn}
-            onPress={() => {
-              toggleWishlist(product.id);
-              showToast(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
-            }}
+            onPress={() =>
+              navigation.navigate('Wishlist', {
+                screen: 'WishlistMain',
+                params: { tab: isBooking ? 'bookings' : 'products' },
+                tab: isBooking ? 'bookings' : 'products',
+              })
+            }
             activeOpacity={0.7}
           >
             <Heart
@@ -352,7 +453,13 @@ export default function ProductDetailsScreen({ route, navigation }) {
 
           <TouchableOpacity
             style={styles.hdrBtn}
-            onPress={() => navigation.navigate('Cart')}
+            onPress={() =>
+              navigation.navigate('Cart', {
+                screen: 'CartMain',
+                params: { tab: isBooking ? 'bookings' : 'products' },
+                tab: isBooking ? 'bookings' : 'products',
+              })
+            }
             activeOpacity={0.7}
           >
             <ShoppingBagOpen size={22} color="#1E293B" weight="regular" />
@@ -376,69 +483,87 @@ export default function ProductDetailsScreen({ route, navigation }) {
         }}
         scrollEventThrottle={16}
       >
-        {/* ─── Hero Image Carousel ────────────────────────────────────────── */}
-        <ScrollView
-          horizontal
-          decelerationRate="fast"
-          snapToInterval={HERO_WIDTH}
-          snapToAlignment="start"
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carouselContainer}
-          onScroll={(e) => {
-            const idx = Math.round(e.nativeEvent.contentOffset.x / HERO_WIDTH);
-            setActiveImageIndex(idx);
-          }}
-          scrollEventThrottle={16}
-        >
-          {galleryImages.map((imgSrc, idx) => (
-            <TouchableOpacity
-              key={idx}
-              activeOpacity={0.95}
-              onPress={() => setVisualSearchVisible(true)}
-              style={[styles.heroSlideWrapper, { width: slideWidth }]}
-            >
-              <Image source={imgSrc} style={[styles.heroImage, { width: slideWidth, height: 400 }]} resizeMode="cover" />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* ─── Action Buttons Strip (Visual Search | Wishlist | Share) ────── */}
-        <View style={styles.actionStripContainer}>
-          <View style={styles.actionStrip}>
-            <TouchableOpacity
-              style={styles.stripBtn}
-              onPress={() => setVisualSearchVisible(true)}
-              activeOpacity={0.7}
-            >
-              <Cards size={18} color="#475569" weight="regular" />
-            </TouchableOpacity>
-
-            <View style={styles.stripDivider} />
-
-            <TouchableOpacity
-              style={styles.stripBtn}
-              onPress={() => {
-                toggleWishlist(product.id);
-                showToast(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
+        {/* ─── Hero Image Carousel with Overlaid Action Buttons (Bottom Right) ─── */}
+        <View style={[styles.heroOuterContainer, { width: '100%', alignItems: 'center', position: 'relative' }]}>
+          <View style={{ width: heroWidth, height: heroHeight, position: 'relative' }}>
+            <ScrollView
+              horizontal
+              decelerationRate="fast"
+              snapToInterval={heroWidth}
+              snapToAlignment="start"
+              showsHorizontalScrollIndicator={false}
+              style={{ width: heroWidth, height: heroHeight }}
+              contentContainerStyle={[styles.carouselContainer, { width: heroWidth * ((galleryImages && galleryImages.length) || 1) }]}
+              onScroll={(e) => {
+                const idx = Math.round(e.nativeEvent.contentOffset.x / heroWidth);
+                setActiveImageIndex(idx);
               }}
-              activeOpacity={0.7}
+              scrollEventThrottle={16}
             >
-              <Heart
-                size={18}
-                color={isLiked ? '#E53935' : '#475569'}
-                weight={isLiked ? 'fill' : 'regular'}
-              />
-            </TouchableOpacity>
+              {(Array.isArray(galleryImages) ? galleryImages : []).map((imgSrc, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  activeOpacity={0.95}
+                  onPress={() => setVisualSearchVisible(true)}
+                  style={[styles.heroSlideWrapper, { width: heroWidth, height: heroHeight }]}
+                >
+                  <Image
+                    source={imgSrc}
+                    style={[StyleSheet.absoluteFillObject, styles.heroImage]}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-            <View style={styles.stripDivider} />
+            {/* Overlaid Action Buttons Strip in Bottom Right Corner */}
+            <View style={styles.actionStripOverlay} pointerEvents="box-none">
+              <View style={styles.actionStrip}>
+                <TouchableOpacity
+                  style={styles.stripBtn}
+                  onPress={() => setVisualSearchVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <Cards size={18} color="#334155" weight="regular" />
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.stripBtn}
-              onPress={handleShare}
-              activeOpacity={0.7}
-            >
-              <ShareNetwork size={18} color="#475569" weight="regular" />
-            </TouchableOpacity>
+                <View style={styles.stripDivider} />
+
+                <TouchableOpacity
+                  style={styles.stripBtn}
+                  onPress={() => {
+                    toggleWishlist(product.id, product);
+                    showToast(isLiked ? 'Removed from Wishlist' : (isBooking ? 'Saved to Bookings Wishlist!' : 'Saved to Wishlist!'));
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Heart
+                    size={18}
+                    color={isLiked ? '#E53935' : '#334155'}
+                    weight={isLiked ? 'fill' : 'regular'}
+                  />
+                </TouchableOpacity>
+
+                <View style={styles.stripDivider} />
+
+                <TouchableOpacity
+                  style={styles.stripBtn}
+                  onPress={handleShare}
+                  activeOpacity={0.7}
+                >
+                  <ShareNetwork size={18} color="#334155" weight="regular" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Carousel Page Counter (Bottom-Left corner) */}
+            {Array.isArray(galleryImages) && galleryImages.length > 1 && (
+              <View style={styles.heroPaginationBadge}>
+                <Text style={styles.heroPaginationText}>
+                  {activeImageIndex + 1}/{galleryImages.length}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -479,7 +604,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
               {/* Day Selector */}
               <Text style={styles.sectionHeaderTitle}>SELECT DATE</Text>
               <View style={styles.daySelectorRow}>
-                {days.map((d) => {
+                {(Array.isArray(days) ? days : []).map((d) => {
                   const isSelected = selectedBookingDay === d.value;
                   return (
                     <TouchableOpacity
@@ -498,7 +623,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
               {/* Time Slots Selector */}
               <Text style={[styles.sectionHeaderTitle, { marginTop: 20 }]}>AVAILABLE TIME SLOTS</Text>
               <View style={styles.slotsGrid}>
-                {slots.map((s) => {
+                {(Array.isArray(slots) ? slots : []).map((s) => {
                   const isSelected = selectedBookingSlot === s;
                   return (
                     <TouchableOpacity
@@ -594,32 +719,34 @@ export default function ProductDetailsScreen({ route, navigation }) {
             </React.Fragment>
           )}
 
-          {/* ─── Delivery & Services Box ───────────────────────────────────── */}
-          <TouchableOpacity
-            style={styles.deliveryBox}
-            onPress={() => setPincodeModalVisible(true)}
-            activeOpacity={0.9}
-          >
-            <View style={styles.deliveryRow}>
-              <Truck size={18} color="#1E293B" weight="bold" />
-              <Text style={styles.deliveryTitle}>DELIVERY & SERVICES</Text>
-              <Text style={styles.changePincodeText}>Change Pincode</Text>
-            </View>
+          {/* ─── Delivery & Services Box (Physical products only) ───────────── */}
+          {!isBooking && (
+            <TouchableOpacity
+              style={styles.deliveryBox}
+              onPress={() => setPincodeModalVisible(true)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.deliveryRow}>
+                <Truck size={18} color="#1E293B" weight="bold" />
+                <Text style={styles.deliveryTitle}>DELIVERY & SERVICES</Text>
+                <Text style={styles.changePincodeText}>Change Pincode</Text>
+              </View>
 
-            <Text style={styles.currentDeliveryEstimate}>
-              {deliveryEstimate}
-            </Text>
+              <Text style={styles.currentDeliveryEstimate}>
+                {deliveryEstimate}
+              </Text>
 
-            <View style={styles.deliveryFeatureRow}>
-              <Money size={16} color="#1E293B" weight="regular" />
-              <Text style={styles.deliveryFeatureText}>Pay on Delivery available</Text>
-            </View>
+              <View style={styles.deliveryFeatureRow}>
+                <Money size={16} color="#1E293B" weight="regular" />
+                <Text style={styles.deliveryFeatureText}>Pay on Delivery available</Text>
+              </View>
 
-            <View style={styles.deliveryFeatureRow}>
-              <ArrowsClockwise size={16} color="#1E293B" weight="regular" />
-              <Text style={styles.deliveryFeatureText}>Hassle free 14 days Return & Exchange</Text>
-            </View>
-          </TouchableOpacity>
+              <View style={styles.deliveryFeatureRow}>
+                <ArrowsClockwise size={16} color="#1E293B" weight="regular" />
+                <Text style={styles.deliveryFeatureText}>Hassle free 14 days Return & Exchange</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* ─── CTA Action Buttons (Add to Bag & Buy Now) ────────────────── */}
           <View 
@@ -651,14 +778,14 @@ export default function ProductDetailsScreen({ route, navigation }) {
           {/* ─── Similar Tops Grid (Image 2) ──────────────────────────────── */}
           <View style={styles.similarSection}>
             <View style={styles.similarGrid}>
-              {getRelatedMockProducts(product.categoryId, product.id, 2).map((top) => (
+              {(Array.isArray(getRelatedMockProducts(product?.categoryId, product?.id, 2)) ? getRelatedMockProducts(product?.categoryId, product?.id, 2) : []).map((top) => (
                 <View key={top.id} style={styles.similarCard}>
                   <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={() => navigation.push('ProductDetails', buildProductRouteParams(top))}
                     style={styles.similarPhotoWrapper}
                   >
-                    <Image source={top.image} style={styles.similarPhoto} resizeMode="cover" />
+                    <Image source={top.image} style={[StyleSheet.absoluteFillObject, styles.similarPhoto]} resizeMode="cover" />
                     <View style={styles.similarRatingBadge}>
                       <Text style={styles.similarRatingText}>{top.rating} ★</Text>
                     </View>
@@ -748,21 +875,21 @@ export default function ProductDetailsScreen({ route, navigation }) {
             <Text style={styles.sectionHeaderTitle}>PRODUCTS YOU MAY LIKE</Text>
 
             <View style={styles.recGrid}>
-              {getRelatedMockProducts(product.categoryId, product.id, 4).map((item) => {
+              {(Array.isArray(getRelatedMockProducts(product?.categoryId, product?.id, 4)) ? getRelatedMockProducts(product?.categoryId, product?.id, 4) : []).map((item) => {
                 const likedItem = checkLiked(item.id);
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={styles.recCard}
+                    style={[styles.recCard, { width: recCardWidth }]}
                     onPress={() => navigation.push('ProductDetails', buildProductRouteParams(item))}
                     activeOpacity={0.9}
                   >
                     <View style={styles.recPhotoWrapper}>
-                      <Image source={item.image} style={styles.recPhoto} resizeMode="cover" />
+                      <Image source={item.image} style={[StyleSheet.absoluteFillObject, styles.recPhoto]} resizeMode="cover" />
                       <TouchableOpacity
                         style={styles.recHeartBtn}
                         onPress={() => {
-                          toggleWishlist(item.id);
+                          toggleWishlist(item.id, item);
                           showToast(likedItem ? 'Removed from Wishlist' : 'Saved to Wishlist!');
                         }}
                         activeOpacity={0.7}
@@ -815,9 +942,9 @@ export default function ProductDetailsScreen({ route, navigation }) {
           </Text>
           <TouchableOpacity
             style={styles.toastActionBtn}
-            onPress={() => navigation.navigate('Cart')}
+            onPress={() => navigation.navigate('Cart', { tab: isBooking ? 'bookings' : 'products' })}
           >
-            <Text style={styles.toastActionText}>View Bag</Text>
+            <Text style={styles.toastActionText}>{isBooking ? 'View Bookings' : 'View Bag'}</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -985,7 +1112,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
               </View>
 
               {/* Reviews List */}
-              {reviewsList.map((rev) => (
+              {(Array.isArray(reviewsList) ? reviewsList : []).map((rev) => (
                 <View key={rev.id} style={styles.fullReviewItem}>
                   <View style={styles.reviewCardHeader}>
                     <View style={styles.reviewStarBadge}>
@@ -1111,7 +1238,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
             </Text>
 
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-              {SIMILAR_TOPS.map((item) => (
+              {(Array.isArray(SIMILAR_TOPS) ? SIMILAR_TOPS : []).map((item) => (
                 <TouchableOpacity
                   key={item.id}
                   style={{ flex: 1 }}
@@ -1128,6 +1255,163 @@ export default function ProductDetailsScreen({ route, navigation }) {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* ─── Select Size Quick Prompt Modal ────────────────────────────── */}
+      <Modal
+        visible={sizePromptVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSizePromptVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setSizePromptVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.promptModalContainer}
+            onPress={(e) => e.stopPropagation?.()}
+          >
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Select Size</Text>
+                <Text style={styles.promptSubtitle}>Please choose a size to continue to checkout</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setSizePromptVisible(false)}
+                style={styles.closeBtn}
+              >
+                <X size={20} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.promptProductRow}>
+              {product.image && (
+                <Image source={product.image} style={styles.promptProductThumb} resizeMode="cover" />
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.promptProductBrand}>{product.brand}</Text>
+                <Text style={styles.promptProductTitle} numberOfLines={1}>{product.title || product.name}</Text>
+                <Text style={styles.promptProductPrice}>{formatPrice(product.price)}</Text>
+              </View>
+            </View>
+
+            <View style={[styles.sizesGrid, { marginTop: 14 }]}>
+              {SIZES_DATA.map((sz) => {
+                const isSelected = selectedSize === sz.label;
+                return (
+                  <TouchableOpacity
+                    key={sz.label}
+                    style={[
+                      styles.sizeBtn,
+                      isSelected && styles.sizeBtnActive,
+                      sz.disabled && styles.sizeBtnDisabled,
+                    ]}
+                    onPress={() => handleModalSelectSize(sz)}
+                    activeOpacity={0.8}
+                  >
+                    {sz.stock && (
+                      <View style={styles.stockBadge}>
+                        <Text style={styles.stockBadgeText}>{sz.stock}</Text>
+                      </View>
+                    )}
+                    <Text
+                      style={[
+                        styles.sizeBtnText,
+                        isSelected && styles.sizeBtnTextActive,
+                        sz.disabled && styles.sizeBtnTextDisabled,
+                      ]}
+                    >
+                      {sz.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={styles.promptSizeChartLink}
+              onPress={() => {
+                setSizePromptVisible(false);
+                setSizeChartVisible(true);
+              }}
+            >
+              <Ruler size={16} color="#1E293B" />
+              <Text style={styles.promptSizeChartText}>View Detailed Size Chart</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ─── Select Booking Slot Quick Prompt Modal ───────────────────── */}
+      <Modal
+        visible={slotPromptVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSlotPromptVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setSlotPromptVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.promptModalContainer}
+            onPress={(e) => e.stopPropagation?.()}
+          >
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Select Booking Timing</Text>
+                <Text style={styles.promptSubtitle}>Choose an available day & time slot to proceed</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setSlotPromptVisible(false)}
+                style={styles.closeBtn}
+              >
+                <X size={20} color="#1E293B" weight="bold" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Days Horizontal Tabs */}
+            <View style={[styles.daySelectorRow, { marginTop: 10 }]}>
+              {days.map((d) => {
+                const isSelected = selectedBookingDay === d.value;
+                return (
+                  <TouchableOpacity
+                    key={d.value}
+                    style={[styles.dayCard, isSelected && styles.dayCardActive]}
+                    onPress={() => setSelectedBookingDay(d.value)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.dayLabel, isSelected && styles.dayLabelActive]}>{d.label}</Text>
+                    <Text style={[styles.dayValue, isSelected && styles.dayValueActive]}>{d.value}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Slots Grid */}
+            <Text style={[styles.sectionHeaderTitle, { marginTop: 16, marginBottom: 8 }]}>AVAILABLE TIME SLOTS</Text>
+            <View style={styles.slotsGrid}>
+              {(Array.isArray(slots) ? slots : []).map((s) => {
+                const isSelected = selectedBookingSlot === s;
+                return (
+                  <TouchableOpacity
+                    key={s}
+                    style={[styles.slotBtn, isSelected && styles.slotBtnActive]}
+                    onPress={() => handleModalSelectSlot(s)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.slotText, isSelected && styles.slotTextActive]}>{s}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* ─── Sticky Bottom CTA Buttons Row ────────────────────────────── */}
@@ -1215,49 +1499,74 @@ const styles = StyleSheet.create({
   },
 
   // Carousel
+  heroOuterContainer: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+  },
   carouselContainer: {
     paddingHorizontal: 0,
     gap: 0,
     paddingVertical: 0,
   },
   heroSlideWrapper: {
-    width: HERO_WIDTH,
-    height: 400,
     borderRadius: 0,
     overflow: 'hidden',
-    backgroundColor: '#EDE9DE',
+    backgroundColor: '#FFFFFF',
+    position: 'relative',
   },
   heroImage: {
     width: '100%',
     height: '100%',
   },
 
-  // Action Strip (Visual Search | Wishlist | Share)
-  actionStripContainer: {
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 8,
+  // Action Strip Overlay (Visual Search | Wishlist | Share inside bottom-right of image)
+  actionStripOverlay: {
+    position: 'absolute',
+    bottom: 14,
+    right: 14,
+    zIndex: 10,
   },
   actionStrip: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 3,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   stripBtn: {
-    paddingHorizontal: 22,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stripDivider: {
     width: 1,
-    height: 16,
-    backgroundColor: '#CBD5E1',
+    height: 14,
+    backgroundColor: '#E2E8F0',
+  },
+  heroPaginationBadge: {
+    position: 'absolute',
+    bottom: 14,
+    left: 14,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    zIndex: 10,
+  },
+  heroPaginationText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 
   // Info Section
@@ -1413,7 +1722,8 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   sizeBtn: {
-    width: (width - 70) / 4,
+    flex: 1,
+    minWidth: 68,
     height: 46,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
@@ -1592,7 +1902,7 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#EDE9DE',
+    backgroundColor: '#FFFFFF',
     position: 'relative',
   },
   similarPhoto: {
@@ -1779,14 +2089,14 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   recCard: {
-    width: (width - 54) / 2,
+    marginBottom: 14,
   },
   recPhotoWrapper: {
     width: '100%',
-    height: 190,
+    aspectRatio: 0.85,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#EDE9DE',
+    backgroundColor: '#FFFFFF',
     position: 'relative',
   },
   recPhoto: {
@@ -2210,5 +2520,67 @@ const styles = StyleSheet.create({
   slotTextActive: {
     color: '#A8824B',
     fontWeight: '800',
+  },
+  promptModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
+    width: '100%',
+    maxWidth: 540,
+    alignSelf: 'center',
+  },
+  promptSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  promptProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderColor: '#F1F5F9',
+    marginTop: 6,
+  },
+  promptProductThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  promptProductBrand: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  promptProductTitle: {
+    fontSize: 13,
+    color: '#1E293B',
+    fontWeight: '700',
+  },
+  promptProductPrice: {
+    fontSize: 13,
+    color: '#0F172A',
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  promptSizeChartLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 18,
+    paddingVertical: 6,
+  },
+  promptSizeChartText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
   },
 });

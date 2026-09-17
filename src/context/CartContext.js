@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getCart,
   addToCart as addToCartApi,
@@ -7,7 +8,7 @@ import {
   clearCart,
   applyCoupon,
 } from '../api/cart.api';
-import { products } from '../data/mockData';
+import { resolveProduct } from '../utils/productResolver';
 
 const CartContext = createContext(null);
 
@@ -24,13 +25,49 @@ export const CartProvider = ({ children }) => {
   const [couponCode, setCouponCode] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
   const [couponError, setCouponError] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Fetch cart items from Spring Boot
+  // Load persisted cart on startup
+  useEffect(() => {
+    async function loadCart() {
+      try {
+        const stored = await AsyncStorage.getItem('@cart_items');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLocalItems(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load cart from AsyncStorage:', e);
+      } finally {
+        setIsInitialized(true);
+      }
+    }
+    loadCart();
+  }, []);
+
+  // Save cart to AsyncStorage whenever it changes
+  useEffect(() => {
+    if (!isInitialized) return;
+    async function saveCart() {
+      try {
+        await AsyncStorage.setItem('@cart_items', JSON.stringify(localItems));
+      } catch (e) {
+        console.warn('Failed to save cart to AsyncStorage:', e);
+      }
+    }
+    saveCart();
+  }, [localItems, isInitialized]);
+
+  // Fetch cart items from Spring Boot (only replace if backend returns populated items)
   const refreshCart = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await withTimeout(getCart(), 2000);
-      setLocalItems(data.items ?? []);
+      if (Array.isArray(data?.items) && data.items.length > 0) {
+        setLocalItems(data.items);
+      }
     } catch (e) {
       console.warn('Cart API fetch failed, running in local fallback mode.', e.message);
     } finally {
@@ -40,41 +77,83 @@ export const CartProvider = ({ children }) => {
 
   // Add Item
   const addItem = async (productId, quantity = 1, customProductData = null) => {
+    const product = customProductData || resolveProduct(productId);
+    const isBooking = !!(
+      customProductData?.isBooking ||
+      product?.isBooking ||
+      product?.categoryId === 'cat_services' ||
+      product?.categoryId === 'cat_food' ||
+      (typeof product?.category === 'string' &&
+        (product.category.toLowerCase().includes('service') || product.category.toLowerCase().includes('food')))
+    );
+
+    const bookingDay = isBooking ? (customProductData?.bookingDay || 'Today') : null;
+    const bookingTimeSlot = isBooking ? (customProductData?.bookingTimeSlot || '12:00 PM - 01:30 PM') : null;
+    const size = isBooking ? '' : (customProductData?.size || 'L');
+    const color = isBooking ? '' : (customProductData?.color || 'Fuchsia');
+    const colorHex = isBooking ? '' : (customProductData?.colorHex || '#BA5392');
+
+    // Unblock this item ID from removed list if previously removed
+    try {
+      const storedRemoved = await AsyncStorage.getItem('@removed_cart_ids');
+      if (storedRemoved) {
+        const removedArr = JSON.parse(storedRemoved);
+        const filteredRemoved = removedArr.filter((id) => String(id) !== String(productId));
+        await AsyncStorage.setItem('@removed_cart_ids', JSON.stringify(filteredRemoved));
+      }
+    } catch (e) {
+      console.warn('Error clearing removed cart id:', e);
+    }
+
+    setLocalItems((prev) => {
+      const currentList = Array.isArray(prev) ? prev : [];
+      // For bookings, match by ID and date/time; for physical products, match by ID and size/color
+      const existingIndex = currentList.findIndex((item) => {
+        if (String(item?.id) !== String(productId)) return false;
+        if (isBooking) {
+          return item.bookingDay === bookingDay && item.bookingTimeSlot === bookingTimeSlot;
+        }
+        return item.size === size && item.color === color;
+      });
+
+      if (existingIndex > -1) {
+        const updated = [...currentList];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: (updated[existingIndex]?.quantity || 1) + quantity,
+        };
+        return updated;
+      }
+
+      const newItem = {
+        id: String(product?.id || productId),
+        name: product?.name || product?.title || 'Product',
+        title: product?.title || product?.name || 'Product',
+        brand: product?.brand || (isBooking ? 'Services & Fun' : 'Vero Moda'),
+        price: Number(product?.price) || 999,
+        oldPrice: product?.oldPrice || product?.mrp || null,
+        discount: product?.discount || null,
+        badges: Array.isArray(product?.badges) ? product.badges : (isBooking ? ['Confirmed Slot', 'Top Rated'] : ['Fast delivery', 'Trendy']),
+        image: product?.image,
+        size,
+        color,
+        colorHex,
+        isBooking,
+        categoryId: product?.categoryId || (isBooking ? 'cat_services' : 'cat_fashion'),
+        category: product?.category || (isBooking ? 'Services & Fun' : 'Fashion & Apparel'),
+        bookingDay,
+        bookingTimeSlot,
+        quantity,
+      };
+
+      return [...currentList, newItem];
+    });
+
+    // Background sync attempt without resetting state on failure
     try {
       await withTimeout(addToCartApi(productId, quantity), 2000);
-      await refreshCart();
     } catch (e) {
-      console.warn('Cart API add failed, adding to local fallback cart state.');
-      const product = customProductData || products.find((p) => p.id === productId) || { id: productId, name: 'Product', price: 999 };
-
-      setLocalItems((prev) => {
-        const existing = prev.find((item) => String(item.id) === String(productId));
-        if (existing) {
-          return prev.map((item) =>
-            String(item.id) === String(productId) ? { ...item, quantity: item.quantity + quantity } : item
-          );
-        }
-        return [
-          ...prev,
-          {
-            id: product.id,
-            name: product.name || product.title || 'Product',
-            brand: product.brand || 'Vero Moda',
-            price: Number(product.price) || 999,
-            oldPrice: product.oldPrice || product.mrp || null,
-            discount: product.discount || null,
-            badges: product.badges || ['Fast delivery', 'Trendy'],
-            image: product.image,
-            size: customProductData?.size || (customProductData?.isBooking ? '' : 'L'),
-            color: customProductData?.color || (customProductData?.isBooking ? '' : 'Fuchsia'),
-            colorHex: customProductData?.colorHex || (customProductData?.isBooking ? '' : '#BA5392'),
-            isBooking: !!customProductData?.isBooking,
-            bookingDay: customProductData?.bookingDay || null,
-            bookingTimeSlot: customProductData?.bookingTimeSlot || null,
-            quantity: quantity,
-          },
-        ];
-      });
+      console.warn('Cart API background sync failed, local state preserved.', e.message);
     }
   };
 
@@ -85,38 +164,39 @@ export const CartProvider = ({ children }) => {
       return;
     }
 
+    setLocalItems((prev) =>
+      (Array.isArray(prev) ? prev : []).map((item) => (String(item?.id) === String(itemId) ? { ...item, quantity } : item))
+    );
+
     try {
       await withTimeout(updateCartItem(itemId, quantity), 2000);
-      await refreshCart();
     } catch (e) {
-      console.warn('Cart API update failed, adjusting local state.');
-      setLocalItems((prev) =>
-        prev.map((item) => (String(item.id) === String(itemId) ? { ...item, quantity } : item))
-      );
+      console.warn('Cart API update failed, local state preserved.');
     }
   };
 
   // Remove Item
   const removeItem = async (itemId) => {
+    setLocalItems((prev) => (Array.isArray(prev) ? prev : []).filter((item) => String(item?.id) !== String(itemId)));
+
     try {
       await withTimeout(removeCartItem(itemId), 2000);
-      await refreshCart();
     } catch (e) {
-      console.warn('Cart API remove failed, adjusting local state.');
-      setLocalItems((prev) => prev.filter((item) => String(item.id) !== String(itemId)));
+      console.warn('Cart API remove failed, local state preserved.');
     }
   };
 
   // Clear Cart
   const clear = async () => {
+    setLocalItems([]);
+    setDiscountAmount(0);
+    setCouponCode('');
+
     try {
+      await AsyncStorage.removeItem('@cart_items');
       await withTimeout(clearCart(), 2000);
-      await refreshCart();
     } catch (e) {
-      console.warn('Cart API clear failed, adjusting local state.');
-      setLocalItems([]);
-      setDiscountAmount(0);
-      setCouponCode('');
+      console.warn('Cart API clear failed, local state preserved.');
     }
   };
 
@@ -125,19 +205,19 @@ export const CartProvider = ({ children }) => {
     setCouponError('');
     try {
       const res = await withTimeout(applyCoupon(code), 2000);
-      if (res.data) {
+      if (res.data?.discountAmount) {
         setCouponCode(code);
         setDiscountAmount(res.data.discountAmount || 0);
       }
     } catch (e) {
       console.warn('Coupon API apply failed, validating local mock coupon codes.');
-      const normalizedCode = code.trim().toUpperCase();
+      const normalizedCode = (code || '').trim().toUpperCase();
       if (normalizedCode === 'DISCOUNT10' || normalizedCode === 'WELCOME') {
         setCouponCode(normalizedCode);
         setCouponError('');
-        // Subtotal calculation for mock discount
-        const subtotal = localItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        setDiscountAmount(subtotal * 0.1); // 10% Off
+        const safeLocal = Array.isArray(localItems) ? localItems : [];
+        const subtotal = safeLocal.reduce((sum, item) => sum + (Number(item?.price) || 0) * (Number(item?.quantity) || 1), 0);
+        setDiscountAmount(subtotal * 0.1);
       } else {
         setCouponError('Invalid promo code. Try "DISCOUNT10"');
       }
@@ -147,7 +227,7 @@ export const CartProvider = ({ children }) => {
   return (
     <CartContext.Provider
       value={{
-        items: localItems,
+        items: Array.isArray(localItems) ? localItems : [],
         loading,
         refreshCart,
         addItem,

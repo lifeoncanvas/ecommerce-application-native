@@ -19,6 +19,7 @@ import {
   Lightning,
   Heart,
   CheckCircle,
+  Sparkle,
 } from 'phosphor-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useWishlist } from '../../context/WishlistContext';
@@ -26,9 +27,7 @@ import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 44) / 2;
+import useResponsive from '../../hooks/useResponsive';
 
 // Default Wishlist Items (Matching Image 4)
 const DEFAULT_WISHLIST_ITEMS = [
@@ -95,19 +94,39 @@ const FOR_YOU_ITEMS = [
   },
 ];
 
-export default function WishlistScreen({ navigation }) {
+export default function WishlistScreen({ route, navigation }) {
+  const responsive = useResponsive();
+  const { cardWidth } = responsive;
   const { colors } = useTheme();
   const { formatPrice } = useCurrency();
   const { wishlistItems: contextWishlist, toggleWishlist } = useWishlist();
   const { addItem, items: cartItems } = useCart();
 
+  // Route tab parameter handling
+  const routeTab = route?.params?.tab || route?.params?.initialTab;
+  const [activeWishlistTab, setActiveWishlistTab] = useState(
+    routeTab === 'bookings' || routeTab === 'services' ? 'bookings' : 'products'
+  );
+
+  useEffect(() => {
+    if (route?.params?.tab) {
+      setActiveWishlistTab(route.params.tab === 'services' ? 'bookings' : route.params.tab);
+    } else if (route?.params?.initialTab) {
+      setActiveWishlistTab(route.params.initialTab === 'services' ? 'bookings' : route.params.initialTab);
+    }
+  }, [route?.params?.tab, route?.params?.initialTab]);
+
   // Local state for removed items to allow immediate optimistic UI updates
   const [removedIds, setRemovedIds] = useState([]);
-  const [activeWishlistTab, setActiveWishlistTab] = useState('products');
 
   const isBookingItem = (item) => {
+    if (item.isBooking) return true;
     if (item.categoryId) {
       return item.categoryId === 'cat_food' || item.categoryId === 'cat_services';
+    }
+    if (item.category) {
+      const cat = String(item.category).toLowerCase();
+      return cat.includes('service') || cat.includes('food');
     }
     return false;
   };
@@ -142,24 +161,45 @@ export default function WishlistScreen({ navigation }) {
 
   // Combine items
   const activeWishlistItems = useMemo(() => {
-    const contextMapped = contextWishlist
-      .filter((item) => !removedIds.includes(item.id))
-      .map((item) => ({
-        id: item.id,
-        name: item.name || 'Fashion Item',
-        price: Number(item.price) || 899,
-        oldPrice: item.oldPrice,
-        discount: item.discount,
-        badges: ['Fast delivery', 'Trendy'],
-        image: item.image || require('../../../assets/images/details/card_1.jpg'),
-        swatches: null,
-      }));
+    const rawList = Array.isArray(contextWishlist) ? contextWishlist : [];
+    const removedList = Array.isArray(removedIds) ? removedIds : [];
+    const contextMapped = rawList
+      .filter((item) => item && !removedList.includes(String(item.id)))
+      .map((item) => {
+        const isBook = isBookingItem(item);
+        return {
+          ...item,
+          id: String(item.id),
+          name: item.name || item.title || 'Fashion Item',
+          brand: item.brand || (isBook ? 'Services' : ''),
+          price: Number(item.price) || 899,
+          oldPrice: item.oldPrice,
+          discount: item.discount,
+          badges: Array.isArray(item.badges) ? item.badges : (isBook ? ['Confirmed Slot', 'Top Rated'] : ['Fast delivery', 'Trendy']),
+          image: item.image || require('../../../assets/images/details/card_1.jpg'),
+          swatches: Array.isArray(item.swatches) ? item.swatches : null,
+          categoryId: item.categoryId,
+          category: item.category,
+          isBooking: isBook,
+        };
+      });
 
     return contextMapped;
   }, [removedIds, contextWishlist]);
 
+  // If wishlist only has bookings and 0 physical products, automatically show bookings tab
+  useEffect(() => {
+    const safeItems = Array.isArray(activeWishlistItems) ? activeWishlistItems : [];
+    const productsCount = safeItems.filter((i) => !isBookingItem(i)).length;
+    const bookingsCount = safeItems.filter((i) => isBookingItem(i)).length;
+    if (productsCount === 0 && bookingsCount > 0 && !route?.params?.tab && !route?.params?.initialTab) {
+      setActiveWishlistTab('bookings');
+    }
+  }, [activeWishlistItems, route?.params?.tab, route?.params?.initialTab]);
+
   const filteredWishlistItems = useMemo(() => {
-    return activeWishlistItems.filter((item) => {
+    const safeItems = Array.isArray(activeWishlistItems) ? activeWishlistItems : [];
+    return safeItems.filter((item) => {
       const isBook = isBookingItem(item);
       return activeWishlistTab === 'products' ? !isBook : isBook;
     });
@@ -167,7 +207,7 @@ export default function WishlistScreen({ navigation }) {
 
   // Remove from Wishlist
   const handleRemoveWishlist = async (itemId, itemName) => {
-    const updatedRemovedIds = [...removedIds, itemId];
+    const updatedRemovedIds = [...(Array.isArray(removedIds) ? removedIds : []), itemId];
     setRemovedIds(updatedRemovedIds);
     try {
       await AsyncStorage.setItem('@removed_wishlist_ids', JSON.stringify(updatedRemovedIds));
@@ -180,22 +220,30 @@ export default function WishlistScreen({ navigation }) {
 
   // Add to Bag from Wishlist
   const handleAddToBag = (item) => {
+    const isBook = isBookingItem(item);
     addItem(item.id, 1, {
+      ...item,
       id: item.id,
       name: item.name,
+      brand: item.brand,
       price: item.price,
       image: item.image,
-      size: 'M',
-      color: 'Default',
+      size: isBook ? '' : 'M',
+      color: isBook ? '' : 'Default',
+      isBooking: isBook,
+      categoryId: item.categoryId,
+      category: item.category,
+      bookingDay: isBook ? 'Today' : null,
+      bookingTimeSlot: isBook ? '12:00 PM - 01:30 PM' : null,
     });
-    showToast(`Added ${item.name} to your Bag!`);
+    showToast(isBook ? `Added ${item.name} to Bookings!` : `Added ${item.name} to your Bag!`);
   };
 
   const totalCartCount = cartItems?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 0;
 
   const renderWishlistCard = ({ item }) => {
     return (
-      <View style={styles.cardWrapper}>
+      <View style={[styles.cardWrapper, { width: cardWidth }]}>
         {/* Photo Container */}
         <TouchableOpacity
           style={styles.photoContainer}
@@ -232,10 +280,16 @@ export default function WishlistScreen({ navigation }) {
 
         {/* Content Below Photo */}
         <View style={styles.infoCol}>
-          {/* Fast Delivery Badge */}
+          {/* Fast Delivery / Confirmed Slot Badge */}
           <View style={styles.fastDeliveryRow}>
-            <Lightning size={11} color="#1E293B" weight="fill" />
-            <Text style={styles.fastDeliveryText}>Fast delivery</Text>
+            {item.isBooking ? (
+              <Sparkle size={11} color="#1E293B" weight="fill" />
+            ) : (
+              <Lightning size={11} color="#1E293B" weight="fill" />
+            )}
+            <Text style={styles.fastDeliveryText}>
+              {item.isBooking ? 'Instant Booking' : 'Fast delivery'}
+            </Text>
           </View>
 
           {/* Title */}
@@ -245,9 +299,9 @@ export default function WishlistScreen({ navigation }) {
 
           {/* Price Row */}
           <View style={styles.priceRow}>
-            <Text style={styles.itemPrice}>{formatPrice(item.price.toLocaleString('en-NG'))}</Text>
+            <Text style={styles.itemPrice}>{formatPrice(Number(item.price || 0).toLocaleString('en-NG'))}</Text>
             {item.oldPrice && (
-              <Text style={styles.itemOldPrice}>{formatPrice(item.oldPrice.toLocaleString('en-NG'))}</Text>
+              <Text style={styles.itemOldPrice}>{formatPrice(Number(item.oldPrice || 0).toLocaleString('en-NG'))}</Text>
             )}
           </View>
 
@@ -257,7 +311,7 @@ export default function WishlistScreen({ navigation }) {
           )}
 
           {/* Color Swatches if available */}
-          {item.swatches && (
+          {Array.isArray(item.swatches) && item.swatches.length > 0 && (
             <View style={styles.swatchesRow}>
               {item.swatches.map((colorHex, idx) => (
                 <View key={idx} style={[styles.swatchDot, { backgroundColor: colorHex }]} />
@@ -266,7 +320,7 @@ export default function WishlistScreen({ navigation }) {
           )}
 
           {/* Trendy Badge */}
-          {item.badges?.includes('Trendy') && (
+          {Array.isArray(item.badges) && item.badges.includes('Trendy') && (
             <View style={styles.trendyPill}>
               <Text style={styles.trendyText}>Trendy</Text>
             </View>
@@ -315,16 +369,24 @@ export default function WishlistScreen({ navigation }) {
           activeOpacity={0.8}
         >
           <Text style={[styles.wishlistTabText, activeWishlistTab === 'products' && styles.wishlistTabTextActive]}>
-            Products ({activeWishlistItems.filter(i => !isBookingItem(i)).length})
+            Products ({(Array.isArray(activeWishlistItems) ? activeWishlistItems : []).filter((i) => !isBookingItem(i)).length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.wishlistTabBtn, activeWishlistTab === 'services' && styles.wishlistTabBtnActive]}
-          onPress={() => setActiveWishlistTab('services')}
+          style={[
+            styles.wishlistTabBtn,
+            (activeWishlistTab === 'bookings' || activeWishlistTab === 'services') && styles.wishlistTabBtnActive,
+          ]}
+          onPress={() => setActiveWishlistTab('bookings')}
           activeOpacity={0.8}
         >
-          <Text style={[styles.wishlistTabText, activeWishlistTab === 'services' && styles.wishlistTabTextActive]}>
-            Services ({activeWishlistItems.filter(i => isBookingItem(i)).length})
+          <Text
+            style={[
+              styles.wishlistTabText,
+              (activeWishlistTab === 'bookings' || activeWishlistTab === 'services') && styles.wishlistTabTextActive,
+            ]}
+          >
+            Bookings ({(Array.isArray(activeWishlistItems) ? activeWishlistItems : []).filter((i) => isBookingItem(i)).length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -343,10 +405,10 @@ export default function WishlistScreen({ navigation }) {
             <View style={styles.forYouSection}>
               <Text style={styles.forYouTitle}>For you</Text>
               <View style={styles.forYouGrid}>
-                {FOR_YOU_ITEMS.map((item) => (
+                {(Array.isArray(FOR_YOU_ITEMS) ? FOR_YOU_ITEMS : []).map((item) => (
                   <TouchableOpacity
                     key={item.id}
-                    style={styles.forYouCard}
+                    style={[styles.forYouCard, { width: cardWidth }]}
                     onPress={() => navigation.navigate('ProductDetails', buildProductRouteParams(item))}
                     activeOpacity={0.9}
                   >
@@ -369,12 +431,12 @@ export default function WishlistScreen({ navigation }) {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>{activeWishlistTab === 'products' ? '❤️' : '📅'}</Text>
             <Text style={styles.emptyTitle}>
-              {activeWishlistTab === 'products' ? 'Your Wishlist is Empty' : 'No Services Saved'}
+              {activeWishlistTab === 'products' ? 'Your Wishlist is Empty' : 'No Bookings Saved'}
             </Text>
             <Text style={styles.emptySubtitle}>
               {activeWishlistTab === 'products'
                 ? 'Explore our trending collections and save your favorite styles here.'
-                : 'Explore services, restaurants & fast food, and save your favorites here.'}
+                : 'Explore services, entertainment & restaurants, and save your favorites here.'}
             </Text>
             <TouchableOpacity
               style={styles.shopNowBtn}
@@ -412,9 +474,15 @@ export default function WishlistScreen({ navigation }) {
           <Text style={styles.toastText} numberOfLines={1}>{toastMessage}</Text>
           <TouchableOpacity
             style={styles.toastBagBtn}
-            onPress={() => navigation.navigate('Cart')}
+            onPress={() =>
+              navigation.navigate('Cart', {
+                tab: activeWishlistTab === 'bookings' || activeWishlistTab === 'services' ? 'bookings' : 'products',
+              })
+            }
           >
-            <Text style={styles.toastBagText}>View Bag</Text>
+            <Text style={styles.toastBagText}>
+              {activeWishlistTab === 'bookings' || activeWishlistTab === 'services' ? 'View Bookings' : 'View Bag'}
+            </Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -480,17 +548,19 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   cardWrapper: {
-    width: CARD_WIDTH,
+    marginBottom: 4,
   },
 
   // Photo
   photoContainer: {
     width: '100%',
-    height: 225,
+    aspectRatio: 0.82,
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#F1F5F9',
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   productPhoto: {
     width: '100%',
@@ -632,16 +702,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   forYouCard: {
-    width: CARD_WIDTH,
+    marginBottom: 8,
   },
   forYouPhotoWrapper: {
     width: '100%',
-    height: 180,
+    aspectRatio: 0.85,
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#F1F5F9',
     position: 'relative',
     marginBottom: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   forYouPhoto: {
     width: '100%',
