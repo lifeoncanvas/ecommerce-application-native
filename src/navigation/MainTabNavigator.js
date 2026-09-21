@@ -22,6 +22,7 @@ import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
 import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
 import BecomeVendorScreen from '../screens/profile/BecomeVendorScreen';
+import VendorRegisterScreen from '../screens/auth/VendorRegisterScreen';
 import VendorDashboardScreen from '../screens/profile/VendorDashboardScreen';
 import VendorStoreScreen from '../screens/profile/VendorStoreScreen';
 import ExchangeRequestScreen from '../screens/profile/ExchangeRequestScreen';
@@ -44,6 +45,8 @@ import TermsConditionsScreen from '../screens/profile/TermsConditionsScreen';
 import ContactScreen from '../screens/profile/ContactScreen';
 import MyAddressesScreen from '../screens/profile/MyAddressesScreen';
 import PaymentHistoryScreen from '../screens/profile/PaymentHistoryScreen';
+import OnboardingScreen from '../screens/auth/OnboardingScreen';
+import SelectDeliveryLocationScreen from '../screens/address/SelectDeliveryLocationScreen';
 import { useTheme } from '../context/ThemeContext';
 import { useTabBarVisibility } from '../context/TabBarVisibilityContext';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -66,6 +69,10 @@ function HomeStack() {
       <HomeStackNav.Screen name="Search" component={SearchScreen} />
       <HomeStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
       <HomeStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
+      <HomeStackNav.Screen name="SelectDeliveryLocation" component={SelectDeliveryLocationScreen} />
+      <HomeStackNav.Screen name="Checkout" component={CheckoutScreen} />
+      <HomeStackNav.Screen name="Payment" component={PaymentScreen} />
+      <HomeStackNav.Screen name="OrderSuccess" component={OrderSuccessScreen} />
     </HomeStackNav.Navigator>
   );
 }
@@ -77,6 +84,9 @@ function CategoriesStack() {
       <CategoriesStackNav.Screen name="ProductListing" component={ProductListingScreen} />
       <CategoriesStackNav.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <CategoriesStackNav.Screen name="Search" component={SearchScreen} />
+      <CategoriesStackNav.Screen name="Checkout" component={CheckoutScreen} />
+      <CategoriesStackNav.Screen name="Payment" component={PaymentScreen} />
+      <CategoriesStackNav.Screen name="OrderSuccess" component={OrderSuccessScreen} />
     </CategoriesStackNav.Navigator>
   );
 }
@@ -86,6 +96,9 @@ function WishlistStack() {
     <WishlistStackNav.Navigator screenOptions={{ headerShown: false }}>
       <WishlistStackNav.Screen name="WishlistMain" component={WishlistScreen} />
       <WishlistStackNav.Screen name="ProductDetails" component={ProductDetailsScreen} />
+      <WishlistStackNav.Screen name="Checkout" component={CheckoutScreen} />
+      <WishlistStackNav.Screen name="Payment" component={PaymentScreen} />
+      <WishlistStackNav.Screen name="OrderSuccess" component={OrderSuccessScreen} />
     </WishlistStackNav.Navigator>
   );
 }
@@ -95,6 +108,7 @@ function CartStack() {
   return (
     <CartStackNav.Navigator screenOptions={{ headerShown: false }}>
       <CartStackNav.Screen name="CartMain" component={CartScreen} />
+      <CartStackNav.Screen name="SelectDeliveryLocation" component={SelectDeliveryLocationScreen} />
       <CartStackNav.Screen name="Checkout" component={CheckoutScreen} />
       <CartStackNav.Screen name="Payment" component={PaymentScreen} />
       <CartStackNav.Screen name="OrderSuccess" component={OrderSuccessScreen} />
@@ -115,6 +129,7 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="Settings" component={SettingsScreen} />
       <ProfileStackNav.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <ProfileStackNav.Screen name="BecomeVendor" component={BecomeVendorScreen} />
+      <ProfileStackNav.Screen name="VendorRegister" component={VendorRegisterScreen} />
       <ProfileStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
       <ProfileStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
       <ProfileStackNav.Screen name="AdminDashboard" component={AdminDashboardScreen} />
@@ -137,6 +152,7 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="Contact" component={ContactScreen} />
       <ProfileStackNav.Screen name="MyAddresses" component={MyAddressesScreen} />
       <ProfileStackNav.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
+      <ProfileStackNav.Screen name="Onboarding" component={OnboardingScreen} />
     </ProfileStackNav.Navigator>
   );
 }
@@ -146,7 +162,7 @@ function CustomAnimatedTabBar({ state, descriptors, navigation }) {
   const { colors, isDarkMode } = useTheme();
   const { tabBarTranslateY } = useTabBarVisibility();
 
-  // Hide bottom navigation on Categories, ProductListing, ProductDetails screens
+  // Hide bottom navigation on full-screen flows
   const currentRoute = state.routes[state.index];
   const focusedRouteName = getFocusedRouteNameFromRoute(currentRoute) ?? '';
   if (
@@ -154,7 +170,10 @@ function CustomAnimatedTabBar({ state, descriptors, navigation }) {
     focusedRouteName === 'ProductDetails' ||
     focusedRouteName === 'Checkout' ||
     focusedRouteName === 'Payment' ||
-    focusedRouteName === 'OrderSuccess'
+    focusedRouteName === 'OrderSuccess' ||
+    focusedRouteName === 'Onboarding' ||
+    focusedRouteName === 'VendorRegister' ||
+    focusedRouteName === 'SelectDeliveryLocation'
   ) {
     return null;
   }

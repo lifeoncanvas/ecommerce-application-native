@@ -199,6 +199,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const continueAsGuest = () => {
+    setUser({
+      id: 'guest',
+      name: 'Guest',
+      fullName: 'Guest',
+      email: '',
+      role: 'GUEST',
+      isGuest: true,
+    });
     setIsGuest(true);
   };
 

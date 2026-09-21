@@ -20,9 +20,6 @@ import { colors, spacing } from '../../theme';
 import { register } from '../../api/auth.api';
 import { useAuth } from '../../context/AuthContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CONTAINER_WIDTH = Math.min(SCREEN_WIDTH, 400);
-
 const countries = [
   { name: 'India', code: '+91', label: 'In +91', flag: '🇮🇳' },
   { name: 'United States', code: '+1', label: 'US +1', flag: '🇺🇸' },
@@ -437,7 +434,8 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     flex: 1,
-    width: CONTAINER_WIDTH,
+    width: '100%',
+    maxWidth: 400,
     alignSelf: 'center',
   },
   headerBlock: {

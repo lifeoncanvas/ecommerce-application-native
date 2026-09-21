@@ -64,21 +64,48 @@ class ErrorBoundary extends Component {
           <Text style={{ fontSize: 16, fontWeight: '600', color: '#DC2626', marginBottom: 8, textAlign: 'center' }}>
             Application Error Caught
           </Text>
-          <Text style={{ fontSize: 13, color: '#4B5563', textAlign: 'center', marginBottom: 20, paddingHorizontal: 16 }}>
+          <Text style={{ fontSize: 13, color: '#4B5563', textAlign: 'center', marginBottom: 12, paddingHorizontal: 16 }}>
             {this.state.error?.toString() || 'An unexpected error occurred.'}
           </Text>
-          <TouchableOpacity
-            style={{ backgroundColor: '#1A2C5B', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 24 }}
-            onPress={() => {
-              if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.location.reload();
-              } else {
-                this.setState({ hasError: false, error: null });
-              }
-            }}
-          >
-            <Text style={{ color: '#F6A400', fontWeight: 'bold', fontSize: 15 }}>Reload Application</Text>
-          </TouchableOpacity>
+          {this.state.error?.stack && (
+            <Text style={{ fontSize: 10, color: '#6B7280', textAlign: 'left', marginBottom: 20, paddingHorizontal: 16, fontFamily: Platform.OS === 'web' ? 'monospace' : undefined, maxHeight: 200, overflow: 'scroll' }}>
+              {this.state.error.stack}
+            </Text>
+          )}
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+            <TouchableOpacity
+              style={{ backgroundColor: '#1A2C5B', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 24 }}
+              onPress={() => {
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                  window.location.reload();
+                } else {
+                  this.setState({ hasError: false, error: null });
+                }
+              }}
+            >
+              <Text style={{ color: '#F6A400', fontWeight: 'bold', fontSize: 14 }}>Reload Application</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: '#E2E8F0', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 24 }}
+              onPress={async () => {
+                try {
+                  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                    window.localStorage.clear();
+                    window.location.reload();
+                  } else {
+                    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+                    await AsyncStorage.clear();
+                    this.setState({ hasError: false, error: null });
+                  }
+                } catch (e) {
+                  if (Platform.OS === 'web' && typeof window !== 'undefined') window.location.reload();
+                }
+              }}
+            >
+              <Text style={{ color: '#334155', fontWeight: '600', fontSize: 14 }}>Reset Cache</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
@@ -101,6 +128,20 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.body.style.backgroundColor = '#112347';
+      const styleId = 'rn-image-fit-fix';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          img {
+            object-fit: cover !important;
+          }
+          [style*="background-size: contain"] {
+            background-size: cover !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
     }
     registerForPushNotificationsAsync();
   }, []);

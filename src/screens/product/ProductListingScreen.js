@@ -32,9 +32,7 @@ import { useWishlist } from '../../context/WishlistContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 40) / 2; // 20px padding left & right, 8px middle gap
+import useResponsive from '../../hooks/useResponsive';
 
 // ─── Default Category Title Map ──────────────────────────────────────────────
 const CATEGORY_TITLE_MAP = {
@@ -99,12 +97,13 @@ const RICH_LISTING_CATALOG = ALL_FEED_PRODUCTS;
 
 
 const SwipeableListingCard = ({ item, isSelected, onSelect, liked, onToggleLike, formatPrice, styles }) => {
+  const { cardWidth } = useResponsive();
   const [activeIndex, setActiveIndex] = React.useState(0);
   const flatListRef = React.useRef(null);
   
   const handleScroll = (event) => {
     const x = event.nativeEvent.contentOffset.x;
-    const newIndex = Math.round(x / CARD_WIDTH);
+    const newIndex = Math.round(x / cardWidth);
     if (newIndex !== activeIndex) {
       setActiveIndex(newIndex);
     }
@@ -113,7 +112,7 @@ const SwipeableListingCard = ({ item, isSelected, onSelect, liked, onToggleLike,
   const images = item.images && item.images.length > 0 ? item.images : [item.image];
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { width: cardWidth }]}>
       <View style={styles.cardPhotoWrapper}>
         {images.length > 1 ? (
           <FlatList
@@ -125,14 +124,14 @@ const SwipeableListingCard = ({ item, isSelected, onSelect, liked, onToggleLike,
             keyExtractor={(_, idx) => idx.toString()}
             onScroll={handleScroll}
             scrollEventThrottle={16}
-            snapToInterval={CARD_WIDTH}
+            snapToInterval={cardWidth}
             decelerationRate="fast"
-            style={{ width: CARD_WIDTH, height: '100%' }}
+            style={{ width: cardWidth, height: '100%' }}
             renderItem={({ item: img }) => (
-              <Pressable onPress={onSelect} style={{ width: CARD_WIDTH, height: '100%' }}>
+              <Pressable onPress={onSelect} style={{ width: cardWidth, height: '100%' }}>
                 <Image 
                   source={img} 
-                  style={[styles.cardPhoto, { width: CARD_WIDTH, height: '100%' }]} 
+                  style={[styles.cardPhoto, { width: cardWidth, height: '100%' }]} 
                   resizeMode="cover" 
                   draggable={false}
                 />
@@ -140,10 +139,10 @@ const SwipeableListingCard = ({ item, isSelected, onSelect, liked, onToggleLike,
             )}
           />
         ) : (
-          <Pressable onPress={onSelect} style={{ width: CARD_WIDTH, height: '100%' }}>
+          <Pressable onPress={onSelect} style={{ width: cardWidth, height: '100%' }}>
             <Image 
               source={images[0]} 
-              style={[styles.cardPhoto, { width: CARD_WIDTH, height: '100%' }]} 
+              style={[styles.cardPhoto, { width: cardWidth, height: '100%' }]} 
               resizeMode="cover" 
               draggable={false}
             />
@@ -215,6 +214,8 @@ const SwipeableListingCard = ({ item, isSelected, onSelect, liked, onToggleLike,
 };
 
 export default function ProductListingScreen({ route, navigation }) {
+  const responsive = useResponsive();
+  const { cardWidth } = responsive;
   const { colors } = useTheme();
   const { formatPrice } = useCurrency();
   const { categoryId = 'cat_fashion', subcategoryId } = (route && route.params) || {};
@@ -305,13 +306,13 @@ export default function ProductListingScreen({ route, navigation }) {
 
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={[styles.card, { width: cardWidth }]}
         onPress={() => navigation.navigate('ProductDetails', buildProductRouteParams(item))}
         activeOpacity={0.88}
       >
         {/* Photo Container matching Image 1 */}
         <View style={styles.cardPhotoWrapper}>
-          <Image source={imgSrc} style={styles.cardPhoto} resizeMode="cover" />
+          <Image source={imgSrc} style={[StyleSheet.absoluteFillObject, styles.cardPhoto]} resizeMode="cover" />
 
           {/* Top Left Dark Discount Badge (-20%) */}
           {discountPct > 0 && (
@@ -426,6 +427,7 @@ export default function ProductListingScreen({ route, navigation }) {
       <FlatList
         data={displayedProducts}
         numColumns={2}
+        columnWrapperStyle={{ justifyContent: 'space-between' }}
         keyExtractor={(item) => item.id}
         renderItem={renderProductCard}
         contentContainerStyle={styles.gridContainer}
@@ -708,13 +710,11 @@ const styles = StyleSheet.create({
     paddingBottom: 90,
   },
   card: {
-    width: (width - 32 - 12) / 2, // Perfect 2-column calculation with 16px page padding and 12px column gap
-    marginHorizontal: 3,
     marginBottom: 16,
   },
   cardPhotoWrapper: {
     width: '100%',
-    height: ((width - 44) / 2) * 1.22, // Tall portrait image matching Image 1
+    aspectRatio: 0.78, // Proportional portrait aspect ratio
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',

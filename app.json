@@ -13,18 +13,31 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kingsshop.app"
+      "bundleIdentifier": "com.kingsshop.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Licht Marketing uses your location to deliver orders to your current doorstep and show nearby verified boutique stores."
+      }
     },
     "android": {
       "package": "com.kingsshop.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#032757"
-      }
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Licht Marketing uses your location to deliver orders to your current doorstep and show nearby verified boutique stores."
+        }
+      ]
     ]
   }
 }

@@ -1,12 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, useWindowDimensions, Image } from 'react-native';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 
-const { height } = Dimensions.get('window');
-
 export default function WelcomeScreen({ navigation }) {
+  const { height } = useWindowDimensions();
   const { continueAsGuest } = useAuth();
 
   return (
@@ -73,7 +72,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: height * 0.1,
+    marginTop: 40,
   },
   brandName: {
     ...typography.h1,

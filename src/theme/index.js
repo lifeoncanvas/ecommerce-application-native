@@ -1,7 +1,8 @@
 import colors from './colors';
 import typography from './typography';
+import useResponsive from '../hooks/useResponsive';
 
-export { colors, typography };
+export { colors, typography, useResponsive };
 
 // Spacing scale according to HTTN Brand Style Guide
 export const spacing = {

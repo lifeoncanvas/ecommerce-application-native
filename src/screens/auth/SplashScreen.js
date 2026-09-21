@@ -5,18 +5,17 @@ import {
   StyleSheet,
   Animated,
   ActivityIndicator,
-  Dimensions,
+  useWindowDimensions,
   Image,
   Platform,
 } from 'react-native';
-
-const { width } = Dimensions.get('window');
 
 // Exact Logo Dark Navy background fill
 const BG_COLOR    = '#112347';
 const ACCENT_GOLD = '#F6A400';
 
 export default function SplashScreen() {
+  const { width } = useWindowDimensions();
   const logoScale    = useRef(new Animated.Value(0.85)).current;
   const logoOpacity  = useRef(new Animated.Value(0)).current;
   const loaderOpacity = useRef(new Animated.Value(0)).current;
@@ -42,7 +41,7 @@ export default function SplashScreen() {
         <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }], alignItems: 'center' }}>
           <Image
             source={require('../../../assets/images/splash_logo.png')}
-            style={styles.logoImage}
+            style={[styles.logoImage, { width: Math.min(width * 0.88, 400), height: Math.min(width * 0.55, 260) }]}
             resizeMode="contain"
           />
         </Animated.View>
@@ -70,8 +69,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   logoImage: {
-    width: width * 0.88,
-    height: width * 0.55,
     maxWidth: 400,
     maxHeight: 260,
   },
