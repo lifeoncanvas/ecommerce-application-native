@@ -94,14 +94,39 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/resend-otp")
-    public ResponseEntity<ApiResponse> resendOtp(@RequestBody Map<String, String> request) {
+    @PostMapping("/send-otp")
+    public ResponseEntity<ApiResponse> sendOtp(@RequestBody Map<String, String> request) {
         try {
             String email = request.get("email");
             authService.resendOtp(email);
-            return ResponseEntity.ok(new ApiResponse("Verification code resent to your email"));
+            return ResponseEntity.ok(new ApiResponse("OTP sent to your email"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
         }
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<?> loginGoogle(@RequestBody Map<String, Object> request) {
+        return ResponseEntity.ok(Map.of("data", Map.of("token", "mock-google-token-" + System.currentTimeMillis(), "user", Map.of("email", "google_user@gmail.com", "name", "Google User", "role", "CUSTOMER"))));
+    }
+
+    @PostMapping("/apple")
+    public ResponseEntity<?> loginApple(@RequestBody Map<String, Object> request) {
+        return ResponseEntity.ok(Map.of("data", Map.of("token", "mock-apple-token-" + System.currentTimeMillis(), "user", Map.of("email", "apple_user@apple.com", "name", "Apple User", "role", "CUSTOMER"))));
+    }
+
+    @PostMapping("/facebook")
+    public ResponseEntity<?> loginFacebook(@RequestBody Map<String, Object> request) {
+        return ResponseEntity.ok(Map.of("data", Map.of("token", "mock-facebook-token-" + System.currentTimeMillis(), "user", Map.of("email", "facebook_user@fb.com", "name", "Facebook User", "role", "CUSTOMER"))));
+    }
+
+    @PostMapping("/kingschat")
+    public ResponseEntity<?> loginKingschat(@RequestBody Map<String, Object> request) {
+        return ResponseEntity.ok(Map.of("data", Map.of("token", "mock-kingschat-token-" + System.currentTimeMillis(), "user", Map.of("email", "kc_user@kingschat.com", "name", "KingsChat User", "role", "CUSTOMER"))));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse> logout() {
+        return ResponseEntity.ok(new ApiResponse("Logged out successfully"));
     }
 }
