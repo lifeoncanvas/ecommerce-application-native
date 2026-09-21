@@ -18,9 +18,6 @@ import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowRight } from 'phosphor-react-native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CONTAINER_WIDTH = Math.min(SCREEN_WIDTH, 400);
-
 export default function LoginScreen({ route, navigation }) {
   const { login, loginSocial, continueAsGuest } = useAuth();
   const role = (route && route.params && route.params.role) ? route.params.role : 'USER';
@@ -127,10 +124,13 @@ export default function LoginScreen({ route, navigation }) {
 
             {/* Licht Marketing Logo */}
             <View style={styles.crownWrapper}>
-              <Image
-                source={require('../../../assets/images/crown_logo.png')}
-                style={{ width: 220, height: 90, resizeMode: 'contain' }}
-              />
+              <View style={styles.logoMarkFrame}>
+                <Image
+                  source={require('../../../assets/images/crown_logo.png')}
+                  style={styles.logoMark}
+                />
+              </View>
+              <Text style={styles.companyName}>Litch Marketing</Text>
             </View>
 
             {/* Serif Styled Header */}
@@ -356,7 +356,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    width: CONTAINER_WIDTH,
+    width: '100%',
+    maxWidth: 400,
     alignSelf: 'center',
     justifyContent: 'space-between',
   },
@@ -382,7 +383,32 @@ const styles = StyleSheet.create({
   crownWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  logoMarkFrame: {
+    width: 82,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  logoMark: {
+    width: 62,
+    height: 48,
+    resizeMode: 'contain',
+  },
+  companyName: {
+    fontSize: 24,
+    fontFamily: 'PlusJakartaSans-Bold',
+    color: '#032757',
+    letterSpacing: 0.2,
   },
   headerTitle: {
     fontSize: 32,

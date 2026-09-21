@@ -19,9 +19,7 @@ import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../theme';
 import { register } from '../../api/auth.api';
 import { useAuth } from '../../context/AuthContext';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CONTAINER_WIDTH = Math.min(SCREEN_WIDTH, 400);
+import { CaretLeft } from 'phosphor-react-native';
 
 const countries = [
   { name: 'Nigeria', code: '+234', label: 'NG +234', flag: '🇳🇬' },
@@ -42,8 +40,8 @@ export default function VendorRegisterScreen({ navigation }) {
   // Vendor specific fields
   const [businessName, setBusinessName] = useState('');
   const [taxId, setTaxId] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPolicy, setAcceptedPolicy] = useState(false);
-  const [signature, setSignature] = useState('');
 
   // Password mask visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -68,8 +66,8 @@ export default function VendorRegisterScreen({ navigation }) {
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { tempErrors.email = 'Valid email required'; isValid = false; }
     if (!password || password.length < 6) { tempErrors.password = 'Min 6 chars'; isValid = false; }
     if (!businessName.trim()) { tempErrors.businessName = 'Required'; isValid = false; }
-    if (!acceptedPolicy) { tempErrors.policy = 'You must accept the policy'; isValid = false; }
-    if (!signature.trim()) { tempErrors.signature = 'Signature is required'; isValid = false; }
+    if (!acceptedTerms) { tempErrors.terms = 'You must agree to the terms and conditions'; isValid = false; }
+    if (!acceptedPolicy) { tempErrors.policy = 'You must agree to the company policy'; isValid = false; }
 
     setErrors(tempErrors);
     return isValid;
@@ -104,7 +102,7 @@ export default function VendorRegisterScreen({ navigation }) {
           
           <View style={styles.headerBlock}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={styles.backText}>Back</Text>
+              <CaretLeft size={20} color="#6B7280" weight="bold" />
             </TouchableOpacity>
             <Image source={require('../../../assets/images/crown_logo.png')} style={styles.crownImage} />
             <Text style={styles.headerTitle}>Become a Seller</Text>
@@ -164,19 +162,21 @@ export default function VendorRegisterScreen({ navigation }) {
               {/* Agreement */}
               <Text style={styles.sectionTitle}>Merchant Agreement</Text>
 
+              <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAcceptedTerms(!acceptedTerms)} activeOpacity={0.8}>
+                <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                  {acceptedTerms && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>Agree with terms and conditions</Text>
+              </TouchableOpacity>
+              {errors.terms ? <Text style={styles.errorText}>{errors.terms}</Text> : null}
+
               <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAcceptedPolicy(!acceptedPolicy)} activeOpacity={0.8}>
                 <View style={[styles.checkbox, acceptedPolicy && styles.checkboxChecked]}>
                   {acceptedPolicy && <Text style={styles.checkmark}>✓</Text>}
                 </View>
-                <Text style={styles.checkboxLabel}>I accept the marketplace policy where a <Text style={{fontWeight: 'bold'}}>10% commission</Text> comes to the company for every sale.</Text>
+                <Text style={styles.checkboxLabel}>Agree with Company Policy</Text>
               </TouchableOpacity>
               {errors.policy ? <Text style={styles.errorText}>{errors.policy}</Text> : null}
-
-              <View style={[styles.inputWrapper, { marginTop: 15 }]}>
-                <Text style={styles.label}>Electronic Signature (Type full name)</Text>
-                <TextInput style={[styles.inputField, errors.signature && styles.inputFieldError, { fontFamily: 'serif', fontStyle: 'italic' }]} placeholder="Type your full name here" placeholderTextColor="#9CA3AF" value={signature} onChangeText={setSignature} />
-                {errors.signature ? <Text style={styles.errorText}>{errors.signature}</Text> : null}
-              </View>
 
             </ScrollView>
 
@@ -222,11 +222,10 @@ export default function VendorRegisterScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: '#FFFCEB' },
   container: { flex: 1 },
-  innerContainer: { flex: 1, width: CONTAINER_WIDTH, alignSelf: 'center' },
-  headerBlock: { paddingTop: Platform.OS === 'ios' ? 10 : 8, paddingBottom: 10, width: '100%', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  backButton: { position: 'absolute', top: Platform.OS === 'ios' ? 10 : 8, left: 20, padding: 8 },
-  backText: { fontSize: 14, fontFamily: 'Inter-SemiBold', color: '#2952CC' },
-  crownImage: { width: 160, height: 65, resizeMode: 'contain', backgroundColor: 'transparent', marginTop: 4, marginBottom: 2 },
+  innerContainer: { flex: 1, width: '100%', maxWidth: 400, alignSelf: 'center' },
+  headerBlock: { paddingTop: Platform.OS === 'ios' ? 8 : 6, paddingBottom: 10, width: '100%', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  backButton: { position: 'absolute', top: Platform.OS === 'ios' ? 8 : 6, left: 16, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  crownImage: { width: 160, height: 65, resizeMode: 'contain', backgroundColor: 'transparent', marginTop: 2, marginBottom: 2 },
   headerTitle: { fontSize: 26, fontWeight: '500', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#010E2A', alignSelf: 'flex-start', paddingLeft: 24, marginTop: 2 },
   subHeaderTitle: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#6B7280', alignSelf: 'flex-start', paddingLeft: 24, marginBottom: 4 },
   formCard: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingHorizontal: 24, paddingTop: 22, flex: 1, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 5 },

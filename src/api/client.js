@@ -57,7 +57,9 @@ client.interceptors.request.use(async (config) => {
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
-    console.error('API Error:', error?.message, error?.config?.url);
+    if (error?.message !== 'Running in offline/mock mode') {
+      console.error('API Error:', error?.message, error?.config?.url);
+    }
     if (error?.response?.status === 401) {
       // token expired/invalid — clear it, navigate user to Login from AuthContext
       await deleteToken();

@@ -34,44 +34,29 @@ import { buildProductRouteParams } from '../../utils/productResolver';
 // Default initial items removed per user instruction
 const DEFAULT_CART_ITEMS = [];
 
-export default function CartScreen({ navigation }) {
+export default function CartScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { formatPrice } = useCurrency();
   const { items: contextItems, updateItem, removeItem, clear } = useCart();
   const { toggleWishlist } = useWishlist();
 
-  // Merge context cart items with default rich mockup items
-  const [selectedMap, setSelectedMap] = useState({
-    cart_item_1: true,
-    cart_item_2: true,
-    cart_item_3: true,
-  });
+  // Route tab parameter handling
+  const routeTab = route?.params?.tab || route?.params?.initialTab;
+  const [activeCartTab, setActiveCartTab] = useState(routeTab === 'bookings' ? 'bookings' : 'products');
+
+  useEffect(() => {
+    if (route?.params?.tab) {
+      setActiveCartTab(route.params.tab);
+    } else if (route?.params?.initialTab) {
+      setActiveCartTab(route.params.initialTab);
+    }
+  }, [route?.params?.tab, route?.params?.initialTab]);
+
+  // Selection map
+  const [selectedMap, setSelectedMap] = useState({});
 
   // Quantity map for custom items
-  const [qtyMap, setQtyMap] = useState({
-    cart_item_1: 1,
-    cart_item_2: 1,
-    cart_item_3: 1,
-  });
-
-  // Local state for removed items to allow immediate optimistic UI updates
-  const [removedCartIds, setRemovedCartIds] = useState([]);
-  const [activeCartTab, setActiveCartTab] = useState('products');
-
-  // Load removed default cart items on mount
-  useEffect(() => {
-    async function loadRemovedIds() {
-      try {
-        const stored = await AsyncStorage.getItem('@removed_cart_ids');
-        if (stored) {
-          setRemovedCartIds(JSON.parse(stored));
-        }
-      } catch (e) {
-        console.warn('Failed to load removed cart IDs:', e);
-      }
-    }
-    loadRemovedIds();
-  }, []);
+  const [qtyMap, setQtyMap] = useState({});
 
   // Size / Variant selection modal
   const [variantModalItem, setVariantModalItem] = useState(null);
@@ -80,52 +65,52 @@ export default function CartScreen({ navigation }) {
 
   // Active items list
   const allCartItems = useMemo(() => {
-    // Filter out removed default items
-    const filteredDefault = DEFAULT_CART_ITEMS.filter((item) => !removedCartIds.includes(item.id));
+    const rawItems = Array.isArray(contextItems) ? contextItems : [];
+    return rawItems.map((ci) => ({
+      id: String(ci?.id || ''),
+      name: ci?.name || ci?.title || 'Product Item',
+      title: ci?.title || ci?.name || 'Product Item',
+      brand: ci?.brand || (ci?.isBooking ? 'Services' : 'Vero Moda'),
+      price: Number(ci?.price) || 999,
+      oldPrice: ci?.oldPrice || 2499,
+      discount: ci?.discount || '60%OFF',
+      colorName: ci?.color || 'Fuchsia',
+      colorHex: ci?.colorHex || '#BA5392',
+      size: ci?.size || 'L',
+      quantity: (qtyMap && ci?.id && qtyMap[ci.id]) || ci?.quantity || 1,
+      image: ci?.image || require('../../../assets/images/details/hero_1.jpg'),
+      badges: Array.isArray(ci?.badges) ? ci.badges : (ci?.isBooking ? ['Confirmed Slot', 'Top Rated'] : ['Fast delivery', 'Trendy']),
+      selected: (selectedMap && ci?.id) ? selectedMap[ci.id] !== false : true,
+      isBooking: !!ci?.isBooking,
+      categoryId: ci?.categoryId,
+      category: ci?.category,
+      bookingDay: ci?.bookingDay || null,
+      bookingTimeSlot: ci?.bookingTimeSlot || null,
+    }));
+  }, [contextItems, selectedMap, qtyMap]);
 
-    // If context has new added items, append them
-    const mappedContext = contextItems
-      .filter((ci) => !DEFAULT_CART_ITEMS.some((di) => di.id === ci.id) && !removedCartIds.includes(String(ci.id)))
-      .map((ci) => ({
-        id: String(ci.id),
-        name: ci.name || 'Textured Top',
-        brand: ci.brand || 'Vero Moda',
-        price: Number(ci.price) || 999,
-        oldPrice: ci.oldPrice || 2499,
-        discount: ci.discount || '60%OFF',
-        colorName: ci.color || 'Fuchsia',
-        colorHex: ci.colorHex || '#BA5392',
-        size: ci.size || 'L',
-        quantity: ci.quantity || 1,
-        image: ci.image || require('../../../assets/images/details/hero_1.jpg'),
-        badges: ['Fast delivery', 'Trendy'],
-        selected: selectedMap[ci.id] !== false,
-        isBooking: !!ci.isBooking,
-        bookingDay: ci.bookingDay || null,
-        bookingTimeSlot: ci.bookingTimeSlot || null,
-      }));
-
-    return [
-      ...filteredDefault.map((item) => ({
-        ...item,
-        quantity: qtyMap[item.id] || item.quantity,
-        selected: selectedMap[item.id] !== false,
-      })),
-      ...mappedContext,
-    ];
-  }, [contextItems, selectedMap, qtyMap, removedCartIds]);
+  // If cart only has bookings and 0 physical products, automatically show bookings tab
+  useEffect(() => {
+    const safeAll = Array.isArray(allCartItems) ? allCartItems : [];
+    const productsCount = safeAll.filter((i) => !i.isBooking).length;
+    const bookingsCount = safeAll.filter((i) => i.isBooking).length;
+    if (productsCount === 0 && bookingsCount > 0 && !route?.params?.tab && !route?.params?.initialTab) {
+      setActiveCartTab('bookings');
+    }
+  }, [allCartItems, route?.params?.tab, route?.params?.initialTab]);
 
   // Toggle single item selection
   const toggleItemSelect = (id) => {
     setSelectedMap((prev) => ({
-      ...prev,
-      [id]: prev[id] === false ? true : false,
+      ...(prev || {}),
+      [id]: prev && prev[id] === false ? true : false,
     }));
   };
 
   // Get items matching the active tab
   const activeItems = useMemo(() => {
-    return allCartItems.filter((item) => {
+    const safeAll = Array.isArray(allCartItems) ? allCartItems : [];
+    return safeAll.filter((item) => {
       if (activeCartTab === 'products') {
         return !item.isBooking;
       } else {
@@ -135,18 +120,19 @@ export default function CartScreen({ navigation }) {
   }, [allCartItems, activeCartTab]);
 
   // Toggle select all inside active tab
-  const allSelected = activeItems.length > 0 && activeItems.every((item) => selectedMap[item.id] !== false);
+  const safeActiveItems = Array.isArray(activeItems) ? activeItems : [];
+  const allSelected = safeActiveItems.length > 0 && safeActiveItems.every((item) => (selectedMap ? selectedMap[item.id] !== false : true));
   const toggleSelectAll = () => {
     const nextState = !allSelected;
-    const newMap = { ...selectedMap };
-    activeItems.forEach((item) => {
+    const newMap = { ...(selectedMap || {}) };
+    safeActiveItems.forEach((item) => {
       newMap[item.id] = nextState;
     });
     setSelectedMap(newMap);
   };
 
   // Calculate totals for selected items in active tab
-  const selectedItems = activeItems.filter((i) => selectedMap[i.id] !== false);
+  const selectedItems = safeActiveItems.filter((i) => (selectedMap ? selectedMap[i.id] !== false : true));
   const selectedCount = selectedItems.length;
 
   const totalPrice = selectedItems.reduce(
@@ -175,13 +161,6 @@ export default function CartScreen({ navigation }) {
 
   // Remove item
   const handleRemoveItem = async (itemId) => {
-    const updatedRemoved = [...removedCartIds, itemId];
-    setRemovedCartIds(updatedRemoved);
-    try {
-      await AsyncStorage.setItem('@removed_cart_ids', JSON.stringify(updatedRemoved));
-    } catch (e) {
-      console.warn('Failed to save removed cart IDs:', e);
-    }
     setQtyMap((prev) => {
       const next = { ...prev };
       delete next[itemId];
@@ -282,7 +261,7 @@ export default function CartScreen({ navigation }) {
 
           {/* Tags / Badges */}
           <View style={styles.badgesRow}>
-            {item.badges?.map((badge, idx) => (
+            {Array.isArray(item.badges) && item.badges.map((badge, idx) => (
               <View
                 key={idx}
                 style={[

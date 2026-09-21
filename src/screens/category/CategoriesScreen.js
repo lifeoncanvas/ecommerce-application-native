@@ -20,8 +20,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { buildProductRouteParams } from '../../utils/productResolver';
 import { useTabBarVisibility } from '../../context/TabBarVisibilityContext';
 import { useCart } from '../../context/CartContext';
-
-const { width } = Dimensions.get('window');
+import useResponsive from '../../hooks/useResponsive';
 
 // ─── Curated Subcategory Mappings with Real Photos ──────────────────────────
 const SUBCAT_IMAGES = {
@@ -192,6 +191,10 @@ const withTimeout = (promise, ms = 2500) => {
 };
 
 export default function CategoriesScreen({ navigation }) {
+  const responsive = useResponsive();
+  const { containerWidth } = responsive;
+  const subcatCardWidth = Math.max(130, Math.floor((Math.min(containerWidth, 600) - 64) / 2));
+
   const { colors, isDarkMode } = useTheme();
   const { handleScrollForTabBar } = useTabBarVisibility();
   const [activeCategoryId, setActiveCategoryId] = useState('cat_food');
@@ -283,7 +286,7 @@ export default function CategoriesScreen({ navigation }) {
           {subcategories.map((sub) => (
             <TouchableOpacity
               key={sub.id}
-              style={styles.subcatCard}
+              style={[styles.subcatCard, { width: subcatCardWidth }]}
               onPress={() =>
                 navigation.navigate('ProductListing', {
                   categoryId: activeCategoryId,
@@ -458,7 +461,6 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   subcatCard: {
-    width: (width - 64) / 2, // 2-col layout
     alignItems: 'center',
   },
   subcatCircle: {

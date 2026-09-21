@@ -12,8 +12,20 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Path } from 'react-native-svg';
+import {
+  MapPin,
+  PencilSimple,
+  House,
+  Briefcase,
+  DotsThree,
+  CheckCircle,
+  Plus,
+  NavigationArrow,
+} from 'phosphor-react-native';
 import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useCart } from '../../context/CartContext';
@@ -97,13 +109,15 @@ export default function CheckoutScreen({ route, navigation }) {
     applyPromoCoupon(promoInput);
   };
 
-  // Lists loaded from Spring Boot endpoints
+  // Lists loaded from Spring Boot endpoints & AsyncStorage
   const [addresses, setAddresses] = useState([]);
   const [shippingRates, setShippingRates] = useState([]);
 
-  // Selected values
+  // Selected values & stored default address
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [selectedRateId, setSelectedRateId] = useState(null);
+  const [defaultDeliveryAddress, setDefaultDeliveryAddress] = useState(null);
+  const [changeAddressModalVisible, setChangeAddressModalVisible] = useState(false);
 
   // Modal Address form states
   const [addAddressModalVisible, setAddAddressModalVisible] = useState(false);
@@ -118,41 +132,118 @@ export default function CheckoutScreen({ route, navigation }) {
   const [state, setState] = useState('');
   const [isDefault, setIsDefault] = useState(false);
 
-  // Fetch from endpoints in background
+  // Helper to load default delivery address and saved addresses from AsyncStorage
+  const loadStoredAddresses = async () => {
+    let defAddr = null;
+    let savedList = [];
+    try {
+      const storedDefault = await AsyncStorage.getItem('@default_delivery_address');
+      if (storedDefault) {
+        const parsed = JSON.parse(storedDefault);
+        defAddr = {
+          id: parsed.id || 'default_saved_addr',
+          name: parsed.name || 'Upasana',
+          address: parsed.fullAddress || parsed.address || `${parsed.flatHouse || ''}, ${parsed.areaStreet || ''}, ${parsed.city || 'Pune'}`,
+          phone: parsed.phone || '+91 98765 43210',
+          tag: parsed.tag || 'HOME',
+          isDefault: true,
+          raw: parsed,
+        };
+      }
+    } catch (e) {
+      console.warn('Error reading default address:', e);
+    }
+
+    try {
+      const storedSaved = await AsyncStorage.getItem('@saved_addresses');
+      if (storedSaved) {
+        const parsedSaved = JSON.parse(storedSaved);
+        if (Array.isArray(parsedSaved)) {
+          savedList = parsedSaved.map((s) => ({
+            id: s.id || 'addr_' + Math.random(),
+            name: s.name || 'Upasana',
+            address: s.fullAddress || s.address || `${s.flatHouse || ''}, ${s.areaStreet || ''}, ${s.city || 'Pune'}`,
+            phone: s.phone || '+91 98765 43210',
+            tag: s.tag || 'HOME',
+            isDefault: !!s.isDefault,
+            raw: s,
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading saved addresses:', e);
+    }
+
+    return { defAddr, savedList };
+  };
+
+  // Fetch from endpoints and AsyncStorage in background
   const fetchCheckoutData = useCallback(async () => {
     setLoading(true);
     try {
-      const [addressRes, ratesRes] = await withTimeout(
+      const [addressRes, ratesRes, stored] = await withTimeout(
         Promise.all([
           getAddresses(),
           getShippingRates(),
+          loadStoredAddresses(),
         ]),
         2500
       );
 
       const addressList = addressRes.data || [];
       const ratesList = ratesRes.data || [];
+      const { defAddr, savedList } = stored || {};
 
-      setAddresses(addressList);
+      const combined = [];
+      if (defAddr) combined.push(defAddr);
+      (savedList || []).forEach((s) => {
+        if (!combined.some((a) => a.id === s.id)) combined.push(s);
+      });
+      addressList.forEach((a) => {
+        if (!combined.some((item) => item.id === a.id)) combined.push(a);
+      });
+
+      setAddresses(combined);
       setShippingRates(ratesList);
 
-      if (addressList.length > 0) setSelectedAddressId(addressList[0].id);
+      if (defAddr) {
+        setDefaultDeliveryAddress(defAddr);
+        setSelectedAddressId(defAddr.id);
+      } else if (combined.length > 0) {
+        setSelectedAddressId(combined[0].id);
+      }
       if (ratesList.length > 0) setSelectedRateId(ratesList[0].id);
     } catch (e) {
       console.warn('Checkout APIs failed, loading mock fallback data.', e.message);
+      const { defAddr, savedList } = await loadStoredAddresses();
+
       const mockAddresses = [
-        { id: 'addr_1', name: 'Home Address', address: '123 Main St, New York, NY 10001, United States', phone: '+1 555-0199' },
-        { id: 'addr_2', name: 'Office Address', address: '456 Business Plaza, Block 4B, Lagos, Nigeria', phone: '+234 803 123 4567' }
+        { id: 'addr_1', name: 'Home Address', address: '123 Main St, New York, NY 10001, United States', phone: '+1 555-0199', tag: 'HOME' },
+        { id: 'addr_2', name: 'Office Address', address: '456 Business Plaza, Block 4B, Lagos, Nigeria', phone: '+234 803 123 4567', tag: 'WORK' }
       ];
       const mockRates = [
         { id: 'rate_standard', name: 'Standard Delivery', price: 0, time: '3-5 business days' },
         { id: 'rate_express', name: 'Express Shipping', price: 99, time: '1-2 business days' }
       ];
 
-      setAddresses(mockAddresses);
+      const combined = [];
+      if (defAddr) combined.push(defAddr);
+      (savedList || []).forEach((s) => {
+        if (!combined.some((a) => a.id === s.id)) combined.push(s);
+      });
+      mockAddresses.forEach((a) => {
+        if (!combined.some((item) => item.id === a.id)) combined.push(a);
+      });
+
+      setAddresses(combined);
       setShippingRates(mockRates);
-      setSelectedAddressId(mockAddresses[0].id);
-      setSelectedRateId(mockRates[0].id);
+      if (defAddr) {
+        setDefaultDeliveryAddress(defAddr);
+        setSelectedAddressId(defAddr.id);
+      } else if (combined.length > 0) {
+        setSelectedAddressId(combined[0].id);
+      }
+      if (mockRates.length > 0) setSelectedRateId(mockRates[0].id);
     } finally {
       setLoading(false);
     }
@@ -161,6 +252,33 @@ export default function CheckoutScreen({ route, navigation }) {
   useEffect(() => {
     fetchCheckoutData();
   }, [fetchCheckoutData]);
+
+  // Re-check whenever screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        const { defAddr } = await loadStoredAddresses();
+        if (!active) return;
+        if (defAddr) {
+          setDefaultDeliveryAddress(defAddr);
+          setAddresses((prev) => {
+            const rest = prev.filter((a) => a.id !== defAddr.id);
+            return [defAddr, ...rest];
+          });
+          setSelectedAddressId((curr) => {
+            if (!curr || curr === 'addr_1' || curr === 'default_saved_addr' || curr === defAddr.id) {
+              return defAddr.id;
+            }
+            return curr;
+          });
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   // Handle adding new address
   const handleSaveAddress = async () => {
@@ -193,13 +311,37 @@ export default function CheckoutScreen({ route, navigation }) {
     try {
       const res = await withTimeout(addAddress(payload), 2000);
       const savedAddress = res.data || { ...payload, id: tempId };
-      setAddresses((prev) => [...prev, savedAddress]);
+      setAddresses((prev) => [savedAddress, ...prev.filter((a) => a.id !== savedAddress.id)]);
       setSelectedAddressId(savedAddress.id);
+      if (isDefault) {
+        const defObj = {
+          id: savedAddress.id,
+          name: payload.name,
+          phone: payload.phone,
+          fullAddress: payload.address,
+          tag: 'HOME',
+          isDefault: true,
+        };
+        await AsyncStorage.setItem('@default_delivery_address', JSON.stringify(defObj));
+        setDefaultDeliveryAddress(defObj);
+      }
     } catch (e) {
       console.warn('Add Address API failed, saving locally.', e.message);
       const savedAddress = { ...payload, id: tempId };
-      setAddresses((prev) => [...prev, savedAddress]);
+      setAddresses((prev) => [savedAddress, ...prev.filter((a) => a.id !== savedAddress.id)]);
       setSelectedAddressId(tempId);
+      if (isDefault) {
+        const defObj = {
+          id: tempId,
+          name: payload.name,
+          phone: payload.phone,
+          fullAddress: payload.address,
+          tag: 'HOME',
+          isDefault: true,
+        };
+        await AsyncStorage.setItem('@default_delivery_address', JSON.stringify(defObj));
+        setDefaultDeliveryAddress(defObj);
+      }
     } finally {
       // Reset form fields
       setRecipientName('');
@@ -215,10 +357,20 @@ export default function CheckoutScreen({ route, navigation }) {
     }
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const checkoutItems = (selectedItems && selectedItems.length > 0) ? selectedItems : items;
+  const subtotal = checkoutItems.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
   const selectedRate = shippingRates.find((r) => r.id === selectedRateId);
   const shippingCost = selectedRate ? selectedRate.price : 0;
   const total = Math.max(0, subtotal - discountAmount + shippingCost);
+
+  const selectedAddress =
+    addresses.find((a) => a.id === selectedAddressId) ||
+    defaultDeliveryAddress ||
+    (addresses.length > 0 ? addresses[0] : null);
+  const isDefaultSelected =
+    selectedAddress &&
+    (selectedAddress.isDefault ||
+      (defaultDeliveryAddress && selectedAddress.id === defaultDeliveryAddress.id));
 
   const handleProceedToPayment = () => {
     if (!selectedAddressId) {
@@ -260,42 +412,103 @@ export default function CheckoutScreen({ route, navigation }) {
             <View style={styles.progressStep}><Text style={styles.stepNum}>2</Text><Text style={styles.stepText}>Payment</Text></View>
           </View>
 
-          {/* Delivery Addresses */}
+          {/* Delivery Address Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Delivery Address</Text>
               <TouchableOpacity
-                style={styles.addAddressBtn}
-                onPress={() => setAddAddressModalVisible(true)}
+                style={styles.changeAddressHeaderBtn}
+                onPress={() => setChangeAddressModalVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.addAddressBtnText}>+ Add New</Text>
+                <PencilSimple size={13} color={colors.gold} weight="bold" />
+                <Text style={styles.changeAddressHeaderBtnText}>Change Address</Text>
               </TouchableOpacity>
             </View>
-            {addresses.map((addr) => {
-              const isSelected = addr.id === selectedAddressId;
-              return (
-                <TouchableOpacity
-                  key={addr.id}
-                  style={[styles.addressCard, isSelected && styles.cardSelected]}
-                  onPress={() => setSelectedAddressId(addr.id)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={[styles.cardName, isSelected && styles.textActive]}>{addr.name}</Text>
-                    {isSelected && <View style={styles.selectedDot} />}
+
+            {/* Currently Selected / Default Address Card */}
+            {selectedAddress ? (
+              <View style={[styles.activeAddressCard, isDefaultSelected && styles.activeAddressCardDefault]}>
+                <View style={styles.cardHeaderRow}>
+                  <View style={styles.badgeGroup}>
+                    <View style={styles.tagBadge}>
+                      {selectedAddress.tag === 'WORK' ? (
+                        <Briefcase size={12} color={colors.navy} weight="bold" />
+                      ) : selectedAddress.tag === 'OTHER' ? (
+                        <DotsThree size={14} color={colors.navy} weight="bold" />
+                      ) : (
+                        <House size={12} color={colors.navy} weight="bold" />
+                      )}
+                      <Text style={styles.tagBadgeText}>{selectedAddress.tag || 'HOME'}</Text>
+                    </View>
+                    {isDefaultSelected ? (
+                      <View style={styles.defaultBadge}>
+                        <CheckCircle size={12} color="#16A34A" weight="fill" />
+                        <Text style={styles.defaultBadgeText}>DEFAULT ADDRESS</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.selectedBadge}>
+                        <Text style={styles.selectedBadgeText}>SELECTED</Text>
+                      </View>
+                    )}
                   </View>
-                  <Text style={styles.cardAddress}>{addr.address}</Text>
-                  <Text style={styles.cardPhone}>Phone: {addr.phone}</Text>
-                </TouchableOpacity>
-              );
-            })}
+
+                  <TouchableOpacity
+                    style={styles.cardChangeTextBtn}
+                    onPress={() => setChangeAddressModalVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.cardChangeText}>Change ✎</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.addressBodyRow}>
+                  <View style={[styles.pinIconBox, isDefaultSelected && styles.pinIconBoxDefault]}>
+                    <MapPin size={20} color={isDefaultSelected ? colors.gold : colors.navy} weight="fill" />
+                  </View>
+                  <View style={styles.addressInfoCol}>
+                    <Text style={styles.recipientNameText}>{selectedAddress.name}</Text>
+                    <Text style={styles.fullAddressText}>{selectedAddress.address}</Text>
+                    <Text style={styles.phoneText}>Phone: {selectedAddress.phone}</Text>
+                  </View>
+                </View>
+
+                {/* ─── PROMPT: Change Address Prompt Banner ─────────────────── */}
+                <View style={styles.promptBanner}>
+                  <View style={styles.promptTextCol}>
+                    <Text style={styles.promptBannerTitle}>
+                      {isDefaultSelected ? 'Delivering to your default address' : 'Delivering to this selected address'}
+                    </Text>
+                    <Text style={styles.promptBannerSub}>
+                      Want to deliver elsewhere or change address?
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.promptBannerBtn}
+                    onPress={() => setChangeAddressModalVisible(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.promptBannerBtnText}>Change Address ✎</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.noAddressCard}
+                onPress={() => setChangeAddressModalVisible(true)}
+                activeOpacity={0.8}
+              >
+                <MapPin size={24} color={colors.navy} />
+                <Text style={styles.noAddressTitle}>No delivery address selected</Text>
+                <Text style={styles.noAddressSub}>Tap to select or add address</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Shipping Methods */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Shipping Method</Text>
-            {shippingRates.map((rate) => {
+            {(Array.isArray(shippingRates) ? shippingRates : []).map((rate) => {
               const isSelected = rate.id === selectedRateId;
               return (
                 <TouchableOpacity
@@ -315,6 +528,31 @@ export default function CheckoutScreen({ route, navigation }) {
               );
             })}
           </View>
+
+          {/* Order Items preview */}
+          {checkoutItems && checkoutItems.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Order Items ({checkoutItems.length})</Text>
+              <View style={styles.summaryCard}>
+                {checkoutItems.map((item, idx) => (
+                  <View key={item.id || idx} style={[styles.checkoutItemRow, idx > 0 && styles.checkoutItemDivider]}>
+                    {item.image && (
+                      <Image source={item.image} style={styles.checkoutItemThumb} resizeMode="cover" />
+                    )}
+                    <View style={styles.checkoutItemInfo}>
+                      <Text style={styles.checkoutItemTitle} numberOfLines={1}>{item.name || item.title}</Text>
+                      {item.brand ? <Text style={styles.checkoutItemBrand}>{item.brand}</Text> : null}
+                      {item.size ? <Text style={styles.checkoutItemMeta}>Size: {item.size}</Text> : null}
+                      {item.bookingTimeSlot ? (
+                        <Text style={styles.checkoutItemMeta}>{item.bookingDay ? `${item.bookingDay} · ` : ''}{item.bookingTimeSlot}</Text>
+                      ) : null}
+                      <Text style={styles.checkoutItemPrice}>{formatPrice(item.price)} × {item.quantity || 1}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Order Summary list */}
           <View style={styles.section}>
@@ -518,6 +756,119 @@ export default function CheckoutScreen({ route, navigation }) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ─── Change Address Bottom Sheet Modal ───────────────────────────── */}
+      <Modal
+        visible={changeAddressModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setChangeAddressModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.changeAddressModalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Delivery Address</Text>
+                <Text style={styles.modalSubtitle}>Select an address or choose from map</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setChangeAddressModalVisible(false)}
+                style={styles.closeBtn}
+              >
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.addressListScroll} showsVerticalScrollIndicator={false}>
+              {(Array.isArray(addresses) ? addresses : []).map((addr) => {
+                const isSelected = addr.id === selectedAddressId;
+                const isAddrDefault = addr.isDefault || (defaultDeliveryAddress && addr.id === defaultDeliveryAddress.id);
+                return (
+                  <TouchableOpacity
+                    key={addr.id}
+                    style={[styles.addressItemCard, isSelected && styles.addressItemCardSelected]}
+                    onPress={() => {
+                      setSelectedAddressId(addr.id);
+                      setChangeAddressModalVisible(false);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+
+                    <View style={styles.addressItemContent}>
+                      <View style={styles.addressItemBadges}>
+                        <View style={styles.tagBadge}>
+                          {addr.tag === 'WORK' ? (
+                            <Briefcase size={11} color={colors.navy} weight="bold" />
+                          ) : addr.tag === 'OTHER' ? (
+                            <DotsThree size={13} color={colors.navy} weight="bold" />
+                          ) : (
+                            <House size={11} color={colors.navy} weight="bold" />
+                          )}
+                          <Text style={styles.tagBadgeText}>{addr.tag || 'HOME'}</Text>
+                        </View>
+                        {isAddrDefault && (
+                          <View style={styles.defaultBadge}>
+                            <CheckCircle size={11} color="#16A34A" weight="fill" />
+                            <Text style={styles.defaultBadgeText}>DEFAULT</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.itemRecipientName}>{addr.name}</Text>
+                      <Text style={styles.itemAddressText}>{addr.address}</Text>
+                      <Text style={styles.itemPhoneText}>Phone: {addr.phone}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Quick Actions: Select on Map & Add New */}
+            <View style={styles.modalActionButtons}>
+              <TouchableOpacity
+                style={styles.mapActionBtn}
+                onPress={() => {
+                  setChangeAddressModalVisible(false);
+                  navigation.navigate('SelectDeliveryLocation', {
+                    onLocationConfirmed: (newAddr) => {
+                      const formatted = {
+                        id: newAddr.id,
+                        name: newAddr.name,
+                        address: newAddr.fullAddress,
+                        phone: newAddr.phone,
+                        tag: newAddr.tag,
+                        isDefault: newAddr.isDefault,
+                      };
+                      setDefaultDeliveryAddress(formatted);
+                      setSelectedAddressId(formatted.id);
+                      setAddresses((prev) => [formatted, ...prev.filter((a) => a.id !== formatted.id)]);
+                    },
+                  });
+                }}
+                activeOpacity={0.85}
+              >
+                <NavigationArrow size={16} color={colors.navy} weight="fill" />
+                <Text style={styles.mapActionBtnText}>Choose on Map (Interactive)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.manualActionBtn}
+                onPress={() => {
+                  setChangeAddressModalVisible(false);
+                  setAddAddressModalVisible(true);
+                }}
+                activeOpacity={0.85}
+              >
+                <Plus size={15} color={colors.navy} weight="bold" />
+                <Text style={styles.manualActionBtnText}>+ Add New Manually</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Available Coupons Modal */}
       <Modal
         visible={couponsModalVisible}
@@ -535,7 +886,7 @@ export default function CheckoutScreen({ route, navigation }) {
             </View>
 
             <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
-              {coupons.map((c) => (
+              {(Array.isArray(coupons) ? coupons : []).map((c) => (
                 <TouchableOpacity
                   key={c.code}
                   style={styles.couponCard}
@@ -1004,5 +1355,340 @@ const getStyles = (colors) => StyleSheet.create({
   modalCloseIcon: {
     fontSize: 20,
     color: colors.textSecondary,
+  },
+  checkoutItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+  },
+  checkoutItemDivider: {
+    borderTopWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  checkoutItemThumb: {
+    width: 54,
+    height: 54,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+  },
+  checkoutItemInfo: {
+    flex: 1,
+  },
+  checkoutItemTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.navy,
+  },
+  checkoutItemBrand: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  checkoutItemMeta: {
+    fontSize: 11,
+    color: '#0284C7',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  checkoutItemPrice: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.navy,
+    marginTop: 2,
+  },
+  changeAddressHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  changeAddressHeaderBtnText: {
+    ...typography.caption,
+    color: colors.gold,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  activeAddressCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  activeAddressCardDefault: {
+    borderColor: colors.navy,
+    backgroundColor: '#FFFFFF',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  badgeGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  tagBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+  },
+  tagBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.navy,
+    letterSpacing: 0.5,
+  },
+  defaultBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+  },
+  defaultBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+    letterSpacing: 0.4,
+  },
+  selectedBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  selectedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    letterSpacing: 0.4,
+  },
+  cardChangeTextBtn: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  cardChangeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.gold,
+  },
+  addressBodyRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  pinIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pinIconBoxDefault: {
+    backgroundColor: colors.goldLight || '#FEF6E0',
+  },
+  addressInfoCol: {
+    flex: 1,
+  },
+  recipientNameText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.navy,
+  },
+  fullAddressText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  phoneText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  promptBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 2,
+  },
+  promptTextCol: {
+    flex: 1,
+    marginRight: 8,
+  },
+  promptBannerTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.navy,
+  },
+  promptBannerSub: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  promptBannerBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: colors.navy,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  promptBannerBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.navy,
+  },
+  noAddressCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    borderStyle: 'dashed',
+    padding: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  noAddressTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.navy,
+  },
+  noAddressSub: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  changeAddressModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    maxHeight: '85%',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  addressListScroll: {
+    maxHeight: 320,
+    marginVertical: spacing.md,
+  },
+  addressItemCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    gap: 12,
+  },
+  addressItemCardSelected: {
+    borderColor: colors.navy,
+    backgroundColor: '#F8FAFC',
+  },
+  radioOuter: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#94A3B8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 3,
+  },
+  radioOuterSelected: {
+    borderColor: colors.navy,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.navy,
+  },
+  addressItemContent: {
+    flex: 1,
+  },
+  addressItemBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  itemRecipientName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.navy,
+  },
+  itemAddressText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  itemPhoneText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  modalActionButtons: {
+    gap: 10,
+    marginTop: spacing.xs,
+  },
+  mapActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold || '#F6A400',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  mapActionBtnText: {
+    color: colors.navy,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  manualActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: colors.navy,
+    paddingVertical: 11,
+    borderRadius: 8,
+    gap: 6,
+  },
+  manualActionBtnText: {
+    color: colors.navy,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
