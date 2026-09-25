@@ -25,6 +25,8 @@ import BecomeVendorScreen from '../screens/profile/BecomeVendorScreen';
 import VendorRegisterScreen from '../screens/auth/VendorRegisterScreen';
 import VendorDashboardScreen from '../screens/profile/VendorDashboardScreen';
 import VendorStoreScreen from '../screens/profile/VendorStoreScreen';
+import VendorAddProductScreen from '../screens/profile/VendorAddProductScreen';
+import VendorAddServiceScreen from '../screens/profile/VendorAddServiceScreen';
 import ExchangeRequestScreen from '../screens/profile/ExchangeRequestScreen';
 import ExchangeListScreen from '../screens/profile/ExchangeListScreen';
 import AdminDashboardScreen from '../screens/profile/AdminDashboardScreen';
@@ -132,6 +134,8 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="VendorRegister" component={VendorRegisterScreen} />
       <ProfileStackNav.Screen name="VendorDashboard" component={VendorDashboardScreen} />
       <ProfileStackNav.Screen name="VendorStore" component={VendorStoreScreen} />
+      <ProfileStackNav.Screen name="VendorAddProduct" component={VendorAddProductScreen} />
+      <ProfileStackNav.Screen name="VendorAddService" component={VendorAddServiceScreen} />
       <ProfileStackNav.Screen name="AdminDashboard" component={AdminDashboardScreen} />
       <ProfileStackNav.Screen name="AdminUsers" component={AdminUsersScreen} />
       <ProfileStackNav.Screen name="AdminSellers" component={AdminSellersScreen} />
@@ -163,18 +167,12 @@ function CustomAnimatedTabBar({ state, descriptors, navigation }) {
   const { tabBarTranslateY } = useTabBarVisibility();
 
   // Hide bottom navigation on full-screen flows
+  // Hide bottom navigation on full-screen and sub-screen flows
   const currentRoute = state.routes[state.index];
-  const focusedRouteName = getFocusedRouteNameFromRoute(currentRoute) ?? '';
-  if (
-    focusedRouteName === 'ProductListing' ||
-    focusedRouteName === 'ProductDetails' ||
-    focusedRouteName === 'Checkout' ||
-    focusedRouteName === 'Payment' ||
-    focusedRouteName === 'OrderSuccess' ||
-    focusedRouteName === 'Onboarding' ||
-    focusedRouteName === 'VendorRegister' ||
-    focusedRouteName === 'SelectDeliveryLocation'
-  ) {
+  const focusedRouteName = getFocusedRouteNameFromRoute(currentRoute);
+  const mainTabRoots = ['HomeMain', 'CategoriesMain', 'WishlistMain', 'CartMain', 'ProfileMain'];
+
+  if (focusedRouteName && !mainTabRoots.includes(focusedRouteName)) {
     return null;
   }
 

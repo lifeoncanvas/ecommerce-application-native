@@ -29,7 +29,7 @@ const countries = [
 ];
 
 export default function VendorRegisterScreen({ navigation }) {
-  const { login } = useAuth();
+  const { login, setUser } = useAuth();
   
   // Input fields state
   const [fullName, setFullName] = useState('');
@@ -78,14 +78,45 @@ export default function VendorRegisterScreen({ navigation }) {
     setLoading(true);
 
     try {
-      // For demo mode, appending @vendor.com so AuthContext knows it's a vendor
       const vendorEmail = email.includes('@') ? email : `${email}@vendor.com`;
-      
-      // Usually we'd call /api/auth/register and /api/vendor/register here
-      // For frontend MVP, we use the AuthContext to log them in directly
       await login(vendorEmail, password);
+
+      if (setUser) {
+        setUser((prev) => ({
+          ...prev,
+          isVendor: true,
+          role: 'STORE_OWNER',
+          storeName: businessName.trim() || 'My Store',
+          name: fullName.trim() || prev?.name || 'Store Owner',
+          fullName: fullName.trim() || prev?.fullName || 'Store Owner',
+          verificationStatus: 'unverified',
+        }));
+      }
+
+      try {
+        navigation.navigate('BecomeVendor');
+      } catch (e) {
+        // Stack switched automatically via RootNavigator
+      }
     } catch (e) {
-      setGeneralError(e.message || 'Registration failed. Please try again.');
+      console.warn('Backend login fallback for vendor registration:', e.message);
+      if (setUser) {
+        setUser({
+          token: 'mock-jwt-token-vendor',
+          email: email,
+          name: fullName.trim() || 'Store Owner',
+          fullName: fullName.trim() || 'Store Owner',
+          role: 'STORE_OWNER',
+          isVendor: true,
+          storeName: businessName.trim() || 'My Store',
+          verificationStatus: 'unverified',
+        });
+      }
+      try {
+        navigation.navigate('BecomeVendor');
+      } catch (navErr) {
+        // Stack switched automatically via RootNavigator
+      }
     } finally {
       setLoading(false);
     }

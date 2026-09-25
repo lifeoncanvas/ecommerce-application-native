@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   CaretLeft,
+  CaretRight,
   Heart,
   ShoppingBagOpen,
   Cards,
@@ -42,12 +43,80 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { resolveProduct, getRelatedMockProducts, buildProductRouteParams } from '../../utils/productResolver';
 import useResponsive from '../../hooks/useResponsive';
 
-// ─── Default Color Swatches ──────────────────────────────────────────────────
+const getColorHex = (colorName) => {
+  if (!colorName) return '#032757';
+  const name = colorName.trim().toLowerCase();
+  if (name.includes('white')) return '#FFFFFF';
+  if (name.includes('black')) return '#1E293B';
+  if (name.includes('red') || name.includes('scarlet')) return '#EF4444';
+  if (name.includes('blue')) return '#2563EB';
+  if (name.includes('green')) return '#16A34A';
+  if (name.includes('yellow')) return '#FACC15';
+  if (name.includes('orange')) return '#F97316';
+  if (name.includes('purple')) return '#A855F7';
+  if (name.includes('pink') || name.includes('rose')) return '#EC4899';
+  if (name.includes('grey') || name.includes('gray')) return '#64748B';
+  if (name.includes('gold')) return '#F6A400';
+  if (name.includes('tan') || name.includes('amber')) return '#D97706';
+  if (name.includes('brown')) return '#8B4513';
+  return '#032757';
+};
+
+// ─── Default Color Swatches with Per-Variant Multi-Image Sets ────────────────
 const COLOR_SWATCHES = [
-  { id: 'fuchsia', name: 'Fuchsia', hex: '#BA5392', image: require('../../../assets/images/details/hero_1.jpg') },
-  { id: 'amber', name: 'Amber', hex: '#E27B36', image: require('../../../assets/images/details/card_1.jpg') },
-  { id: 'blue', name: 'Royal Blue', hex: '#5282EC', image: require('../../../assets/images/details/card_5.jpg') },
-  { id: 'maroon', name: 'Deep Maroon', hex: '#772020', image: require('../../../assets/images/details/card_2.jpg') },
+  {
+    id: 'fuchsia',
+    name: 'Fuchsia',
+    hex: '#BA5392',
+    isDefault: true,
+    price: 320,
+    mrp: 450,
+    discount: '28% OFF',
+    image: require('../../../assets/images/details/hero_1.jpg'),
+    images: [
+      require('../../../assets/images/details/hero_1.jpg'),
+      require('../../../assets/images/details/card_1.jpg'),
+      require('../../../assets/images/details/card_3.jpg'),
+    ],
+  },
+  {
+    id: 'amber',
+    name: 'Amber',
+    hex: '#E27B36',
+    price: 310,
+    mrp: 440,
+    discount: '30% OFF',
+    image: require('../../../assets/images/details/card_1.jpg'),
+    images: [
+      require('../../../assets/images/details/card_1.jpg'),
+      require('../../../assets/images/details/card_2.jpg'),
+    ],
+  },
+  {
+    id: 'blue',
+    name: 'Royal Blue',
+    hex: '#5282EC',
+    price: 340,
+    mrp: 480,
+    discount: '29% OFF',
+    image: require('../../../assets/images/details/card_5.jpg'),
+    images: [
+      require('../../../assets/images/details/card_5.jpg'),
+    ],
+  },
+  {
+    id: 'maroon',
+    name: 'Deep Maroon',
+    hex: '#772020',
+    price: 335,
+    mrp: 460,
+    discount: '27% OFF',
+    image: require('../../../assets/images/details/card_2.jpg'),
+    images: [
+      require('../../../assets/images/details/card_2.jpg'),
+      require('../../../assets/images/details/card_4.jpg'),
+    ],
+  },
 ];
 
 // ─── Sizes with Stock and Dimensions for Size Chart ──────────────────────────
@@ -148,20 +217,109 @@ export default function ProductDetailsScreen({ route, navigation }) {
   const heroHeight = isMobile ? Math.round(windowWidth * 1.05) : Math.min(600, Math.round(heroWidth * 0.75));
   const recCardWidth = Math.max(140, Math.floor((heroWidth - 48) / 2));
 
-  // States
+  // Dynamic Color Swatches & Groups
+  const colorSwatches = useMemo(() => {
+    if (product.colorGroups && Array.isArray(product.colorGroups) && product.colorGroups.length > 0) {
+      return product.colorGroups.map((cg, idx) => {
+        let imgs = [];
+        if (Array.isArray(cg.images) && cg.images.length > 0) {
+          imgs = cg.images.map((img) => (typeof img === 'string' ? { uri: img } : img));
+        } else if (cg.image || cg.imageUri) {
+          imgs = [cg.image ? cg.image : { uri: cg.imageUri }];
+        } else {
+          imgs = product.gallery || [product.image];
+        }
+
+        return {
+          id: cg.id || `cg_${idx}`,
+          name: cg.color || `Color ${idx + 1}`,
+          hex: cg.hex || getColorHex(cg.color),
+          isDefault: !!cg.isDefault,
+          price: cg.price || product.price,
+          mrp: cg.mrp || product.mrp,
+          discount: cg.discount || product.discount,
+          image: imgs[0],
+          images: imgs,
+          sizes: cg.sizes || [],
+        };
+      });
+    }
+    return COLOR_SWATCHES;
+  }, [product]);
+
+  // Determine initial variant: seller-marked default variant if flagged, else first variant
+  const initialVariant = useMemo(() => {
+    if (colorSwatches && colorSwatches.length > 0) {
+      return colorSwatches.find((s) => s.isDefault) || colorSwatches[0];
+    }
+    return COLOR_SWATCHES[0];
+  }, [colorSwatches]);
+
+  // States & Animated Refs
   const slideWidth = heroWidth;
-  const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
+  const [selectedColor, setSelectedColor] = useState(initialVariant);
   const [selectedSize, setSelectedSize] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [sizePromptVisible, setSizePromptVisible] = useState(false);
   const [slotPromptVisible, setSlotPromptVisible] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
-  const [galleryImages, setGalleryImages] = useState(product.gallery || [product.image]);
+  const [zoomModalVisible, setZoomModalVisible] = useState(false);
 
-  // Update gallery images when product changes
+  const galleryScrollViewRef = useRef(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Derives the image gallery for the CURRENTLY SELECTED color only (swiping never crosses colors)
+  const currentImages = useMemo(() => {
+    if (selectedColor && Array.isArray(selectedColor.images) && selectedColor.images.length > 0) {
+      return selectedColor.images;
+    }
+    if (selectedColor?.image) {
+      return [selectedColor.image];
+    }
+    if (product?.gallery && Array.isArray(product.gallery) && product.gallery.length > 0) {
+      return product.gallery;
+    }
+    if (product?.image) {
+      return [product.image];
+    }
+    return [require('../../../assets/images/details/hero_1.jpg')];
+  }, [selectedColor, product]);
+
+  // Sync default variant and reset gallery scroll on load/product change
   useEffect(() => {
-    setGalleryImages(product.gallery || [product.image]);
-  }, [product]);
+    setSelectedColor(initialVariant);
+    setActiveImageIndex(0);
+    if (galleryScrollViewRef.current) {
+      galleryScrollViewRef.current.scrollTo({ x: 0, animated: false });
+    }
+  }, [product, initialVariant]);
+
+  // Dynamic Available Sizes & Stock Data for Selected Color
+  const availableSizesData = useMemo(() => {
+    if (selectedColor && selectedColor.sizes && Array.isArray(selectedColor.sizes) && selectedColor.sizes.length > 0) {
+      return selectedColor.sizes.map((s) => {
+        const stockNum = typeof s.stock === 'number' ? s.stock : parseInt(s.stock, 10) || 0;
+        const isDisabled = stockNum <= 0;
+        let stockLabel = null;
+        if (isDisabled) {
+          stockLabel = 'Out of Stock';
+        } else if (stockNum <= 5) {
+          stockLabel = `${stockNum} left`;
+        }
+        return {
+          label: s.size || s.label,
+          stock: stockLabel,
+          stockNum: stockNum,
+          disabled: isDisabled,
+          bust: s.bust || 'Standard',
+          waist: s.waist || 'Standard',
+          hips: s.hips || 'Standard',
+          length: s.length || 'Standard',
+        };
+      });
+    }
+    return SIZES_DATA;
+  }, [selectedColor]);
 
   // Modals
   const [sizeChartVisible, setSizeChartVisible] = useState(false);
@@ -186,7 +344,6 @@ export default function ProductDetailsScreen({ route, navigation }) {
   const [inlineCtaY, setInlineCtaY] = useState(1000);
 
   // Determine if sticky CTA should be visible
-  // It is visible if the inline cta row has not reached the bottom viewport boundary yet.
   const stickyHeight = Platform.OS === 'ios' ? 86 : 74;
   const absoluteCtaY = infoSectionY + inlineCtaY;
   const isStickyCtaVisible = scrollY + containerHeight < absoluteCtaY + stickyHeight;
@@ -204,15 +361,32 @@ export default function ProductDetailsScreen({ route, navigation }) {
     ]).start();
   };
 
-  // Color selection effect
+  // Color selection: swaps image set, resets scroll position to index 0, animates with crossfade
   const handleSelectColor = (swatch) => {
+    if (selectedColor?.id === swatch.id) return;
+
+    // Crossfade animation on color swap
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0.2,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     setSelectedColor(swatch);
-    setGalleryImages([
-      swatch.image,
-      require('../../../assets/images/details/card_1.jpg'),
-      require('../../../assets/images/details/card_2.jpg'),
-      require('../../../assets/images/details/card_3.jpg'),
-    ]);
+    setSelectedSize(null);
+    setActiveImageIndex(0);
+
+    // ALWAYS reset gallery to index 0 (first image of new set)
+    if (galleryScrollViewRef.current) {
+      galleryScrollViewRef.current.scrollTo({ x: 0, animated: false });
+    }
   };
 
   // Size selection effect
@@ -483,28 +657,31 @@ export default function ProductDetailsScreen({ route, navigation }) {
         }}
         scrollEventThrottle={16}
       >
-        {/* ─── Hero Image Carousel with Overlaid Action Buttons (Bottom Right) ─── */}
+        {/* ─── Hero Image Carousel with Overlaid Action Buttons & Tap Zones ─── */}
         <View style={[styles.heroOuterContainer, { width: '100%', alignItems: 'center', position: 'relative' }]}>
-          <View style={{ width: heroWidth, height: heroHeight, position: 'relative' }}>
+          <Animated.View style={{ width: heroWidth, height: heroHeight, position: 'relative', opacity: fadeAnim }}>
             <ScrollView
+              ref={galleryScrollViewRef}
               horizontal
+              pagingEnabled
+              scrollEnabled={currentImages.length > 1}
               decelerationRate="fast"
               snapToInterval={heroWidth}
               snapToAlignment="start"
               showsHorizontalScrollIndicator={false}
               style={{ width: heroWidth, height: heroHeight }}
-              contentContainerStyle={[styles.carouselContainer, { width: heroWidth * ((galleryImages && galleryImages.length) || 1) }]}
-              onScroll={(e) => {
+              contentContainerStyle={{ width: heroWidth * currentImages.length }}
+              onMomentumScrollEnd={(e) => {
                 const idx = Math.round(e.nativeEvent.contentOffset.x / heroWidth);
                 setActiveImageIndex(idx);
               }}
               scrollEventThrottle={16}
             >
-              {(Array.isArray(galleryImages) ? galleryImages : []).map((imgSrc, idx) => (
+              {currentImages.map((imgSrc, idx) => (
                 <TouchableOpacity
                   key={idx}
-                  activeOpacity={0.95}
-                  onPress={() => setVisualSearchVisible(true)}
+                  activeOpacity={0.96}
+                  onPress={() => setZoomModalVisible(true)}
                   style={[styles.heroSlideWrapper, { width: heroWidth, height: heroHeight }]}
                 >
                   <Image
@@ -516,15 +693,52 @@ export default function ProductDetailsScreen({ route, navigation }) {
               ))}
             </ScrollView>
 
+            {/* Tap-Left and Tap-Right Zones for accessibility (Instagram stories style) - disabled if only 1 image */}
+            {currentImages.length > 1 && (
+              <React.Fragment>
+                {activeImageIndex > 0 && (
+                  <TouchableOpacity
+                    style={styles.tapZoneLeft}
+                    onPress={() => {
+                      const nextIdx = activeImageIndex - 1;
+                      setActiveImageIndex(nextIdx);
+                      galleryScrollViewRef.current?.scrollTo({ x: nextIdx * heroWidth, animated: true });
+                    }}
+                    activeOpacity={0.6}
+                  >
+                    <View style={styles.tapArrowCircle}>
+                      <CaretLeft size={16} color="#FFFFFF" weight="bold" />
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                {activeImageIndex < currentImages.length - 1 && (
+                  <TouchableOpacity
+                    style={styles.tapZoneRight}
+                    onPress={() => {
+                      const nextIdx = activeImageIndex + 1;
+                      setActiveImageIndex(nextIdx);
+                      galleryScrollViewRef.current?.scrollTo({ x: nextIdx * heroWidth, animated: true });
+                    }}
+                    activeOpacity={0.6}
+                  >
+                    <View style={styles.tapArrowCircle}>
+                      <CaretRight size={16} color="#FFFFFF" weight="bold" />
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </React.Fragment>
+            )}
+
             {/* Overlaid Action Buttons Strip in Bottom Right Corner */}
             <View style={styles.actionStripOverlay} pointerEvents="box-none">
               <View style={styles.actionStrip}>
                 <TouchableOpacity
                   style={styles.stripBtn}
-                  onPress={() => setVisualSearchVisible(true)}
+                  onPress={() => setZoomModalVisible(true)}
                   activeOpacity={0.7}
                 >
-                  <Cards size={18} color="#334155" weight="regular" />
+                  <MagnifyingGlass size={18} color="#334155" weight="regular" />
                 </TouchableOpacity>
 
                 <View style={styles.stripDivider} />
@@ -556,15 +770,32 @@ export default function ProductDetailsScreen({ route, navigation }) {
               </View>
             </View>
 
-            {/* Carousel Page Counter (Bottom-Left corner) */}
-            {Array.isArray(galleryImages) && galleryImages.length > 1 && (
-              <View style={styles.heroPaginationBadge}>
-                <Text style={styles.heroPaginationText}>
-                  {activeImageIndex + 1}/{galleryImages.length}
-                </Text>
+            {/* Position Indicator Dots (Hidden if only 1 image) */}
+            {currentImages.length > 1 && (
+              <View style={styles.paginationDotsOverlay}>
+                <View style={styles.dotsPillContainer}>
+                  {currentImages.map((_, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      onPress={() => {
+                        setActiveImageIndex(idx);
+                        galleryScrollViewRef.current?.scrollTo({ x: idx * heroWidth, animated: true });
+                      }}
+                      style={[
+                        styles.dotIndicator,
+                        activeImageIndex === idx ? styles.dotIndicatorActive : styles.dotIndicatorInactive,
+                      ]}
+                    />
+                  ))}
+                </View>
+                <View style={styles.heroPaginationBadge}>
+                  <Text style={styles.heroPaginationText}>
+                    {activeImageIndex + 1}/{currentImages.length}
+                  </Text>
+                </View>
               </View>
             )}
-          </View>
+          </Animated.View>
         </View>
 
         {/* ─── Product Header Information ─────────────────────────────────── */}
@@ -590,11 +821,11 @@ export default function ProductDetailsScreen({ route, navigation }) {
             <Text style={styles.ratingsCountText}>{reviewsList.length * 29} Ratings</Text>
           </TouchableOpacity>
 
-          {/* Pricing Row */}
+          {/* Pricing Row - Dynamically synced to selected variant */}
           <View style={styles.priceRow}>
-            <Text style={styles.priceMain}>{formatPrice(product.price)}</Text>
-            <Text style={styles.mrpText}>MRP {formatPrice(product.mrp)}</Text>
-            <Text style={styles.discountLabel}>{product.discount}</Text>
+            <Text style={styles.priceMain}>{formatPrice(selectedColor?.price || product.price)}</Text>
+            <Text style={styles.mrpText}>MRP {formatPrice(selectedColor?.mrp || product.mrp)}</Text>
+            <Text style={styles.discountLabel}>{selectedColor?.discount || product.discount}</Text>
           </View>
           <Text style={styles.taxNote}>inclusive of all taxes</Text>
 
@@ -640,26 +871,39 @@ export default function ProductDetailsScreen({ route, navigation }) {
             </View>
           ) : (
             <React.Fragment>
-              {/* ─── Color Swatches ────────────────────────────────────────────── */}
+              {/* ─── Color Swatches (Horizontal Row with Active Ring / Checkmark & Default Badge) ─── */}
               <View style={styles.colorSection}>
-                <Text style={styles.colorLabel}>
-                  COLOR: <Text style={styles.colorValue}>{selectedColor.name}</Text>
-                </Text>
-                <View style={styles.swatchRow}>
-                  {COLOR_SWATCHES.map((swatch) => {
-                    const isSelected = selectedColor.id === swatch.id;
+                <View style={styles.colorHeaderRow}>
+                  <Text style={styles.colorLabel}>
+                    COLOR: <Text style={styles.colorValue}>{selectedColor?.name || 'Default'}</Text>
+                  </Text>
+                  {selectedColor?.isDefault && (
+                    <View style={styles.defaultTag}>
+                      <Text style={styles.defaultTagText}>DEFAULT VARIANT</Text>
+                    </View>
+                  )}
+                </View>
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatchRow}>
+                  {colorSwatches.map((swatch) => {
+                    const isSelected = selectedColor?.id === swatch.id;
                     return (
                       <TouchableOpacity
                         key={swatch.id}
-                        style={[styles.swatchRing, isSelected && styles.swatchRingActive]}
+                        style={[styles.swatchChip, isSelected && styles.swatchChipActive]}
                         onPress={() => handleSelectColor(swatch)}
                         activeOpacity={0.8}
                       >
-                        <View style={[styles.swatchCircle, { backgroundColor: swatch.hex }]} />
+                        <View style={[styles.swatchCircle, { backgroundColor: swatch.hex || '#032757' }]}>
+                          {isSelected && <Check size={12} color="#FFFFFF" weight="bold" />}
+                        </View>
+                        <Text style={[styles.swatchText, isSelected && styles.swatchTextActive]}>
+                          {swatch.name}
+                        </Text>
                       </TouchableOpacity>
                     );
                   })}
-                </View>
+                </ScrollView>
               </View>
 
               {/* ─── Size Selector ─────────────────────────────────────────────── */}
@@ -678,13 +922,13 @@ export default function ProductDetailsScreen({ route, navigation }) {
                 <View style={styles.recommendationBox}>
                   <Sparkle size={16} color="#1E293B" weight="fill" />
                   <Text style={styles.recommendationText}>
-                    Size <Text style={{ fontWeight: '800' }}>L</Text> recommended for you
+                    Select your preferred size for <Text style={{ fontWeight: '800' }}>{selectedColor?.name}</Text>
                   </Text>
                 </View>
 
                 {/* Size Buttons Grid */}
                 <View style={styles.sizesGrid}>
-                  {SIZES_DATA.map((sz) => {
+                  {availableSizesData.map((sz) => {
                     const isSelected = selectedSize === sz.label;
                     return (
                       <TouchableOpacity
@@ -698,8 +942,8 @@ export default function ProductDetailsScreen({ route, navigation }) {
                         activeOpacity={0.8}
                       >
                         {sz.stock && (
-                          <View style={styles.stockBadge}>
-                            <Text style={styles.stockBadgeText}>{sz.stock}</Text>
+                          <View style={[styles.stockBadge, sz.disabled && { backgroundColor: '#F1F5F9' }]}>
+                            <Text style={[styles.stockBadgeText, sz.disabled && { color: '#94A3B8' }]}>{sz.stock}</Text>
                           </View>
                         )}
                         <Text
@@ -1414,6 +1658,34 @@ export default function ProductDetailsScreen({ route, navigation }) {
         </TouchableOpacity>
       </Modal>
 
+      {/* ─── Tap-to-Zoom Fullscreen Image Modal (Nice to Have) ────────────── */}
+      <Modal
+        visible={zoomModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setZoomModalVisible(false)}
+      >
+        <View style={styles.zoomModalOverlay}>
+          <TouchableOpacity style={styles.zoomCloseBtn} onPress={() => setZoomModalVisible(false)} activeOpacity={0.8}>
+            <X size={26} color="#FFFFFF" weight="bold" />
+          </TouchableOpacity>
+          {currentImages[activeImageIndex] && (
+            <Image
+              source={currentImages[activeImageIndex]}
+              style={styles.zoomImageFull}
+              resizeMode="contain"
+            />
+          )}
+          {currentImages.length > 1 && (
+            <View style={styles.zoomFooterBadge}>
+              <Text style={styles.zoomFooterText}>
+                {selectedColor?.name || 'Variant'} • {activeImageIndex + 1} of {currentImages.length}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
+
       {/* ─── Sticky Bottom CTA Buttons Row ────────────────────────────── */}
       {isStickyCtaVisible && (
         <View style={styles.stickyCtaContainer}>
@@ -1444,6 +1716,153 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF', // Pure white background
+  },
+
+  // Tap-Left and Tap-Right zones for accessibility
+  tapZoneLeft: {
+    position: 'absolute',
+    left: 12,
+    top: '42%',
+    zIndex: 15,
+  },
+  tapZoneRight: {
+    position: 'absolute',
+    right: 12,
+    top: '42%',
+    zIndex: 15,
+  },
+  tapArrowCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+
+  // Position Indicator Dots Overlay (Bottom of gallery)
+  paginationDotsOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  dotsPillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    gap: 6,
+  },
+  dotIndicator: {
+    height: 7,
+    borderRadius: 3.5,
+  },
+  dotIndicatorActive: {
+    width: 18,
+    backgroundColor: '#FFFFFF',
+  },
+  dotIndicatorInactive: {
+    width: 7,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+  },
+
+  // Color Swatch Header & Chips
+  colorHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  defaultTag: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  defaultTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
+    letterSpacing: 0.4,
+  },
+  swatchChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    marginRight: 8,
+  },
+  swatchChipActive: {
+    borderColor: '#032757',
+    backgroundColor: '#EFF6FF',
+  },
+  swatchCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  swatchText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  swatchTextActive: {
+    color: '#032757',
+    fontWeight: '700',
+  },
+
+  // Zoom Modal
+  zoomModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomCloseBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 54 : 34,
+    right: 20,
+    zIndex: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 8,
+    borderRadius: 20,
+  },
+  zoomImageFull: {
+    width: '92%',
+    height: '78%',
+  },
+  zoomFooterBadge: {
+    position: 'absolute',
+    bottom: 40,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  zoomFooterText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   // Header Bar

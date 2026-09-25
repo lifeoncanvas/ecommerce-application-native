@@ -103,6 +103,9 @@ export const AuthProvider = ({ children }) => {
         fullName: name,
         role: role,
         isVendor: isStoreOwner,
+        isOnboarded: isStoreOwner,
+        verificationStatus: isStoreOwner ? 'verified' : 'unverified',
+        vendorId: isStoreOwner ? (userFromBackend.vendorId || 'v_default') : null,
         storeName: userFromBackend.storeName || name.replace(' Manager', '').replace(' Owner', ''),
       };
 
@@ -127,6 +130,9 @@ export const AuthProvider = ({ children }) => {
           fullName: name,
           role: role,
           isVendor: isStoreOwner,
+          isOnboarded: isStoreOwner,
+          verificationStatus: isStoreOwner ? 'verified' : 'unverified',
+          vendorId: isStoreOwner ? 'v_default' : null,
           storeName: name.replace(' Manager', '').replace(' Owner', ''),
         };
         await setToken(mockUser.token);
