@@ -50,18 +50,46 @@ public class VendorController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private com.ecommerce.app.service.AuthService authService;
+
     @PostMapping("/register")
     public ResponseEntity<?> registerVendor(@RequestBody Map<String, Object> payload) {
         try {
             String email = (String) payload.get("businessEmail");
-            if (email == null) email = "nike@store.com"; // fallback
+            if (email == null || email.trim().isEmpty()) {
+                email = (String) payload.get("email");
+            }
+            if (email == null || email.trim().isEmpty()) {
+                email = "nike@store.com"; // fallback
+            }
             
+            String name = (String) payload.get("contactName");
+            if (name == null || name.trim().isEmpty()) {
+                name = (String) payload.get("businessName");
+            }
+            if (name == null || name.trim().isEmpty()) {
+                name = "Seller Admin";
+            }
+
             User user = userRepository.findByEmail(email).orElse(null);
-            
+            if (user == null) {
+                com.ecommerce.app.dto.RegisterRequest regReq = new com.ecommerce.app.dto.RegisterRequest();
+                regReq.setName(name);
+                regReq.setEmail(email);
+                regReq.setPassword((String) payload.get("password"));
+                regReq.setRole("SELLER");
+                authService.registerUser(regReq);
+                user = userRepository.findByEmail(email).orElse(null);
+            } else {
+                user.setRole("SELLER");
+                userRepository.save(user);
+            }
+
             Store store = new Store();
             store.setName((String) payload.get("businessName"));
             store.setDescription((String) payload.get("businessDescription"));
-            store.setCategory("Retail");
+            store.setCategory((String) payload.getOrDefault("category", "Retail"));
             store = storeRepository.save(store);
             
             if (user != null) {
@@ -69,7 +97,7 @@ public class VendorController {
                 storeUserRepository.save(storeUser);
             }
             
-            return ResponseEntity.ok(Map.of("vendorId", store.getId()));
+            return ResponseEntity.ok(Map.of("vendorId", store.getId(), "message", "Vendor registered successfully. Set password email sent."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
         }

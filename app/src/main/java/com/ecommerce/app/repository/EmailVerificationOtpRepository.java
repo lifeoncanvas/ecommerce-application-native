@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface EmailVerificationOtpRepository extends JpaRepository<EmailVerificationOtp, Long> {
     Optional<EmailVerificationOtp> findByUserAndVerifiedFalseOrderByIdDesc(User user);
     Optional<EmailVerificationOtp> findTopByUserOrderByCreatedAtDesc(User user);
+    Optional<EmailVerificationOtp> findTopByUserAndOtpTypeOrderByCreatedAtDesc(User user, String otpType);
 }

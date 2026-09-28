@@ -17,13 +17,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm install              # install dependencies
 npm start                # start Expo dev server (interactive menu)
+npm run build            # export static bundles via Expo export
 npm run android          # launch on Android emulator / device
 npm run ios              # launch on iOS simulator / device
 npm run web              # launch in browser
 npx expo start           # equivalent direct Expo start command
 ```
 
-> There are **no** configured `test`, `lint`, or `build` scripts in `package.json` and no tests under `src/`. Do not assume a test runner exists until it is added.
+> `npm run build` runs `expo export`. Note that there are no configured `test` or `lint` scripts in `package.json` and no tests under `src/`.
 
 ---
 

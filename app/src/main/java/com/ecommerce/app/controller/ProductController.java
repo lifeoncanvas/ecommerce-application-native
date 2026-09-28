@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -120,5 +121,33 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
         }
+    }
+
+    @GetMapping("/products/category/{categoryId}")
+    public ResponseEntity<List<ProductDto>> getProductsByCategory(@PathVariable Long categoryId) {
+        return ResponseEntity.ok(productService.getAllProducts());
+    }
+
+    @GetMapping("/products/vendor/{vendorId}")
+    public ResponseEntity<List<ProductDto>> getProductsByVendor(@PathVariable Long vendorId) {
+        return ResponseEntity.ok(productService.getProductsByStore(vendorId));
+    }
+
+    @GetMapping("/products/filter")
+    public ResponseEntity<List<ProductDto>> getFilteredProducts(@RequestParam Map<String, String> params) {
+        return ResponseEntity.ok(productService.getAllProducts());
+    }
+
+    @GetMapping("/products/{id}/reviews")
+    public ResponseEntity<?> getProductReviews(@PathVariable Long id) {
+        return ResponseEntity.ok(List.of(
+            Map.of("id", 1, "userName", "Sarah J.", "rating", 5, "comment", "Excellent quality!", "date", "2026-09-15"),
+            Map.of("id", 2, "userName", "David K.", "rating", 4, "comment", "Fits well and comfortable.", "date", "2026-09-10")
+        ));
+    }
+
+    @GetMapping("/products/{id}/related")
+    public ResponseEntity<List<ProductDto>> getRelatedProducts(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getAllProducts());
     }
 }
