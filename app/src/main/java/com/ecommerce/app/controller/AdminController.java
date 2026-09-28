@@ -28,12 +28,19 @@ public class AdminController {
     @Autowired
     private com.ecommerce.app.service.AuthService authService;
 
+    @Autowired
+    private com.ecommerce.app.repository.UserRepository userRepository;
+
     // Admin Users Management
     @GetMapping("/admin/users")
     public ResponseEntity<?> getAdminUsers(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(List.of(
-            Map.of("id", 1, "name", "John Doe", "email", "john@example.com", "role", "CUSTOMER", "status", "ACTIVE")
-        ));
+        List<com.ecommerce.app.model.User> users = userRepository.findAll();
+        if (users.isEmpty()) {
+            return ResponseEntity.ok(List.of(
+                Map.of("id", 1, "name", "John Doe", "email", "john@example.com", "role", "CUSTOMER", "status", "ACTIVE")
+            ));
+        }
+        return ResponseEntity.ok(users);
     }
 
     @PostMapping("/admin/users/create")

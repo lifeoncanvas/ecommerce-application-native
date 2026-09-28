@@ -160,22 +160,34 @@ public class AuthController {
 
     @PostMapping("/google")
     public ResponseEntity<?> loginGoogle(@RequestBody Map<String, Object> request) {
-        return ResponseEntity.ok(Map.of("data", Map.of("token", "mock-google-token-" + System.currentTimeMillis(), "user", Map.of("email", "google_user@gmail.com", "name", "Google User", "role", "CUSTOMER"))));
+        String email = (String) request.get("email");
+        String name = (String) request.get("name");
+        Map<String, Object> response = authService.loginOrRegisterSocialUser(email, name, "google");
+        return ResponseEntity.ok(Map.of("data", response));
     }
 
     @PostMapping("/apple")
     public ResponseEntity<?> loginApple(@RequestBody Map<String, Object> request) {
-        return ResponseEntity.ok(Map.of("data", Map.of("token", "mock-apple-token-" + System.currentTimeMillis(), "user", Map.of("email", "apple_user@apple.com", "name", "Apple User", "role", "CUSTOMER"))));
+        String email = (String) request.get("email");
+        String name = (String) request.get("name");
+        Map<String, Object> response = authService.loginOrRegisterSocialUser(email, name, "apple");
+        return ResponseEntity.ok(Map.of("data", response));
     }
 
     @PostMapping("/facebook")
     public ResponseEntity<?> loginFacebook(@RequestBody Map<String, Object> request) {
-        return ResponseEntity.ok(Map.of("data", Map.of("token", "mock-facebook-token-" + System.currentTimeMillis(), "user", Map.of("email", "facebook_user@fb.com", "name", "Facebook User", "role", "CUSTOMER"))));
+        String email = (String) request.get("email");
+        String name = (String) request.get("name");
+        Map<String, Object> response = authService.loginOrRegisterSocialUser(email, name, "facebook");
+        return ResponseEntity.ok(Map.of("data", response));
     }
 
     @PostMapping("/kingschat")
     public ResponseEntity<?> loginKingschat(@RequestBody Map<String, Object> request) {
-        return ResponseEntity.ok(Map.of("data", Map.of("token", "mock-kingschat-token-" + System.currentTimeMillis(), "user", Map.of("email", "kc_user@kingschat.com", "name", "KingsChat User", "role", "CUSTOMER"))));
+        String email = (String) request.get("email");
+        String name = (String) request.get("name");
+        Map<String, Object> response = authService.loginOrRegisterSocialUser(email, name, "kingschat");
+        return ResponseEntity.ok(Map.of("data", response));
     }
 
     @PostMapping("/logout")

@@ -339,6 +339,34 @@ public class AuthService {
         return response;
     }
 
+    public Map<String, Object> loginOrRegisterSocialUser(String email, String name, String provider) {
+        String targetEmail = (email != null && !email.trim().isEmpty()) 
+                ? email.toLowerCase().trim() : provider.toLowerCase() + "_user@gmail.com";
+        String targetName = (name != null && !name.trim().isEmpty()) 
+                ? name : provider.substring(0, 1).toUpperCase() + provider.substring(1) + " User";
+
+        User user = userRepository.findByEmail(targetEmail).orElseGet(() -> {
+            User newUser = new User(targetName, targetEmail, passwordEncoder.encode("SocialPass_" + generateRandomOtp()), "CUSTOMER");
+            newUser.setEmailVerified(true);
+            newUser.setStatus("ACTIVE");
+            User saved = userRepository.save(newUser);
+
+            emailService.sendAdminNotification(
+                    "New Social Account Registered (" + provider.toUpperCase() + ")",
+                    "Social user registered in database:\nName: " + saved.getName() + "\nEmail: " + saved.getEmail()
+            );
+            return saved;
+        });
+
+        if (!user.isEmailVerified()) {
+            user.setEmailVerified(true);
+            user.setStatus("ACTIVE");
+            userRepository.save(user);
+        }
+
+        return createAuthResponse(user);
+    }
+
     private String generateRandomOtp() {
         Random random = new Random();
         int otp = 100000 + random.nextInt(900000);
