@@ -82,11 +82,12 @@ export default function LoginScreen({ route, navigation }) {
 
   const handleGoogleLogin = async () => {
     setLoading('google');
+    setGeneralError('');
     try {
-      const idToken = 'mock-google-token';
+      const idToken = 'mock-google-token-' + Date.now();
       await loginSocial('google', idToken);
     } catch (e) {
-      setGeneralError('Google login failed. Please try again.');
+      setGeneralError('Google login failed: ' + (e.message || 'Please try again.'));
     } finally {
       setLoading(null);
     }
@@ -94,11 +95,12 @@ export default function LoginScreen({ route, navigation }) {
 
   const handleKingsChatLogin = async () => {
     setLoading('kingschat');
+    setGeneralError('');
     try {
-      const accessToken = 'mock-kingschat-token';
+      const accessToken = 'mock-kingschat-token-' + Date.now();
       await loginSocial('kingschat', accessToken);
     } catch (e) {
-      setGeneralError('KingsChat login failed. Please try again.');
+      setGeneralError('KingsChat login failed: ' + (e.message || 'Please try again.'));
     } finally {
       setLoading(null);
     }

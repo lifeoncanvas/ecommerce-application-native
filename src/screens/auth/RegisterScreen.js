@@ -92,12 +92,20 @@ export default function RegisterScreen({ route, navigation }) {
       isValid = false;
     }
 
-    if (password !== confirmPassword) {
+    // Auto-match confirmPassword if left blank but password is provided
+    const effectiveConfirmPassword = confirmPassword || password;
+    if (password && password !== effectiveConfirmPassword) {
       tempErrors.confirmPassword = 'Passwords do not match';
       isValid = false;
     }
 
     setErrors(tempErrors);
+
+    if (!isValid) {
+      const firstError = Object.values(tempErrors)[0] || 'Please complete all required fields';
+      setGeneralError(firstError);
+    }
+
     return isValid;
   };
 
@@ -106,18 +114,25 @@ export default function RegisterScreen({ route, navigation }) {
 
     setLoading('register');
     const fullPhone = `${selectedCountry.code}${phoneNumber.trim()}`;
-    const payload = {
+    const regPayload = {
+      name: fullName.trim(),
       fullName: fullName.trim(),
-      phone: fullPhone,
       email: email.trim(),
+      password: password,
+      phone: fullPhone,
       role: role,
     };
 
     try {
-      await register({ ...payload, password });
-      await login(payload.email, password);
+      await register(regPayload);
+      try {
+        await login(regPayload.email, password);
+      } catch (loginErr) {
+        // If login requires email verification step or token
+        navigation.navigate('VerifyEmail', { email: regPayload.email });
+      }
     } catch (e) {
-      setGeneralError(e.message || 'Registration failed. Please try again.');
+      setGeneralError(e.message || e.response?.data?.message || 'Registration failed. Please check backend server.');
     } finally {
       setLoading(null);
     }
@@ -125,11 +140,12 @@ export default function RegisterScreen({ route, navigation }) {
 
   const handleGoogleRegister = async () => {
     setLoading('google');
+    setGeneralError('');
     try {
-      const idToken = 'mock-google-token';
+      const idToken = 'mock-google-token-' + Date.now();
       await loginSocial('google', idToken);
     } catch (e) {
-      setGeneralError('Google sign up failed. Please try again.');
+      setGeneralError('Google sign up failed: ' + (e.message || 'Please try again.'));
     } finally {
       setLoading(null);
     }
@@ -137,11 +153,12 @@ export default function RegisterScreen({ route, navigation }) {
 
   const handleKingsChatRegister = async () => {
     setLoading('kingschat');
+    setGeneralError('');
     try {
-      const accessToken = 'mock-kingschat-token';
+      const accessToken = 'mock-kingschat-token-' + Date.now();
       await loginSocial('kingschat', accessToken);
     } catch (e) {
-      setGeneralError('KingsChat sign up failed. Please try again.');
+      setGeneralError('KingsChat sign up failed: ' + (e.message || 'Please try again.'));
     } finally {
       setLoading(null);
     }
