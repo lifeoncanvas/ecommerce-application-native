@@ -1,6 +1,7 @@
 package com.ecommerce.app.controller;
 
 import com.ecommerce.app.dto.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,12 +25,41 @@ public class AdminController {
         ));
     }
 
+    @Autowired
+    private com.ecommerce.app.service.AuthService authService;
+
     // Admin Users Management
     @GetMapping("/admin/users")
     public ResponseEntity<?> getAdminUsers(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(List.of(
             Map.of("id", 1, "name", "John Doe", "email", "john@example.com", "role", "CUSTOMER", "status", "ACTIVE")
         ));
+    }
+
+    @PostMapping("/admin/users/create")
+    public ResponseEntity<ApiResponse> createAccountByAdmin(@RequestBody Map<String, String> payload) {
+        try {
+            String name = payload.get("name");
+            String email = payload.get("email");
+            String role = payload.getOrDefault("role", "CUSTOMER");
+            String password = payload.get("password");
+
+            authService.createAccountByAdmin(name, email, role, password);
+            return ResponseEntity.ok(new ApiResponse("Account created successfully for " + email + ". Set password email sent."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/admin/users/send-set-password")
+    public ResponseEntity<ApiResponse> sendSetPasswordEmail(@RequestBody Map<String, String> payload) {
+        try {
+            String email = payload.get("email");
+            authService.resendOtp(email);
+            return ResponseEntity.ok(new ApiResponse("Set password email and OTP sent to " + email));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
     }
 
     @PutMapping("/admin/users/{userId}/status")

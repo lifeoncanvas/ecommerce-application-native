@@ -6,6 +6,7 @@ import com.ecommerce.app.dto.VerifyEmailRequest;
 import com.ecommerce.app.dto.LoginRequest;
 import com.ecommerce.app.dto.ForgotPasswordRequest;
 import com.ecommerce.app.dto.ResetPasswordRequest;
+import com.ecommerce.app.dto.SetPasswordRequest;
 import com.ecommerce.app.dto.VerifyOtpRequest;
 import com.ecommerce.app.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,27 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/set-password")
+    public ResponseEntity<ApiResponse> setPassword(@RequestBody SetPasswordRequest request) {
+        try {
+            authService.setPassword(request);
+            return ResponseEntity.ok(new ApiResponse("Password set successfully and account activated"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse> resendOtp(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            authService.resendOtp(email);
+            return ResponseEntity.ok(new ApiResponse("OTP sent to your email"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
     @PostMapping("/resend-email-otp")
     public ResponseEntity<ApiResponse> resendEmailOtp(@RequestBody Map<String, String> request) {
         try {
@@ -74,6 +96,16 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/verify-forgot-password-otp")
+    public ResponseEntity<ApiResponse> verifyForgotPasswordOtp(@RequestBody VerifyOtpRequest request) {
+        try {
+            authService.verifyForgotPasswordOtp(request.getEmail(), request.getOtp());
+            return ResponseEntity.ok(new ApiResponse("OTP verified successfully. You can now reset your password."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
         try {
@@ -81,6 +113,27 @@ public class AuthController {
             return ResponseEntity.ok(new ApiResponse("Password reset successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/send-login-otp")
+    public ResponseEntity<ApiResponse> sendLoginOtp(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            authService.sendLoginOtp(email);
+            return ResponseEntity.ok(new ApiResponse("Login OTP code sent to your email"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/login-with-otp")
+    public ResponseEntity<?> loginWithOtp(@RequestBody VerifyOtpRequest request) {
+        try {
+            Map<String, Object> response = authService.loginWithOtp(request.getEmail(), request.getOtp());
+            return ResponseEntity.ok(Map.of("data", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(new ApiResponse(e.getMessage()));
         }
     }
 

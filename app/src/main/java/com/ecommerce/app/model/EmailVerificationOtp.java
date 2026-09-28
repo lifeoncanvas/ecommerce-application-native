@@ -25,14 +25,21 @@ public class EmailVerificationOtp {
 
     private int attempts = 0;
 
+    private String otpType = "REGISTRATION"; // REGISTRATION, FORGOT_PASSWORD, LOGIN
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public EmailVerificationOtp() {}
 
     public EmailVerificationOtp(User user, String otp, LocalDateTime expiresAt) {
+        this(user, otp, expiresAt, "REGISTRATION");
+    }
+
+    public EmailVerificationOtp(User user, String otp, LocalDateTime expiresAt, String otpType) {
         this.user = user;
         this.otp = otp;
         this.expiresAt = expiresAt;
+        this.otpType = otpType != null ? otpType : "REGISTRATION";
         this.createdAt = LocalDateTime.now();
         this.verified = false;
         this.attempts = 0;
@@ -102,5 +109,13 @@ public class EmailVerificationOtp {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getOtpType() {
+        return otpType;
+    }
+
+    public void setOtpType(String otpType) {
+        this.otpType = otpType;
     }
 }

@@ -21,6 +21,8 @@ public class User {
 
     private boolean emailVerified = false;
 
+    private String role = "CUSTOMER"; // CUSTOMER, SELLER, ADMIN
+
     private String status = "PENDING"; // PENDING, ACTIVE, INACTIVE
 
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -31,6 +33,17 @@ public class User {
         this.name = name;
         this.email = email;
         this.password = password;
+        this.role = "CUSTOMER";
+        this.createdAt = LocalDateTime.now();
+        this.emailVerified = false;
+        this.status = "PENDING";
+    }
+
+    public User(String name, String email, String password, String role) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role != null ? role.toUpperCase() : "CUSTOMER";
         this.createdAt = LocalDateTime.now();
         this.emailVerified = false;
         this.status = "PENDING";
@@ -76,6 +89,14 @@ public class User {
 
     public void setEmailVerified(boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role != null ? role.toUpperCase() : "CUSTOMER";
     }
 
     public String getStatus() {

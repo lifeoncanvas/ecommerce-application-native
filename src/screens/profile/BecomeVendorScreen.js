@@ -204,11 +204,14 @@ export default function BecomeVendorScreen({ navigation }) {
       documentUrl: documentName ? documentName : null,
       businessEmail: user?.email || '',
       storePhotos: storePhotos,
+      acceptedPolicy: true,
+      signature: user?.fullName || storeName,
     };
 
     try {
-      const res = await withTimeout(registerVendor(payload), 2000);
-      const newVendorId = res.data?.vendorId || `v_mock_${Date.now()}`;
+      const res = await registerVendor(payload);
+      const vendorData = res?.data?.data || res?.data;
+      const newVendorId = vendorData?.id || vendorData?.vendorId || `v_registered_${Date.now()}`;
       
       setUser((prev) => ({
         ...prev,
