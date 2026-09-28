@@ -1,12 +1,11 @@
 -- 1. Reset database tables safely
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS product_images;
-DROP TABLE IF EXISTS categories;
-DROP TABLE IF EXISTS vendors;
 DROP TABLE IF EXISTS product_activities;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS store_users;
 DROP TABLE IF EXISTS stores;
+DROP TABLE IF EXISTS vendors;
 DROP TABLE IF EXISTS email_verification_otps;
 DROP TABLE IF EXISTS users;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -23,6 +22,21 @@ CREATE TABLE IF NOT EXISTS users (
     email_verified TINYINT(1) DEFAULT 0,
     status VARCHAR(50) DEFAULT 'ACTIVE',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Vendors table
+CREATE TABLE IF NOT EXISTS vendors (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    business_name VARCHAR(150) NOT NULL,
+    business_email VARCHAR(150),
+    business_phone VARCHAR(20),
+    business_address VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'APPROVED',
+    verified TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Stores table
@@ -70,7 +84,8 @@ CREATE TABLE IF NOT EXISTS products (
     featured TINYINT(1) DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE SET NULL
+    FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE SET NULL,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL
 );
 
 -- Product Activities audit table
@@ -106,26 +121,37 @@ REPLACE INTO users (id, email, password, name, role, email_verified, status, cre
 (5, 'customer@gmail.com', '$2a$10$wN1Q1.0T8Qj6x7Z5f.N6uOSbW/M6RkZ2p.eK5o7Q/V0VnZ5f.N6uO', 'Sarah Smith', 'CUSTOMER', 1, 'ACTIVE', NOW()),
 (6, 'buyer@gmail.com', '$2a$10$wN1Q1.0T8Qj6x7Z5f.N6uOSbW/M6RkZ2p.eK5o7Q/V0VnZ5f.N6uO', 'Alex Johnson', 'CUSTOMER', 1, 'ACTIVE', NOW());
 
--- 4. Seed Stores
+-- 4. Seed Vendors
+REPLACE INTO vendors (id, user_id, business_name, business_email, business_phone, status, verified, created_at) VALUES
+(1, 1, 'Nike Official Vendor', 'nike@store.com', '+1-800-555-0199', 'APPROVED', 1, NOW()),
+(2, 2, 'Jazari Food Vendor', 'jazari@vendor.com', '+1-800-555-0211', 'APPROVED', 1, NOW()),
+(3, 3, 'Apple Official Vendor', 'apple@store.com', '+1-800-555-0300', 'APPROVED', 1, NOW());
+
+-- 5. Seed Stores
 REPLACE INTO stores (id, name, slug, description, logo_url, category, rating, address, phone, active, created_at, updated_at) VALUES
 (1, 'Nike Store', 'nike-store', 'Official Nike footwear and activewear flagship store', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff', 'Fashion & Apparel', 4.8, '102 Sports Boulevard', '+1-800-555-0199', 1, NOW(), NOW()),
 (2, 'Jazari Restaurant', 'jazari-restaurant', 'Authentic gourmet dining & meal platters', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4', 'Restaurant & Food', 4.7, '45 Gourmet Way', '+1-800-555-0211', 1, NOW(), NOW()),
 (3, 'Apple Official Store', 'apple-store', 'Premium electronics, iPhones, and MacBooks', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9', 'Electronics', 4.9, '1 Apple Park Way', '+1-800-555-0300', 1, NOW(), NOW());
 
--- 5. Link Store Owners
+-- 6. Link Store Owners
 REPLACE INTO store_users (id, store_id, user_id, role, created_at) VALUES
 (1, 1, 1, 'OWNER', NOW()),
 (2, 2, 2, 'OWNER', NOW()),
 (3, 3, 3, 'OWNER', NOW());
 
--- 6. Seed Products
+-- 7. Seed Products (vendor_id references valid vendors 1, 2, 3)
 REPLACE INTO products (id, store_id, vendor_id, category_id, name, description, price, discount_price, old_price, stock_quantity, emoji, image_url, active, featured, created_at, updated_at) VALUES
-(1, 2, 101, 1, 'Jazari Gourmet Suya Platter', 'Chef signature grilled Suya beef platter served with fresh sliced onions, tomatoes, and spicy yaji pepper.', 180.00, 150.00, 220.00, 100, '🍛', '/images/categories/cat_1.jpg', 1, 1, NOW(), NOW()),
-(2, 2, 102, 1, 'Crispy Akara & French Fries', 'Hot bean fritters (Akara) fried to perfect golden crisp, paired with home-cut potato fries.', 80.00, 65.00, 100.00, 80, '🍟', '/images/banners/banner3.jpg', 1, 1, NOW(), NOW()),
-(3, 1, 103, 2, 'Nike Performance Track Jacket', 'Comfortable zip-up athletic training track jacket with Dri-FIT moisture-wicking technology.', 280.00, 240.00, 450.00, 50, '🧥', '/images/products/product_4.jpg', 1, 1, NOW(), NOW()),
-(4, 3, 111, 7, 'Omnia Horizon Smart Tablet 11"', 'Sleek 11-inch screen tablet with titanium cover, active pencil support and 120Hz display.', 640.00, 580.00, 800.00, 20, '💻', '/images/vendors/vendor_1.jpg', 1, 1, NOW(), NOW());
+(1, 2, 2, 1, 'Jazari Gourmet Suya Platter', 'Chef signature grilled Suya beef platter served with fresh sliced onions, tomatoes, and spicy yaji pepper.', 180.00, 150.00, 220.00, 100, '🍛', '/images/categories/cat_1.jpg', 1, 1, NOW(), NOW()),
+(2, 2, 2, 1, 'Crispy Akara & French Fries', 'Hot bean fritters (Akara) fried to perfect golden crisp, paired with home-cut potato fries.', 80.00, 65.00, 100.00, 80, '🍟', '/images/banners/banner3.jpg', 1, 1, NOW(), NOW()),
+(3, 1, 1, 2, 'Nike Performance Track Jacket', 'Comfortable zip-up athletic training track jacket with Dri-FIT moisture-wicking technology.', 280.00, 240.00, 450.00, 50, '🧥', '/images/products/product_4.jpg', 1, 1, NOW(), NOW()),
+(4, 3, 3, 7, 'Omnia Horizon Smart Tablet 11"', 'Sleek 11-inch screen tablet with titanium cover, active pencil support and 120Hz display.', 640.00, 580.00, 800.00, 20, '💻', '/images/vendors/vendor_1.jpg', 1, 1, NOW(), NOW());
 
--- 7. Seed Product Activities Audit Log
+-- 8. Seed Product Activities Audit Log
 REPLACE INTO product_activities (id, store_id, product_id, product_name, action_type, details, timestamp) VALUES
 (1, 1, 3, 'Nike Performance Track Jacket', 'Price Updated', 'Price changed $280 → $240', NOW()),
 (2, 2, 1, 'Jazari Gourmet Suya Platter', 'Product Added', 'New product listing added to catalog', NOW());
+
+-- 9. Clean up any orphaned vendor_id values on existing database
+SET FOREIGN_KEY_CHECKS = 0;
+UPDATE products SET vendor_id = NULL WHERE vendor_id IS NOT NULL AND vendor_id NOT IN (SELECT id FROM vendors);
+SET FOREIGN_KEY_CHECKS = 1;
