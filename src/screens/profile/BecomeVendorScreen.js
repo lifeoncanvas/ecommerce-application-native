@@ -469,48 +469,6 @@ export default function BecomeVendorScreen({ navigation }) {
           placeholder="e.g. Lekki Phase 1, Victoria Island" placeholderTextColor="#A1A1AA" />
       </View>
       {errors.area && <Text style={S.err}>{errors.area}</Text>}
-    setLoading(true);
-    const payload = {
-      businessName: storeName,
-      businessDescription: description,
-      logoUrl: logoName ? logoName : null,
-      documentUrl: documentName ? documentName : null,
-      businessEmail: user?.email || '',
-      storePhotos: storePhotos,
-      acceptedPolicy: true,
-      signature: user?.fullName || storeName,
-    };
-
-    try {
-      const res = await registerVendor(payload);
-      const vendorData = res?.data?.data || res?.data;
-      const newVendorId = vendorData?.id || vendorData?.vendorId || `v_registered_${Date.now()}`;
-      
-      setUser((prev) => ({
-        ...prev,
-        isVendor: true,
-        vendorId: newVendorId,
-        storeName,
-        storePhotos,
-      }));
-
-      navigation.replace('VendorDashboard');
-    } catch (e) {
-      console.warn('POST /api/vendor/register failed, creating local store.', e.message);
-      const newVendorId = `v_mock_${Date.now()}`;
-      setUser((prev) => ({
-        ...prev,
-        isVendor: true,
-        vendorId: newVendorId,
-        storeName,
-        storePhotos,
-      }));
-
-      navigation.replace('VendorDashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
 
       <Text style={[S.fieldLabel, { marginTop: 14 }]}>Landmark (Optional)</Text>
       <View style={S.inputRow}>

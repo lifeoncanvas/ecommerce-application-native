@@ -4,22 +4,22 @@ const asString = (value) => (value === undefined || value === null ? '' : String
 
 export const normalizeProduct = (rawProduct = {}) => {
   const key = asString(rawProduct.id || rawProduct.productId || rawProduct.slug);
-  const found = products.find((p) => asString(p.id) === key) || rawProduct;
+  const foundInMock = products.find((p) => asString(p.id) === key || asString(p.slug) === key) || {};
+  const merged = { ...foundInMock, ...rawProduct };
 
-  const vendor = vendors.find((v) => asString(v.id) === asString(found.vendorId));
+  const vendor = vendors.find((v) => asString(v.id) === asString(merged.vendorId));
 
-  const image = found.image || (found.images && found.images[0]) || require('../../assets/images/details/hero_1.jpg');
-  const images = (found.images && found.images.length > 0) ? found.images : [image];
+  const image = merged.image || (merged.images && merged.images[0]) || (merged.gallery && merged.gallery[0]) || require('../../assets/images/details/hero_1.jpg');
+  const images = (merged.images && merged.images.length > 0) ? merged.images : (merged.gallery && merged.gallery.length > 0) ? merged.gallery : [image];
 
-  const price = Number(found.price || 99);
-  const oldPrice = Number(found.oldPrice || found.mrp || Math.round(price * 1.3));
-  const discount = found.discount || `${Math.round(((oldPrice - price) / oldPrice) * 100)}% OFF`;
+  const price = Number(merged.price || 99);
+  const oldPrice = Number(merged.oldPrice || merged.mrp || Math.round(price * 1.3));
+  const discount = merged.discount || `${Math.round(((oldPrice - price) / oldPrice) * 100)}% OFF`;
 
-  const categoryId = found.categoryId || rawProduct.categoryId || 'cat_fashion';
-  const category = found.category || rawProduct.category || '';
+  const categoryId = merged.categoryId || 'cat_fashion';
+  const category = merged.category || '';
   const isBooking = !!(
-    found.isBooking ||
-    rawProduct.isBooking ||
+    merged.isBooking ||
     categoryId === 'cat_services' ||
     categoryId === 'cat_food' ||
     (typeof category === 'string' &&
@@ -27,33 +27,33 @@ export const normalizeProduct = (rawProduct = {}) => {
   );
 
   return {
-    ...found,
-    id: String(found.id || 'prod_default'),
-    name: found.name || found.title || 'Product Item',
-    title: found.title || found.name || 'Product Item',
-    brand: found.brand || vendor?.name || (isBooking ? 'Services & Fun' : 'Pinnacle Brand'),
-    vendorName: vendor?.name || found.brand || 'Pinnacle Merchant',
+    ...merged,
+    id: String(merged.id || 'prod_default'),
+    name: merged.name || merged.title || 'Product Item',
+    title: merged.title || merged.name || 'Product Item',
+    brand: merged.brand || vendor?.name || (isBooking ? 'Services & Fun' : 'Pinnacle Brand'),
+    vendorName: vendor?.name || merged.brand || 'Pinnacle Merchant',
     vendorLocation: vendor?.location || 'PINNACLE MALL',
     vendorRating: vendor?.rating || 4.8,
     price,
     oldPrice,
     mrp: oldPrice,
     discount: discount.includes('OFF') ? discount : `${discount} OFF`,
-    rating: Number(found.rating || 4.8),
-    ratingsCount: Number(found.reviewsCount || 100),
-    description: found.description || 'High quality product curated for excellence.',
+    rating: Number(merged.rating || 4.8),
+    ratingsCount: Number(merged.reviewsCount || 100),
+    description: merged.description || 'High quality product curated for excellence.',
     image,
     images,
     gallery: images,
-    metadata: found.metadata || {},
+    metadata: merged.metadata || {},
     categoryId,
     category,
-    subcategoryId: found.subcategoryId || '',
-    vendorId: found.vendorId,
+    subcategoryId: merged.subcategoryId || '',
+    vendorId: merged.vendorId,
     isBooking,
-    colorGroups: found.colorGroups || rawProduct.colorGroups || null,
-    colors: found.colors || rawProduct.colors || null,
-    sizes: found.sizes || rawProduct.sizes || null,
+    colorGroups: merged.colorGroups || null,
+    colors: merged.colors || null,
+    sizes: merged.sizes || null,
   };
 };
 

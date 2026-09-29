@@ -227,7 +227,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
         } else if (cg.image || cg.imageUri) {
           imgs = [cg.image ? cg.image : { uri: cg.imageUri }];
         } else {
-          imgs = product.gallery || [product.image];
+          imgs = product.gallery || (product.images && product.images.length > 0 ? product.images : [product.image]);
         }
 
         return {
@@ -236,7 +236,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
           hex: cg.hex || getColorHex(cg.color),
           isDefault: !!cg.isDefault,
           price: cg.price || product.price,
-          mrp: cg.mrp || product.mrp,
+          mrp: cg.mrp || product.mrp || product.oldPrice,
           discount: cg.discount || product.discount,
           image: imgs[0],
           images: imgs,
@@ -244,7 +244,44 @@ export default function ProductDetailsScreen({ route, navigation }) {
         };
       });
     }
-    return COLOR_SWATCHES;
+
+    const prodImages = (product.images && product.images.length > 0)
+      ? product.images
+      : (product.gallery && product.gallery.length > 0)
+        ? product.gallery
+        : product.image
+          ? [product.image]
+          : [require('../../../assets/images/details/hero_1.jpg')];
+
+    if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
+      return product.colors.map((cName, idx) => ({
+        id: `col_${idx}`,
+        name: cName,
+        hex: getColorHex(cName),
+        isDefault: idx === 0,
+        price: product.price,
+        mrp: product.mrp || product.oldPrice,
+        discount: product.discount,
+        image: prodImages[0],
+        images: prodImages,
+        sizes: product.sizes || [],
+      }));
+    }
+
+    return [
+      {
+        id: 'default_variant',
+        name: 'Default',
+        hex: '#032757',
+        isDefault: true,
+        price: product.price,
+        mrp: product.mrp || product.oldPrice,
+        discount: product.discount,
+        image: prodImages[0],
+        images: prodImages,
+        sizes: product.sizes || [],
+      }
+    ];
   }, [product]);
 
   // Determine initial variant: seller-marked default variant if flagged, else first variant
@@ -252,7 +289,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
     if (colorSwatches && colorSwatches.length > 0) {
       return colorSwatches.find((s) => s.isDefault) || colorSwatches[0];
     }
-    return COLOR_SWATCHES[0];
+    return colorSwatches[0];
   }, [colorSwatches]);
 
   // States & Animated Refs
@@ -266,6 +303,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
   const [zoomModalVisible, setZoomModalVisible] = useState(false);
 
   const galleryScrollViewRef = useRef(null);
+  const zoomScrollViewRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Derives the image gallery for the CURRENTLY SELECTED color only (swiping never crosses colors)
@@ -1658,7 +1696,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
         </TouchableOpacity>
       </Modal>
 
-      {/* ─── Tap-to-Zoom Fullscreen Image Modal (Nice to Have) ────────────── */}
+      {/* ─── Tap-to-Zoom Fullscreen Swipeable Image Modal ────────────── */}
       <Modal
         visible={zoomModalVisible}
         transparent
@@ -1666,16 +1704,81 @@ export default function ProductDetailsScreen({ route, navigation }) {
         onRequestClose={() => setZoomModalVisible(false)}
       >
         <View style={styles.zoomModalOverlay}>
-          <TouchableOpacity style={styles.zoomCloseBtn} onPress={() => setZoomModalVisible(false)} activeOpacity={0.8}>
+          {/* Close Button */}
+          <TouchableOpacity
+            style={styles.zoomCloseBtn}
+            onPress={() => setZoomModalVisible(false)}
+            activeOpacity={0.8}
+          >
             <X size={26} color="#FFFFFF" weight="bold" />
           </TouchableOpacity>
-          {currentImages[activeImageIndex] && (
-            <Image
-              source={currentImages[activeImageIndex]}
-              style={styles.zoomImageFull}
-              resizeMode="contain"
-            />
+
+          {/* Swipeable Gallery ScrollView */}
+          <ScrollView
+            ref={zoomScrollViewRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: activeImageIndex * windowWidth, y: 0 }}
+            onMomentumScrollEnd={(e) => {
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
+              if (newIndex >= 0 && newIndex < currentImages.length) {
+                setActiveImageIndex(newIndex);
+              }
+            }}
+            style={{ width: windowWidth, height: '80%' }}
+          >
+            {currentImages.map((imgSrc, idx) => (
+              <View
+                key={idx}
+                style={{
+                  width: windowWidth,
+                  height: '100%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: 16,
+                }}
+              >
+                <Image
+                  source={imgSrc}
+                  style={styles.zoomImageFull}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Left Arrow Button */}
+          {activeImageIndex > 0 && (
+            <TouchableOpacity
+              style={styles.zoomArrowLeft}
+              onPress={() => {
+                const prevIdx = activeImageIndex - 1;
+                setActiveImageIndex(prevIdx);
+                zoomScrollViewRef.current?.scrollTo({ x: prevIdx * windowWidth, animated: true });
+              }}
+              activeOpacity={0.8}
+            >
+              <CaretLeft size={24} color="#FFFFFF" weight="bold" />
+            </TouchableOpacity>
           )}
+
+          {/* Right Arrow Button */}
+          {activeImageIndex < currentImages.length - 1 && (
+            <TouchableOpacity
+              style={styles.zoomArrowRight}
+              onPress={() => {
+                const nextIdx = activeImageIndex + 1;
+                setActiveImageIndex(nextIdx);
+                zoomScrollViewRef.current?.scrollTo({ x: nextIdx * windowWidth, animated: true });
+              }}
+              activeOpacity={0.8}
+            >
+              <CaretRight size={24} color="#FFFFFF" weight="bold" />
+            </TouchableOpacity>
+          )}
+
+          {/* Footer Page Counter Badge */}
           {currentImages.length > 1 && (
             <View style={styles.zoomFooterBadge}>
               <Text style={styles.zoomFooterText}>
@@ -1848,8 +1951,34 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   zoomImageFull: {
-    width: '92%',
-    height: '78%',
+    width: '100%',
+    height: '100%',
+  },
+  zoomArrowLeft: {
+    position: 'absolute',
+    left: 16,
+    top: '50%',
+    marginTop: -22,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 25,
+  },
+  zoomArrowRight: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    marginTop: -22,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 25,
   },
   zoomFooterBadge: {
     position: 'absolute',
