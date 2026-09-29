@@ -14,6 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { Microphone, Camera, CaretLeft, Sliders, CaretRight, Clock, MagnifyingGlass } from 'phosphor-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { typography, spacing, radius } from '../../theme';
 import { products as mockProducts, vendors as mockVendors, categories as mockCategories } from '../../data/mockData';
 import { useTheme } from '../../context/ThemeContext';
@@ -99,9 +100,16 @@ export default function SearchScreen({ route, navigation }) {
       } catch (e) {
         // Fallback local matching
         const lowerQuery = query.toLowerCase();
-        const matches = mockProducts
-          .filter((p) => p.name.toLowerCase().includes(lowerQuery))
-          .map((p) => p.name)
+        let createdProds = [];
+        try {
+          const rawCreated = await AsyncStorage.getItem('@vendor_products_created');
+          if (rawCreated) createdProds = JSON.parse(rawCreated);
+        } catch (_) {}
+
+        const allCatalog = [...createdProds, ...mockProducts];
+        const matches = allCatalog
+          .filter((p) => p.active !== false && (p.name || p.title || '').toLowerCase().includes(lowerQuery))
+          .map((p) => p.name || p.title)
           .slice(0, 5);
         setSuggestions(matches);
       }
@@ -135,13 +143,20 @@ export default function SearchScreen({ route, navigation }) {
       console.warn('Search query API failed, running local matching fallback.');
       
       const lowerQuery = activeQuery.toLowerCase().trim();
-      let matchedItems = mockProducts.filter((p) => {
-        const vendorName = mockVendors.find((v) => v.id === p.vendorId)?.name || '';
-        return (
-          p.name.toLowerCase().includes(lowerQuery) ||
-          p.description.toLowerCase().includes(lowerQuery) ||
-          vendorName.toLowerCase().includes(lowerQuery)
-        );
+      let createdProds = [];
+      try {
+        const rawCreated = await AsyncStorage.getItem('@vendor_products_created');
+        if (rawCreated) createdProds = JSON.parse(rawCreated);
+      } catch (_) {}
+
+      const allCatalog = [...createdProds, ...mockProducts];
+      let matchedItems = allCatalog.filter((p) => {
+        if (p.active === false) return false;
+        const vendorName = p.brand || mockVendors.find((v) => v.id === p.vendorId)?.name || '';
+        const nameMatch = (p.name || p.title || '').toLowerCase().includes(lowerQuery);
+        const descMatch = (p.description || '').toLowerCase().includes(lowerQuery);
+        const brandMatch = vendorName.toLowerCase().includes(lowerQuery);
+        return nameMatch || descMatch || brandMatch;
       });
 
       setResults(matchedItems);

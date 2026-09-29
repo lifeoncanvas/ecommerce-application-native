@@ -51,6 +51,9 @@ export const normalizeProduct = (rawProduct = {}) => {
     subcategoryId: found.subcategoryId || '',
     vendorId: found.vendorId,
     isBooking,
+    colorGroups: found.colorGroups || rawProduct.colorGroups || null,
+    colors: found.colors || rawProduct.colors || null,
+    sizes: found.sizes || rawProduct.sizes || null,
   };
 };
 

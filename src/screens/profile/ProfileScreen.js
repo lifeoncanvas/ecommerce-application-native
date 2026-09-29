@@ -77,16 +77,21 @@ function ProfileContent({ navigation, route }) {
   const [orderCount, setOrderCount] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  // Auto-open Vendor Dashboard if this is a vendor login
+  // Auto-open Vendor Portal or Onboarding Wizard based on verification status
   useEffect(() => {
     const isVendor =
       user?.isVendor ||
       user?.role === 'STORE_OWNER' ||
       user?.email?.includes('@store.com') ||
       user?.email?.includes('@vendor.com');
+
     if (isVendor && route?.params?.openVendorDashboard) {
       const timer = setTimeout(() => {
-        navigation.navigate('VendorDashboard');
+        if (user?.isOnboarded || user?.verificationStatus === 'verified' || user?.vendorId || user?.role === 'STORE_OWNER') {
+          navigation.navigate('VendorDashboard');
+        } else {
+          navigation.navigate('BecomeVendor');
+        }
       }, 150);
       return () => clearTimeout(timer);
     }
@@ -211,7 +216,9 @@ function ProfileContent({ navigation, route }) {
     {
       title: 'Seller & Store Portal',
       items: [
-        (user?.isVendor ||
+        (user?.isOnboarded ||
+        user?.verificationStatus === 'verified' ||
+        user?.vendorId ||
         user?.role === 'STORE_OWNER' ||
         user?.email?.includes('@store.com') ||
         user?.email?.includes('@vendor.com'))
@@ -223,6 +230,16 @@ function ProfileContent({ navigation, route }) {
               iconBg: '#FFFBEB',
               iconColor: '#D97706',
               onPress: () => navigation.navigate('VendorDashboard'),
+            }
+          : user?.isVendor
+          ? {
+              id: 'become_vendor',
+              title: 'Complete Seller Onboarding 🏬',
+              subtitle: 'Finish your 8-step verification wizard',
+              Icon: Storefront,
+              iconBg: '#FFFBEB',
+              iconColor: '#D97706',
+              onPress: () => navigation.navigate('BecomeVendor'),
             }
           : {
               id: 'become_vendor',
