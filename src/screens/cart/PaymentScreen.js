@@ -44,7 +44,7 @@ export default function PaymentScreen({ route, navigation }) {
   const { clear, items } = useCart();
   const { user } = useAuth();
   
-  const [paymentMethod, setPaymentMethod] = useState('paystack'); // 'stripe', 'paypal', 'espees', 'paystack'
+  const [paymentMethod, setPaymentMethod] = useState('bank_transfer'); // 'bank_transfer', 'stripe', 'paypal', 'espees', 'paystack'
   const [loading, setLoading] = useState(false);
 
   // Stripe input states
@@ -96,7 +96,7 @@ export default function PaymentScreen({ route, navigation }) {
           items: items,
           totalAmount,
           status: 'Placed',
-          paymentMethod: paymentMethod === 'paystack' ? 'Paystack' : paymentMethod === 'stripe' ? 'Stripe Card' : paymentMethod === 'paypal' ? 'PayPal' : 'Espees Wallet',
+          paymentMethod: paymentMethod === 'bank_transfer' ? 'Bank Transfer' : paymentMethod === 'paystack' ? 'Paystack' : paymentMethod === 'stripe' ? 'Stripe Card' : paymentMethod === 'paypal' ? 'PayPal' : 'Espees Wallet',
           addressId,
           shippingRateId
         };
@@ -114,7 +114,9 @@ export default function PaymentScreen({ route, navigation }) {
       let paymentReference;
 
       // 1. Process payment gateway API
-      if (paymentMethod === 'paystack') {
+      if (paymentMethod === 'bank_transfer') {
+        paymentReference = 'BANK-' + Date.now();
+      } else if (paymentMethod === 'paystack') {
         // Paystack handles its own UI flow. We shouldn't hit this unless it's a fallback.
         paymentReference = 'PAYSTACK-' + Date.now();
       } else if (paymentMethod === 'stripe') {
@@ -254,9 +256,17 @@ export default function PaymentScreen({ route, navigation }) {
 
         {/* Payment Methods selector tabs */}
         <Text style={styles.sectionTitle}>Select Payment Method</Text>
-        <View style={styles.methodSelector}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.methodSelector}>
           <TouchableOpacity
-            style={[styles.methodBtn, paymentMethod === 'paystack' && styles.methodBtnActive]}
+            style={[styles.methodBtn, paymentMethod === 'bank_transfer' && styles.methodBtnActive, { minWidth: 110, marginRight: 8 }]}
+            onPress={() => setPaymentMethod('bank_transfer')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.methodIcon}>🏦</Text>
+            <Text style={[styles.methodLabel, paymentMethod === 'bank_transfer' && styles.methodLabelActive]}>Bank Transfer</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.methodBtn, paymentMethod === 'paystack' && styles.methodBtnActive, { minWidth: 100, marginRight: 8 }]}
             onPress={() => setPaymentMethod('paystack')}
             activeOpacity={0.8}
           >
@@ -280,17 +290,35 @@ export default function PaymentScreen({ route, navigation }) {
             <Text style={[styles.methodLabel, paymentMethod === 'paypal' && styles.methodLabelActive]}>PayPal</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.methodBtn, paymentMethod === 'espees' && styles.methodBtnActive]}
+            style={[styles.methodBtn, paymentMethod === 'espees' && styles.methodBtnActive, { minWidth: 100 }]}
             onPress={() => setPaymentMethod('espees')}
             activeOpacity={0.8}
           >
             <Text style={styles.methodIcon}>🪙</Text>
             <Text style={[styles.methodLabel, paymentMethod === 'espees' && styles.methodLabelActive]}>Espees</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
         {/* Payment Forms */}
         <View style={styles.formContainer}>
+          {paymentMethod === 'bank_transfer' && (
+            <View style={styles.form}>
+              <Text style={styles.fieldLabel}>Direct Bank Transfer</Text>
+              <Text style={styles.formHint}>Please transfer the total amount to the following bank account to complete your order:</Text>
+              <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F8F9FA', borderRadius: 8, borderWidth: 1, borderColor: '#E9ECEF' }}>
+                <Text style={{ fontSize: 13, color: '#495057', marginBottom: 4 }}>Bank Name:</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#212529', marginBottom: 12 }}>Parallex</Text>
+                
+                <Text style={{ fontSize: 13, color: '#495057', marginBottom: 4 }}>Account Name:</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#212529', marginBottom: 12 }}>Licht Marketing 2</Text>
+                
+                <Text style={{ fontSize: 13, color: '#495057', marginBottom: 4 }}>Account Number:</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#212529' }}>1000367277</Text>
+              </View>
+              <Text style={[styles.formHint, { marginTop: 12 }]}>After payment, please proceed to place your order. Your order will be processed once payment is confirmed.</Text>
+            </View>
+          )}
+
           {paymentMethod === 'paystack' && (
             <View style={styles.form}>
               <Text style={styles.fieldLabel}>Paystack Gateway (Nigeria)</Text>
