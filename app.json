@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Licht Marketing",
+    "name": "Licht",
     "slug": "httn-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kingsshop.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Licht Marketing uses your location to deliver orders to your current doorstep and show nearby verified boutique stores."
+        "NSLocationWhenInUseUsageDescription": "Licht uses your location to deliver orders to your current doorstep and show nearby verified boutique stores."
       }
     },
     "android": {
@@ -35,7 +35,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Licht Marketing uses your location to deliver orders to your current doorstep and show nearby verified boutique stores."
+          "locationAlwaysAndWhenInUsePermission": "Licht uses your location to deliver orders to your current doorstep and show nearby verified boutique stores."
         }
       ]
     ]

@@ -20,9 +20,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CURRENCY } from '../../utils/currency';
 import { useTheme } from '../../context/ThemeContext';
 import {
-  processStripePayment,
-  processPaypalPayment,
-  processEspeesPayment,
   verifyPayment,
   verifyPaystackPayment,
 } from '../../api/payment.api';
@@ -62,16 +59,8 @@ export default function PaymentScreen({ route, navigation }) {
 
   // Input validation
   const validateInputs = () => {
-    if (paymentMethod === 'stripe') {
-      if (!cardName.trim()) return 'Cardholder name is required';
-      if (cardNumber.replace(/\s/g, '').length < 16) return 'Invalid card number';
-      if (cardExpiry.length < 5) return 'Invalid expiry date (MM/YY)';
-      if (cardCvv.length < 3) return 'Invalid CVV';
-    } else if (paymentMethod === 'paypal') {
-      if (!paypalEmail.includes('@')) return 'Invalid PayPal email';
-    } else if (paymentMethod === 'espees') {
-      if (!espeesId.trim()) return 'Espees Wallet ID is required';
-      if (espeesPin.length < 4) return 'PIN must be at least 4 digits';
+    if (paymentMethod === 'bank_transfer') {
+      // no specific input validation needed for bank transfer yet
     }
     return null;
   };
@@ -119,21 +108,6 @@ export default function PaymentScreen({ route, navigation }) {
       } else if (paymentMethod === 'paystack') {
         // Paystack handles its own UI flow. We shouldn't hit this unless it's a fallback.
         paymentReference = 'PAYSTACK-' + Date.now();
-      } else if (paymentMethod === 'stripe') {
-        payPayload = { ...payPayload, cardName, cardNumber: cardNumber.replace(/\s/g, ''), cardExpiry, cardCvv };
-        paymentResponse = await withTimeout(processStripePayment(payPayload), 2500);
-        paymentReference = paymentResponse.data?.reference || 'REF-' + Date.now();
-        await withTimeout(verifyPayment({ reference: paymentReference }), 2000);
-      } else if (paymentMethod === 'paypal') {
-        payPayload = { ...payPayload, email: paypalEmail };
-        paymentResponse = await withTimeout(processPaypalPayment(payPayload), 2500);
-        paymentReference = paymentResponse.data?.reference || 'REF-' + Date.now();
-        await withTimeout(verifyPayment({ reference: paymentReference }), 2000);
-      } else {
-        payPayload = { ...payPayload, walletId: espeesId, pin: espeesPin };
-        paymentResponse = await withTimeout(processEspeesPayment(payPayload), 2500);
-        paymentReference = paymentResponse.data?.reference || 'REF-' + Date.now();
-        await withTimeout(verifyPayment({ reference: paymentReference }), 2000);
       }
 
       // 3. Create the final order on backend
@@ -156,21 +130,31 @@ export default function PaymentScreen({ route, navigation }) {
         'Order Placed Successfully! 📦',
         `Your order #${mockOrderId} has been created. Total: ${CURRENCY.format(totalAmount)}`
       );
-      Alert.alert(
-        'Order Confirmed! 🎉',
-        `Your order #${mockOrderId} has been successfully placed.`,
-        [
-          {
-            text: 'View Receipt',
-            onPress: () => navigation.navigate('OrderSuccess', {
-              orderId: mockOrderId,
-              totalAmount,
-              isBooking,
-              selectedItems,
-            })
-          }
-        ]
-      );
+      if (Platform.OS === 'web') {
+        window.alert(`Order Confirmed! 🎉\nYour order #${mockOrderId} has been successfully placed.`);
+        navigation.navigate('OrderSuccess', {
+          orderId: mockOrderId,
+          totalAmount,
+          isBooking,
+          selectedItems,
+        });
+      } else {
+        Alert.alert(
+          'Order Confirmed! 🎉',
+          `Your order #${mockOrderId} has been successfully placed.`,
+          [
+            {
+              text: 'View Receipt',
+              onPress: () => navigation.navigate('OrderSuccess', {
+                orderId: mockOrderId,
+                totalAmount,
+                isBooking,
+                selectedItems,
+              })
+            }
+          ]
+        );
+      }
     } catch (e) {
       console.warn('Payment or Order API chains failed. Proceeding locally.', e.message);
       
@@ -182,21 +166,31 @@ export default function PaymentScreen({ route, navigation }) {
         'Order Placed (Offline) 📦',
         `Your order #${mockOrderId} has been saved locally. Total: ${CURRENCY.format(totalAmount)}`
       );
-      Alert.alert(
-        'Order Confirmed! 🎉',
-        `Your order #${mockOrderId} has been successfully placed (Offline Mode).`,
-        [
-          {
-            text: 'View Receipt',
-            onPress: () => navigation.navigate('OrderSuccess', {
-              orderId: mockOrderId,
-              totalAmount,
-              isBooking,
-              selectedItems,
-            })
-          }
-        ]
-      );
+      if (Platform.OS === 'web') {
+        window.alert(`Order Confirmed! 🎉\nYour order #${mockOrderId} has been successfully placed (Offline Mode).`);
+        navigation.navigate('OrderSuccess', {
+          orderId: mockOrderId,
+          totalAmount,
+          isBooking,
+          selectedItems,
+        });
+      } else {
+        Alert.alert(
+          'Order Confirmed! 🎉',
+          `Your order #${mockOrderId} has been successfully placed (Offline Mode).`,
+          [
+            {
+              text: 'View Receipt',
+              onPress: () => navigation.navigate('OrderSuccess', {
+                orderId: mockOrderId,
+                totalAmount,
+                isBooking,
+                selectedItems,
+              })
+            }
+          ]
+        );
+      }
     }
   };
 
@@ -273,30 +267,6 @@ export default function PaymentScreen({ route, navigation }) {
             <Text style={styles.methodIcon}>🇳🇬</Text>
             <Text style={[styles.methodLabel, paymentMethod === 'paystack' && styles.methodLabelActive]}>Paystack</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.methodBtn, paymentMethod === 'stripe' && styles.methodBtnActive]}
-            onPress={() => setPaymentMethod('stripe')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.methodIcon}>💳</Text>
-            <Text style={[styles.methodLabel, paymentMethod === 'stripe' && styles.methodLabelActive]}>Stripe Card</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.methodBtn, paymentMethod === 'paypal' && styles.methodBtnActive]}
-            onPress={() => setPaymentMethod('paypal')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.methodIcon}>🅿️</Text>
-            <Text style={[styles.methodLabel, paymentMethod === 'paypal' && styles.methodLabelActive]}>PayPal</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.methodBtn, paymentMethod === 'espees' && styles.methodBtnActive, { minWidth: 100 }]}
-            onPress={() => setPaymentMethod('espees')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.methodIcon}>🪙</Text>
-            <Text style={[styles.methodLabel, paymentMethod === 'espees' && styles.methodLabelActive]}>Espees</Text>
-          </TouchableOpacity>
         </ScrollView>
 
         {/* Payment Forms */}
@@ -323,102 +293,6 @@ export default function PaymentScreen({ route, navigation }) {
             <View style={styles.form}>
               <Text style={styles.fieldLabel}>Paystack Gateway (Nigeria)</Text>
               <Text style={styles.formHint}>You will be directed to Paystack's secure checkout to complete your transaction via Card, Bank Transfer, or USSD.</Text>
-            </View>
-          )}
-
-          {paymentMethod === 'stripe' && (
-            <View style={styles.form}>
-              <Text style={styles.fieldLabel}>Cardholder Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="John Doe"
-                placeholderTextColor={colors.textSecondary}
-                value={cardName}
-                onChangeText={setCardName}
-              />
-              <Text style={styles.fieldLabel}>Card Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0000 0000 0000 0000"
-                placeholderTextColor={colors.textSecondary}
-                value={cardNumber}
-                onChangeText={(text) => {
-                  // Basic formatting
-                  const formatted = text.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
-                  setCardNumber(formatted.slice(0, 19));
-                }}
-                keyboardType="numeric"
-              />
-              <View style={styles.rowFields}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>Expiry Date</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="MM/YY"
-                    placeholderTextColor={colors.textSecondary}
-                    value={cardExpiry}
-                    onChangeText={(text) => {
-                      const formatted = text.replace(/\D/g, '').replace(/(.{2})/g, '$1/').trim();
-                      setCardExpiry(formatted.slice(0, 5));
-                    }}
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={{ width: 12 }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>CVV</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="123"
-                    placeholderTextColor={colors.textSecondary}
-                    value={cardCvv}
-                    onChangeText={(text) => setCardCvv(text.replace(/\D/g, '').slice(0, 3))}
-                    keyboardType="numeric"
-                    secureTextEntry
-                  />
-                </View>
-              </View>
-            </View>
-          )}
-
-          {paymentMethod === 'paypal' && (
-            <View style={styles.form}>
-              <Text style={styles.fieldLabel}>PayPal Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="user@paypal.com"
-                placeholderTextColor={colors.textSecondary}
-                value={paypalEmail}
-                onChangeText={setPaypalEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <Text style={styles.formHint}>You will be redirected securely to PayPal to confirm transaction.</Text>
-            </View>
-          )}
-
-          {paymentMethod === 'espees' && (
-            <View style={styles.form}>
-              <Text style={styles.fieldLabel}>Espees Wallet account ID</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="ESP-78234"
-                placeholderTextColor={colors.textSecondary}
-                value={espeesId}
-                onChangeText={setEspeesId}
-                autoCapitalize="none"
-              />
-              <Text style={styles.fieldLabel}>Secure Wallet PIN</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="••••"
-                placeholderTextColor={colors.textSecondary}
-                value={espeesPin}
-                onChangeText={(text) => setEspeesPin(text.replace(/\D/g, '').slice(0, 6))}
-                keyboardType="numeric"
-                secureTextEntry
-              />
-              <Text style={styles.formHint}>Funds will be deducted directly from your secure Espees Points wallet.</Text>
             </View>
           )}
         </View>

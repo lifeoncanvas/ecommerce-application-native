@@ -34,6 +34,7 @@ import {
 import { colors as staticColors, typography, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useTabBarVisibility } from '../../context/TabBarVisibilityContext';
@@ -196,6 +197,7 @@ export default function HomeScreen({ navigation }) {
   const styles = getStyles(colors);
   const { user } = useAuth();
   const { isLiked, toggleWishlist } = useWishlist();
+  const { items: cartItems } = useCart();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(79200);
@@ -631,6 +633,14 @@ export default function HomeScreen({ navigation }) {
 
           <TouchableOpacity style={styles.hdrIconBtn} onPress={() => navigation.navigate('Wishlist')} activeOpacity={0.75}>
             <Heart size={22} color="#111" weight="regular" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.hdrIconBtn} onPress={() => navigation.navigate('Cart')} activeOpacity={0.75}>
+            <ShoppingBagOpen size={22} color="#111" weight="regular" />
+            {cartItems && cartItems.length > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{cartItems.length}</Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.hdrIconBtn} onPress={() => navigation.navigate('Profile')} activeOpacity={0.75}>
             <User size={22} color="#111" weight="regular" />
@@ -1803,5 +1813,24 @@ const getStyles = (colors) => StyleSheet.create({
     fontWeight: '500',
     marginBottom: 16,
     maxWidth: '80%',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 4,
+    backgroundColor: '#E11D48',
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
   }
 });

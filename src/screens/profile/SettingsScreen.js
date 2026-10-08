@@ -151,15 +151,15 @@ export default function SettingsScreen({ navigation }) {
               </View>
               <View style={styles.textCol}>
                 <Text style={styles.settingTitle}>Currency</Text>
-                <Text style={styles.settingDesc}>Choose between US Dollars or Espees</Text>
+                <Text style={styles.settingDesc}>Choose between US Dollars or Nigerian Naira</Text>
               </View>
               <TouchableOpacity
                 style={styles.currencyToggle}
-                onPress={() => changeCurrency(currency === 'USD' ? 'ESP' : 'USD')}
+                onPress={() => changeCurrency(currency === 'USD' ? 'NGN' : 'USD')}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.currencyOption, currency === 'USD' && styles.currencyOptionActive]}>USD</Text>
-                <Text style={[styles.currencyOption, currency === 'ESP' && styles.currencyOptionActive]}>ESP</Text>
+                <Text style={[styles.currencyOption, currency === 'NGN' && styles.currencyOptionActive]}>NGN</Text>
               </TouchableOpacity>
             </View>
           </View>

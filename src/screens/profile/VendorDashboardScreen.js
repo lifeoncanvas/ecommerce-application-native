@@ -309,8 +309,8 @@ export default function VendorDashboardScreen({ navigation }) {
   const [isStorePaused, setIsStorePaused] = useState(false);
   const [isPromoDiscountActive, setIsPromoDiscountActive] = useState(true);
   const [coupons, setCoupons] = useState([
-    { id: '1', code: 'WELCOME10', discount: '10%', minSpend: '$50', active: true },
-    { id: '2', code: 'WEEKEND20', discount: '20%', minSpend: '$100', active: true },
+    { id: '1', code: 'WELCOME10', discount: '10%', minSpend: '₦50000', active: true },
+    { id: '2', code: 'WEEKEND20', discount: '20%', minSpend: '₦100000', active: true },
   ]);
   const [newCouponCode, setNewCouponCode] = useState('');
   const [newCouponDiscount, setNewCouponDiscount] = useState('');
@@ -335,7 +335,7 @@ export default function VendorDashboardScreen({ navigation }) {
         id: String(Date.now()),
         code: newCouponCode.trim().toUpperCase(),
         discount: `${newCouponDiscount.trim()}%`,
-        minSpend: newCouponMinSpend ? `$${newCouponMinSpend}` : 'No Min',
+        minSpend: newCouponMinSpend ? `₦${newCouponMinSpend}` : 'No Min',
         active: true,
       },
     ]);
@@ -758,7 +758,7 @@ export default function VendorDashboardScreen({ navigation }) {
     const priceStr = String(prodPrice || '').trim();
     const priceNum = parseFloat(priceStr);
     if (!priceStr || isNaN(priceNum) || priceNum <= 0) {
-      setPriceError('Please enter a valid price in Dollars ($).');
+      setPriceError('Please enter a valid price in Naira (₦).');
       hasError = true;
     } else {
       setPriceError('');
@@ -788,13 +788,13 @@ export default function VendorDashboardScreen({ navigation }) {
     };
 
     let logAction = 'New product added';
-    let logDetail = `Price: $${(priceNum || 0).toLocaleString('en-NG')}`;
+    let logDetail = `Price: ₦${(priceNum || 0).toLocaleString('en-NG')}`;
 
     if (editingProduct) {
       const oldP = Number(editingProduct.price) || 0;
       if (oldP !== priceNum) {
         logAction = 'Price Updated';
-        logDetail = `Price changed $${oldP.toLocaleString('en-NG')} → $${(priceNum || 0).toLocaleString('en-NG')}`;
+        logDetail = `Price changed ₦${oldP.toLocaleString('en-NG')} → ₦${(priceNum || 0).toLocaleString('en-NG')}`;
       } else {
         logAction = 'Product Details Updated';
         logDetail = 'Updated product specs and photo gallery';
@@ -1103,7 +1103,7 @@ export default function VendorDashboardScreen({ navigation }) {
                     />
                     <TextInput
                       style={{ width: 80, height: 38, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 8, fontSize: 12 }}
-                      placeholder="Min $"
+                      placeholder="Min ₦"
                       keyboardType="numeric"
                       value={newCouponMinSpend}
                       onChangeText={setNewCouponMinSpend}
@@ -1350,9 +1350,9 @@ export default function VendorDashboardScreen({ navigation }) {
 
                         {/* Price Row in Dollars */}
                         <View style={styles.prodPriceRow}>
-                          <Text style={styles.prodPriceVal}>${displayPriceVal.toLocaleString('en-NG')}</Text>
+                          <Text style={styles.prodPriceVal}>₦{displayPriceVal.toLocaleString('en-NG')}</Text>
                           {displayOldPriceVal !== null && (
-                            <Text style={styles.prodOldPrice}>${displayOldPriceVal.toLocaleString('en-NG')}</Text>
+                            <Text style={styles.prodOldPrice}>₦{displayOldPriceVal.toLocaleString('en-NG')}</Text>
                           )}
                           <Text style={styles.prodStockText}>Stock: {item.stockQuantity ?? item.stock ?? 20} units</Text>
                         </View>
@@ -1700,7 +1700,7 @@ export default function VendorDashboardScreen({ navigation }) {
               {/* Price & Discount Price */}
               <View style={styles.rowTwoCols}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Price ($) *</Text>
+                  <Text style={styles.fieldLabel}>Price (₦) *</Text>
                   <TextInput
                     style={[styles.inputWrapper, priceError ? styles.inputError : null]}
                     value={prodPrice}
@@ -1716,7 +1716,7 @@ export default function VendorDashboardScreen({ navigation }) {
                 </View>
 
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Discount Price ($)</Text>
+                  <Text style={styles.fieldLabel}>Discount Price (₦)</Text>
                   <TextInput
                     style={styles.inputWrapper}
                     value={prodDiscountPrice}
@@ -2093,11 +2093,11 @@ export default function VendorDashboardScreen({ navigation }) {
                   {/* Price & Discount */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                     <Text style={{ fontSize: 22, fontWeight: '800', color: '#032757' }}>
-                      ${parseFloat(prodPrice || 0).toLocaleString()}
+                      ₦{parseFloat(prodPrice || 0).toLocaleString('en-NG')}
                     </Text>
                     {prodDiscountPrice && parseFloat(prodDiscountPrice) > parseFloat(prodPrice || 0) && (
                       <Text style={{ fontSize: 14, color: '#94A3B8', textDecorationLine: 'line-through' }}>
-                        ${parseFloat(prodDiscountPrice).toLocaleString()}
+                        ₦{parseFloat(prodDiscountPrice).toLocaleString('en-NG')}
                       </Text>
                     )}
                     {prodDiscountPrice && parseFloat(prodDiscountPrice) > parseFloat(prodPrice || 0) && (

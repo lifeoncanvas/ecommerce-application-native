@@ -4,42 +4,71 @@ import com.ecommerce.app.dto.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.ecommerce.app.model.Order;
+import com.ecommerce.app.repository.OrderRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class OrderController {
 
-    private final List<Map<String, Object>> orders = new ArrayList<>();
+    @Autowired
+    private OrderRepository orderRepository;
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
     private final List<Map<String, Object>> addresses = new ArrayList<>();
 
     @GetMapping("/orders")
     public ResponseEntity<?> getOrders() {
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(orderRepository.findAll());
     }
 
     @GetMapping("/orders/{id}")
-    public ResponseEntity<?> getOrderDetails(@PathVariable String id) {
-        return ResponseEntity.ok(Map.of(
-            "id", id,
-            "date", "2026-09-21",
-            "status", "Placed",
-            "totalAmount", 90.0,
-            "items", List.of()
-        ));
+    public ResponseEntity<?> getOrderDetails(@PathVariable Long id) {
+        return orderRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/orders")
     public ResponseEntity<ApiResponse> createOrder(@RequestBody Map<String, Object> payload) {
-        orders.add(payload);
-        return ResponseEntity.ok(new ApiResponse("Order created successfully"));
+        try {
+            Order order = new Order();
+            order.setOrderReference((String) payload.getOrDefault("orderId", "ORD-UNKNOWN"));
+            
+            Object totalObj = payload.get("totalAmount");
+            if (totalObj instanceof Number) {
+                order.setTotalAmount(((Number) totalObj).doubleValue());
+            }
+            
+            order.setPaymentMethod((String) payload.get("paymentMethod"));
+            order.setPaymentReference((String) payload.get("paymentReference"));
+            order.setStatus("PLACED");
+            
+            if (payload.containsKey("items")) {
+                order.setItemsJson(mapper.writeValueAsString(payload.get("items")));
+            }
+            
+            orderRepository.save(order);
+            return ResponseEntity.ok(new ApiResponse("Order created successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new ApiResponse("Error creating order"));
+        }
     }
 
     @PutMapping("/orders/cancel/{id}")
-    public ResponseEntity<ApiResponse> cancelOrder(@PathVariable String id) {
+    public ResponseEntity<ApiResponse> cancelOrder(@PathVariable Long id) {
+        orderRepository.findById(id).ifPresent(order -> {
+            order.setStatus("CANCELLED");
+            orderRepository.save(order);
+        });
         return ResponseEntity.ok(new ApiResponse("Order cancelled"));
     }
 
@@ -94,7 +123,7 @@ public class OrderController {
     public ResponseEntity<?> getShippingRates() {
         return ResponseEntity.ok(List.of(
             Map.of("id", "standard", "name", "Standard Delivery", "price", 0.0, "estimatedDays", "3-5 business days"),
-            Map.of("id", "express", "name", "Express Shipping", "price", 15.0, "estimatedDays", "1-2 business days")
+            Map.of("id", "express", "name", "Express Shipping", "price", 2500.0, "estimatedDays", "1-2 business days")
         ));
     }
 }

@@ -374,7 +374,12 @@ export default function CheckoutScreen({ route, navigation }) {
 
   const handleProceedToPayment = () => {
     if (!selectedAddressId) {
-      Alert.alert('Error', 'Please select or add a delivery address.');
+      if (Platform.OS === 'web') {
+        window.alert('Please select or add a delivery address before proceeding.');
+      } else {
+        Alert.alert('Address Required', 'Please select or add a delivery address before proceeding.');
+      }
+      setChangeAddressModalVisible(true);
       return;
     }
     navigation.navigate('Payment', {

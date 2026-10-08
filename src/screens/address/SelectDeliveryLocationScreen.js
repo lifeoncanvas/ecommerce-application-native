@@ -220,12 +220,11 @@ export default function SelectDeliveryLocationScreen({ navigation, route }) {
 
       setAddressDetailsVisible(false);
 
-      // Navigate straight back to Home — HomeScreen will reload
-      // the address via useFocusEffect + AsyncStorage
-      navigation.navigate('HomeMain');
+      // Navigate straight back to the previous screen (e.g. Checkout or Home)
+      navigation.goBack();
     } catch (e) {
       console.warn('Error saving delivery address:', e);
-      navigation.navigate('HomeMain');
+      navigation.goBack();
     }
   };
 

@@ -39,6 +39,7 @@ const NIGERIAN_BANKS = [
   { id: 'palmpay',     name: 'PalmPay',                    code: '999991' },
   { id: 'moniepoint',  name: 'Moniepoint MFB',             code: '50515' },
   { id: 'carbon',      name: 'Carbon (One Finance)',       code: '565' },
+  { id: 'parallex',    name: 'Parallex Bank',              code: '526' },
 ];
 
 const NIGERIAN_STATES = [

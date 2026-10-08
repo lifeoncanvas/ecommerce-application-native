@@ -4,14 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const CurrencyContext = createContext(null);
 
 export const CurrencyProvider = ({ children }) => {
-  const [currency, setCurrency] = useState('USD'); // 'USD' or 'ESP'
+  const [currency, setCurrency] = useState('NGN');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadCurrency = async () => {
       try {
         const stored = await AsyncStorage.getItem('@currency');
-        if (stored === 'USD' || stored === 'ESP') {
+        if (stored === 'USD' || stored === 'NGN' || stored === 'ESP') {
           setCurrency(stored);
         }
       } catch (e) {
