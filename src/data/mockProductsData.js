@@ -236,6 +236,43 @@ export const FASHION_PRODUCTS = [
     image: require('../../assets/images/products/fashion/men-brownjacket.jpg'),
     badges: ['Bestseller', 'Premium Quality', 'Weatherproof'],
     description: 'Timeless utility jacket constructed with premium brown leather finishes, deep flap pockets, and thermal insulation.',
+    colorGroups: [
+      {
+        id: 'c_brown',
+        color: 'Rustic Brown',
+        hex: '#8B4513',
+        image: require('../../assets/images/products/fashion/men-brownjacket.jpg'),
+        sizes: [
+          { id: 's1', size: 'S', stock: 3 },
+          { id: 's2', size: 'M', stock: 12 },
+          { id: 's3', size: 'L', stock: 8 },
+          { id: 's4', size: 'XL', stock: 1 },
+        ],
+      },
+      {
+        id: 'c_black',
+        color: 'Midnight Black',
+        hex: '#1E293B',
+        image: require('../../assets/images/products/fashion/men-brownjacket1.jpg'),
+        sizes: [
+          { id: 's5', size: 'S', stock: 5 },
+          { id: 's6', size: 'M', stock: 15 },
+          { id: 's7', size: 'L', stock: 0 },
+          { id: 's8', size: 'XL', stock: 4 },
+        ],
+      },
+      {
+        id: 'c_tan',
+        color: 'Vintage Tan',
+        hex: '#D97706',
+        image: require('../../assets/images/products/fashion/men-brownjacket2.jpg'),
+        sizes: [
+          { id: 's9', size: 'M', stock: 6 },
+          { id: 's10', size: 'L', stock: 10 },
+          { id: 's11', size: 'XL', stock: 2 },
+        ],
+      },
+    ],
   },
   {
     id: 'prod_fashion_white_shirt',

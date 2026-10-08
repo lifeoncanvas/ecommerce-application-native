@@ -14,6 +14,8 @@ import {
   Image,
   Switch,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { typography, spacing, radius } from '../../theme';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -47,12 +49,15 @@ import {
   Plus,
   House,
   Storefront,
-  History,
+  ClockCounterClockwise,
   User,
   Eye,
   Check,
   Star,
   ShoppingBag,
+  Sparkle,
+  Camera,
+  Minus,
 } from 'phosphor-react-native';
 
 const withTimeout = (promise, ms = 2500) => {
@@ -130,6 +135,160 @@ export default function VendorDashboardScreen({ navigation }) {
   const [prodEmoji, setProdEmoji] = useState('🎁');
   const [prodActive, setProdActive] = useState(true);
   const [uploadedImages, setUploadedImages] = useState([]);
+  const [prodAttributes, setProdAttributes] = useState([
+    { key: 'Material', value: '100% Cotton' },
+    { key: 'Warranty', value: '1 Year Manufacturer' },
+  ]);
+  
+  // Color & Size matrix state inside Quick Product Modal
+  const [modalColorGroups, setModalColorGroups] = useState([
+    {
+      id: 'c1',
+      color: 'White',
+      imageUri: null,
+      sizes: [
+        { id: 's1', size: 'S', stock: '5' },
+        { id: 's2', size: 'M', stock: '10' },
+        { id: 's3', size: 'L', stock: '8' },
+      ],
+    },
+    {
+      id: 'c2',
+      color: 'Black',
+      imageUri: null,
+      sizes: [
+        { id: 's4', size: 'M', stock: '12' },
+        { id: 's5', size: 'L', stock: '15' },
+      ],
+    },
+  ]);
+
+  const COLOR_PRESETS = [
+    { name: 'White', hex: '#FFFFFF' },
+    { name: 'Black', hex: '#1E293B' },
+    { name: 'Red', hex: '#EF4444' },
+    { name: 'Royal Blue', hex: '#2563EB' },
+    { name: 'Emerald Green', hex: '#16A34A' },
+    { name: 'Gold', hex: '#F6A400' },
+    { name: 'Pink', hex: '#EC4899' },
+    { name: 'Amber', hex: '#D97706' },
+    { name: 'Purple', hex: '#A855F7' },
+    { name: 'Navy', hex: '#032757' },
+    { name: 'Silver', hex: '#CBD5E1' },
+  ];
+
+  const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free Size'];
+
+  const getColorHexModal = (colorName) => {
+    if (!colorName || typeof colorName !== 'string') return '#032757';
+    const name = colorName.trim().toLowerCase();
+    if (name.includes('white')) return '#FFFFFF';
+    if (name.includes('black')) return '#1E293B';
+    if (name.includes('red')) return '#EF4444';
+    if (name.includes('blue')) return '#2563EB';
+    if (name.includes('green')) return '#16A34A';
+    if (name.includes('yellow')) return '#FACC15';
+    if (name.includes('gold')) return '#F6A400';
+    if (name.includes('pink')) return '#EC4899';
+    if (name.includes('amber')) return '#D97706';
+    if (name.includes('purple')) return '#A855F7';
+    if (name.includes('silver')) return '#CBD5E1';
+    return '#032757';
+  };
+
+  const handleToggleModalPresetColor = (presetName) => {
+    const targetName = (presetName || '').trim().toLowerCase();
+    const existing = modalColorGroups.find((cg) => (cg.color || '').trim().toLowerCase() === targetName);
+    if (existing) {
+      if (modalColorGroups.length > 1) {
+        setModalColorGroups((prev) => prev.filter((cg) => cg.id !== existing.id));
+      }
+    } else {
+      setModalColorGroups((prev) => [
+        ...prev,
+        {
+          id: `c_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          color: presetName,
+          imageUri: null,
+          sizes: [
+            { id: `s_${Date.now()}_1`, size: 'S', stock: '5' },
+            { id: `s_${Date.now()}_2`, size: 'M', stock: '10' },
+            { id: `s_${Date.now()}_3`, size: 'L', stock: '8' },
+          ],
+        },
+      ]);
+    }
+  };
+
+  const handlePickModalColorPhoto = async (colorGroupId) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'image/*', copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const uri = result.assets[0].uri;
+      setModalColorGroups((prev) =>
+        prev.map((cg) => (cg.id === colorGroupId ? { ...cg, imageUri: uri } : cg))
+      );
+    } catch (e) {
+      const fallbacks = [
+        'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=400',
+        'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400',
+      ];
+      const selectedUri = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+      setModalColorGroups((prev) =>
+        prev.map((cg) => (cg.id === colorGroupId ? { ...cg, imageUri: selectedUri } : cg))
+      );
+    }
+  };
+
+  const handleRemoveModalColorPhoto = (colorGroupId) => {
+    setModalColorGroups((prev) =>
+      prev.map((cg) => (cg.id === colorGroupId ? { ...cg, imageUri: null } : cg))
+    );
+  };
+
+  const handleToggleModalSizeForColor = (colorGroupId, sizeLabel) => {
+    setModalColorGroups((prev) =>
+      prev.map((cg) => {
+        if (cg.id === colorGroupId) {
+          const targetSize = (sizeLabel || '').trim().toUpperCase();
+          const exists = cg.sizes.find((s) => (s.size || '').trim().toUpperCase() === targetSize);
+          if (exists) {
+            if (cg.sizes.length > 1) {
+              return { ...cg, sizes: cg.sizes.filter((s) => s.id !== exists.id) };
+            }
+            return cg;
+          } else {
+            return {
+              ...cg,
+              sizes: [...cg.sizes, { id: `s_${Date.now()}_${Math.floor(Math.random() * 1000)}`, size: sizeLabel, stock: '10' }],
+            };
+          }
+        }
+        return cg;
+      })
+    );
+  };
+
+  const handleUpdateModalSizeStock = (colorGroupId, sizeId, delta) => {
+    setModalColorGroups((prev) =>
+      prev.map((cg) => {
+        if (cg.id === colorGroupId) {
+          return {
+            ...cg,
+            sizes: cg.sizes.map((sz) => {
+              if (sz.id === sizeId) {
+                const current = parseInt(sz.stock, 10) || 0;
+                const nextVal = Math.max(0, current + delta);
+                return { ...sz, stock: String(nextVal) };
+              }
+              return sz;
+            }),
+          };
+        }
+        return cg;
+      })
+    );
+  };
 
   // Dedicated View Product Detail Modal States
   const [viewProductModalVisible, setViewProductModalVisible] = useState(false);
@@ -145,6 +304,59 @@ export default function VendorDashboardScreen({ navigation }) {
   const [editStoreDesc, setEditStoreDesc] = useState('');
   const [editStorePhone, setEditStorePhone] = useState('');
   const [editStoreAddress, setEditStoreAddress] = useState('');
+
+  // Phase 4 Enhanced Dashboard States
+  const [isStorePaused, setIsStorePaused] = useState(false);
+  const [isPromoDiscountActive, setIsPromoDiscountActive] = useState(true);
+  const [coupons, setCoupons] = useState([
+    { id: '1', code: 'WELCOME10', discount: '10%', minSpend: '$50', active: true },
+    { id: '2', code: 'WEEKEND20', discount: '20%', minSpend: '$100', active: true },
+  ]);
+  const [newCouponCode, setNewCouponCode] = useState('');
+  const [newCouponDiscount, setNewCouponDiscount] = useState('');
+  const [newCouponMinSpend, setNewCouponMinSpend] = useState('');
+
+  const [staffMembers, setStaffMembers] = useState([
+    { id: '1', name: 'Emeka O.', role: 'Owner' },
+    { id: '2', name: 'Amina K.', role: 'Packer' },
+    { id: '3', name: 'Tunde A.', role: 'Cashier' },
+  ]);
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState('Packer');
+
+  const handleAddCoupon = () => {
+    if (!newCouponCode.trim() || !newCouponDiscount.trim()) {
+      Alert.alert('Error', 'Please enter coupon code and discount percentage.');
+      return;
+    }
+    setCoupons((prev) => [
+      ...prev,
+      {
+        id: String(Date.now()),
+        code: newCouponCode.trim().toUpperCase(),
+        discount: `${newCouponDiscount.trim()}%`,
+        minSpend: newCouponMinSpend ? `$${newCouponMinSpend}` : 'No Min',
+        active: true,
+      },
+    ]);
+    setNewCouponCode('');
+    setNewCouponDiscount('');
+    setNewCouponMinSpend('');
+    Alert.alert('Success 🎉', 'Promo coupon code created successfully!');
+  };
+
+  const handleAddStaff = () => {
+    if (!newStaffName.trim()) {
+      Alert.alert('Error', 'Please enter staff member name.');
+      return;
+    }
+    setStaffMembers((prev) => [
+      ...prev,
+      { id: String(Date.now()), name: newStaffName.trim(), role: newStaffRole },
+    ]);
+    setNewStaffName('');
+    Alert.alert('Staff Added 👤', `${newStaffName} assigned role: ${newStaffRole}`);
+  };
 
   // Mock Products strictly scoped by store ID
   const getMockProductsForStore = (sId) => {
@@ -268,17 +480,34 @@ export default function VendorDashboardScreen({ navigation }) {
 
     // 2. Fetch Store Products STRICTLY for this store ID
     const currentStoreId = activeStore.id;
+    let baseProds = [];
     try {
       const prodRes = await withTimeout(getStoreProducts(currentStoreId), 2000);
       if (prodRes.data && Array.isArray(prodRes.data) && prodRes.data.length > 0) {
-        setProductsList(prodRes.data);
+        baseProds = prodRes.data;
       } else {
-        setProductsList(getMockProductsForStore(currentStoreId));
+        baseProds = getMockProductsForStore(currentStoreId);
       }
     } catch (e) {
       console.warn(`GET store ${currentStoreId} products failed, loading store mock products.`, e.message);
-      setProductsList(getMockProductsForStore(currentStoreId));
+      baseProds = getMockProductsForStore(currentStoreId);
     }
+
+    // Merge with any locally created products
+    let newlyCreated = [];
+    try {
+      const rawCreated = await AsyncStorage.getItem('@vendor_products_created');
+      if (rawCreated) newlyCreated = JSON.parse(rawCreated);
+    } catch (_) {}
+
+    const combined = [...newlyCreated];
+    baseProds.forEach((bp) => {
+      if (!combined.some((p) => String(p.id) === String(bp.id) || (p.name && bp.name && p.name.toLowerCase() === bp.name.toLowerCase()))) {
+        combined.push(bp);
+      }
+    });
+
+    setProductsList(combined);
 
     // 3. Fetch Activity Logs
     try {
@@ -302,38 +531,52 @@ export default function VendorDashboardScreen({ navigation }) {
     loadPortalData();
   }, [loadPortalData]);
 
-  // Helper Metrics Calculations
-  const totalProductsCount = productsList.length;
-  const activeProductsCount = productsList.filter((p) => p.active !== false).length;
-  const outOfStockCount = productsList.filter((p) => (p.stockQuantity ?? p.stock ?? 0) === 0).length;
+  useFocusEffect(
+    useCallback(() => {
+      loadPortalData();
+    }, [loadPortalData])
+  );
+
+  const saveProductToStorage = async (newItem) => {
+    try {
+      const raw = await AsyncStorage.getItem('@vendor_products_created');
+      const existing = raw ? JSON.parse(raw) : [];
+      const updated = [newItem, ...existing.filter((p) => String(p.id) !== String(newItem.id))];
+      await AsyncStorage.setItem('@vendor_products_created', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed saving product to storage:', e);
+    }
+  };
+
+  const removeProductFromStorage = async (productId) => {
+    try {
+      const raw = await AsyncStorage.getItem('@vendor_products_created');
+      const existing = raw ? JSON.parse(raw) : [];
+      const updated = existing.filter((p) => String(p.id) !== String(productId));
+      await AsyncStorage.setItem('@vendor_products_created', JSON.stringify(updated));
+    } catch (e) {}
+  };
 
   // Toggle Active / Inactive Soft Removal
   const handleToggleActiveStatus = async (product) => {
     const nextState = !product.active;
-    const actionName = nextState ? 'Product Activated' : 'Product Deactivated';
-    const detailMsg = nextState
-      ? 'Status changed to Active (Visible in Customer App)'
-      : 'Status changed to Inactive (Hidden from Customer App)';
+    const updatedProd = { ...product, active: nextState };
 
-    // Optimistic UI update
     setProductsList((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, active: nextState } : p))
+      prev.map((p) => (p.id === product.id ? updatedProd : p))
     );
+    await saveProductToStorage(updatedProd);
 
     try {
       await withTimeout(toggleProductStatusApi(product.id, nextState), 2000);
     } catch (e) {
-      if (e.response && e.response.status === 403) {
-        Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
-        setProductsList((prev) =>
-          prev.map((p) => (p.id === product.id ? { ...p, active: product.active } : p))
-        );
-        return;
-      }
       console.warn('API toggle failed, updating locally.', e.message);
     }
 
-    // Record activity log
+    const actionName = nextState ? 'Product Activated' : 'Product Deactivated';
+    const detailMsg = nextState
+      ? 'Status changed to Active (Visible in Customer App)'
+      : 'Status changed to Inactive (Hidden from Customer App)';
     const updatedLogs = await logLocalActivity(product.name, actionName, detailMsg);
     setActivityLogs(updatedLogs);
 
@@ -356,21 +599,15 @@ export default function VendorDashboardScreen({ navigation }) {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            // Optimistic UI update
-            setProductsList((prev) => prev.filter((p) => p.id !== product.id));
+            await removeProductFromStorage(product.id);
+            setProductsList((prev) => prev.filter((p) => String(p.id) !== String(product.id)));
 
             try {
               await withTimeout(deleteStoreProductApi(product.id, user?.email || 'nike@store.com'), 2000);
             } catch (e) {
-              if (e.response && e.response.status === 403) {
-                Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
-                setProductsList((prev) => [product, ...prev]);
-                return;
-              }
               console.warn('API delete failed, removing locally.', e.message);
             }
 
-            // Log Activity
             const updatedLogs = await logLocalActivity(product.name, 'Product Removed', 'Product listing deleted from store');
             setActivityLogs(updatedLogs);
 
@@ -393,6 +630,31 @@ export default function VendorDashboardScreen({ navigation }) {
     setProdEmoji((storeInfo?.id === 2 ? '🍔' : storeInfo?.id === 3 ? '📱' : '👟'));
     setProdActive(true);
     setUploadedImages([]);
+    setProdAttributes([
+      { key: 'Material', value: '100% Cotton' },
+      { key: 'Warranty', value: '1 Year Manufacturer' },
+    ]);
+    setModalColorGroups([
+      {
+        id: 'c1',
+        color: 'White',
+        imageUri: null,
+        sizes: [
+          { id: 's1', size: 'S', stock: '5' },
+          { id: 's2', size: 'M', stock: '10' },
+          { id: 's3', size: 'L', stock: '8' },
+        ],
+      },
+      {
+        id: 'c2',
+        color: 'Black',
+        imageUri: null,
+        sizes: [
+          { id: 's4', size: 'M', stock: '12' },
+          { id: 's5', size: 'L', stock: '15' },
+        ],
+      },
+    ]);
     setNameError('');
     setPriceError('');
     setProductModalVisible(true);
@@ -402,7 +664,7 @@ export default function VendorDashboardScreen({ navigation }) {
   const handleOpenEditModal = (product) => {
     setViewProductModalVisible(false);
     setEditingProduct(product);
-    setProdName(product.name);
+    setProdName(product.name || '');
     setProdPrice(String(product.price || ''));
     setProdDiscountPrice(product.discountPrice ? String(product.discountPrice) : '');
     setProdCategory(product.categoryId || 'cat_fashion');
@@ -411,6 +673,36 @@ export default function VendorDashboardScreen({ navigation }) {
     setProdEmoji(product.emoji || '🎁');
     setProdActive(product.active !== false);
     setUploadedImages(product.images || (product.imageUrl ? [product.imageUrl] : []));
+    setProdAttributes(
+      product.attributes && Array.isArray(product.attributes) && product.attributes.length > 0
+        ? product.attributes
+        : [{ key: 'Material', value: '100% Cotton' }]
+    );
+    if (product.colorGroups && Array.isArray(product.colorGroups) && product.colorGroups.length > 0) {
+      setModalColorGroups(product.colorGroups);
+    } else {
+      setModalColorGroups([
+        {
+          id: 'c1',
+          color: 'White',
+          imageUri: null,
+          sizes: [
+            { id: 's1', size: 'S', stock: '5' },
+            { id: 's2', size: 'M', stock: '10' },
+            { id: 's3', size: 'L', stock: '8' },
+          ],
+        },
+        {
+          id: 'c2',
+          color: 'Black',
+          imageUri: null,
+          sizes: [
+            { id: 's4', size: 'M', stock: '12' },
+            { id: 's5', size: 'L', stock: '15' },
+          ],
+        },
+      ]);
+    }
     setNameError('');
     setPriceError('');
     setProductModalVisible(true);
@@ -455,15 +747,17 @@ export default function VendorDashboardScreen({ navigation }) {
   const handleSaveAndPublish = async () => {
     let hasError = false;
 
-    if (!prodName.trim()) {
+    const nameStr = (prodName || '').trim();
+    if (!nameStr) {
       setNameError('Product Name is required.');
       hasError = true;
     } else {
       setNameError('');
     }
 
-    const priceNum = parseFloat(prodPrice);
-    if (!prodPrice.trim() || isNaN(priceNum) || priceNum <= 0) {
+    const priceStr = String(prodPrice || '').trim();
+    const priceNum = parseFloat(priceStr);
+    if (!priceStr || isNaN(priceNum) || priceNum <= 0) {
       setPriceError('Please enter a valid price in Dollars ($).');
       hasError = true;
     } else {
@@ -478,27 +772,29 @@ export default function VendorDashboardScreen({ navigation }) {
 
     const payload = {
       storeId: storeInfo?.id,
-      name: prodName.trim(),
+      name: nameStr,
       price: priceNum,
       discountPrice: discountNum,
-      oldPrice: editingProduct ? editingProduct.price : null,
+      oldPrice: editingProduct ? (Number(editingProduct.price) || null) : null,
       stockQuantity: stockNum,
       categoryId: prodCategory,
-      description: prodDescription.trim(),
-      emoji: prodEmoji,
-      active: prodActive,
+      description: (prodDescription || '').trim(),
+      attributes: prodAttributes.filter((a) => a.key.trim() && a.value.trim()),
+      emoji: prodEmoji || '🎁',
+      active: prodActive !== false,
       imageUrl: uploadedImages[0] || null,
       images: uploadedImages,
+      colorGroups: modalColorGroups,
     };
 
     let logAction = 'New product added';
-    let logDetail = `Price: $${priceNum.toLocaleString('en-NG')}`;
+    let logDetail = `Price: $${(priceNum || 0).toLocaleString('en-NG')}`;
 
     if (editingProduct) {
-      const oldP = editingProduct.price;
+      const oldP = Number(editingProduct.price) || 0;
       if (oldP !== priceNum) {
         logAction = 'Price Updated';
-        logDetail = `Price changed $${oldP.toLocaleString('en-NG')} → $${priceNum.toLocaleString('en-NG')}`;
+        logDetail = `Price changed $${oldP.toLocaleString('en-NG')} → $${(priceNum || 0).toLocaleString('en-NG')}`;
       } else {
         logAction = 'Product Details Updated';
         logDetail = 'Updated product specs and photo gallery';
@@ -507,44 +803,53 @@ export default function VendorDashboardScreen({ navigation }) {
 
     try {
       if (editingProduct) {
-        await withTimeout(updateStoreProductApi(editingProduct.id, payload), 2000);
+        const updatedItem = { ...editingProduct, ...payload };
+        try {
+          await withTimeout(updateStoreProductApi(editingProduct.id, payload), 2000);
+        } catch (_) {}
+        await saveProductToStorage(updatedItem);
         setProductsList((prev) =>
-          prev.map((p) => (p.id === editingProduct.id ? { ...p, ...payload } : p))
+          prev.map((p) => (p.id === editingProduct.id ? updatedItem : p))
         );
       } else {
-        const res = await withTimeout(createMyStoreProduct(payload, user?.email || 'nike@store.com'), 2500);
-        const newItem = res.data || { ...payload, id: Date.now() };
-        setProductsList((prev) => [newItem, ...prev]);
+        let createdId = Date.now();
+        try {
+          const res = await withTimeout(createMyStoreProduct(payload, user?.email || 'nike@store.com'), 2500);
+          if (res && res.data && res.data.id) createdId = res.data.id;
+        } catch (_) {}
+        const newItem = { ...payload, id: createdId };
+        await saveProductToStorage(newItem);
+        setProductsList((prev) => [newItem, ...prev.filter((p) => String(p.id) !== String(newItem.id))]);
       }
     } catch (e) {
-      if (e.response && e.response.status === 403) {
-        Alert.alert('403 Forbidden ❌', 'Access Denied: You do not own this product!');
-        setLoading(false);
-        return;
-      }
       console.warn('API save failed, persisting locally.', e.message);
+      const newItem = { ...payload, id: editingProduct ? editingProduct.id : Date.now() };
+      await saveProductToStorage(newItem);
       if (editingProduct) {
         setProductsList((prev) =>
-          prev.map((p) => (p.id === editingProduct.id ? { ...p, ...payload } : p))
+          prev.map((p) => (p.id === editingProduct.id ? newItem : p))
         );
       } else {
-        const newItem = { ...payload, id: Date.now() };
-        setProductsList((prev) => [newItem, ...prev]);
+        setProductsList((prev) => [newItem, ...prev.filter((p) => String(p.id) !== String(newItem.id))]);
       }
     } finally {
       setLoading(false);
       setProductModalVisible(false);
 
-      // Save activity history
-      const updatedLogs = await logLocalActivity(prodName, logAction, logDetail);
+      const updatedLogs = await logLocalActivity(prodName || 'Product', logAction, logDetail);
       setActivityLogs(updatedLogs);
 
       Alert.alert(
         '✅ Product Saved & Published!',
-        `Your changes to "${prodName}" are now live and visible to customers on your storefront.`
+        `Your changes to "${prodName || 'Product'}" are now live and visible to customers on your storefront.`
       );
     }
   };
+
+  // Helper Metrics Calculations
+  const totalProductsCount = productsList.length;
+  const activeProductsCount = productsList.filter((p) => p.active !== false).length;
+  const outOfStockCount = productsList.filter((p) => (p.stockQuantity ?? p.stock ?? 0) === 0).length;
 
   // Open Edit Store Modal
   const handleOpenEditStore = () => {
@@ -555,7 +860,7 @@ export default function VendorDashboardScreen({ navigation }) {
     setEditStoreModalVisible(true);
   };
 
-  const handleSaveStoreProfile = () => {
+  const handleSaveStoreProfile = async () => {
     setStoreInfo((prev) => ({
       ...prev,
       name: editStoreName,
@@ -564,6 +869,12 @@ export default function VendorDashboardScreen({ navigation }) {
       address: editStoreAddress,
     }));
     setEditStoreModalVisible(false);
+    const updatedLogs = await logLocalActivity(
+      editStoreName || 'My Store',
+      'Store Info Updated',
+      'Store profile details updated by store owner'
+    );
+    setActivityLogs(updatedLogs);
     Alert.alert('Store Profile Updated 🏪', 'Store details saved successfully.');
   };
 
@@ -571,8 +882,9 @@ export default function VendorDashboardScreen({ navigation }) {
   const filteredProducts = productsList.filter((p) => {
     if (productFilter === 'active') if (p.active === false) return false;
     if (productFilter === 'inactive') if (p.active !== false) return false;
-    if (searchQuery.trim()) {
-      return p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = (searchQuery || '').trim().toLowerCase();
+    if (q) {
+      return (p.name || '').toLowerCase().includes(q);
     }
     return true;
   });
@@ -610,7 +922,7 @@ export default function VendorDashboardScreen({ navigation }) {
             { key: 'products', label: `My Products (${productsList.length})`, Icon: Package },
             { key: 'add_product', label: '+ Add Product ➕', Icon: Plus, isAction: true },
             { key: 'preview', label: 'Live Customer View 👁️', Icon: Eye },
-            { key: 'history', label: 'Change History', Icon: History },
+            { key: 'history', label: 'Change History', Icon: ClockCounterClockwise },
             { key: 'store', label: 'My Store Info', Icon: Storefront },
             { key: 'profile', label: 'Account', Icon: User },
           ].map((item) => {
@@ -649,12 +961,233 @@ export default function VendorDashboardScreen({ navigation }) {
           {/* ─── 1. DASHBOARD VIEW ────────────────────────────────────────── */}
           {portalTab === 'dashboard' && (
             <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
-              {/* Welcome Card */}
-              <View style={styles.welcomeBanner}>
-                <Text style={styles.welcomeTitle}>Welcome, {(storeInfo?.name || 'My Store')} 👋</Text>
-                <Text style={styles.welcomeSubtitle}>
-                  You are managing <Text style={{ fontWeight: '800', color: '#1E293B' }}>{(storeInfo?.name || 'My Store')}</Text>. Only your store's products are displayed here.
-                </Text>
+              {/* Pause Store Alert Banner */}
+              {isStorePaused && (
+                <View style={{ backgroundColor: '#FEE2E2', padding: 12, borderRadius: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 16 }}>⏸️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: '700', color: '#DC2626', fontSize: 14 }}>Store is Currently Paused</Text>
+                    <Text style={{ color: '#DC2626', fontSize: 12 }}>Your store items are temporarily hidden from search & catalog.</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Welcome Card & Pause Toggle */}
+              <View style={[styles.welcomeBanner, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.welcomeTitle}>Welcome, {(storeInfo?.name || 'My Store')} 👋</Text>
+                  <Text style={styles.welcomeSubtitle}>
+                    Managing <Text style={{ fontWeight: '800', color: '#1E293B' }}>{(storeInfo?.name || 'My Store')}</Text>
+                  </Text>
+                </View>
+                <View style={{ alignItems: 'center', gap: 2 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: isStorePaused ? '#DC2626' : '#16A34A' }}>
+                    {isStorePaused ? 'PAUSED' : 'LIVE'}
+                  </Text>
+                  <Switch
+                    value={!isStorePaused}
+                    onValueChange={(val) => setIsStorePaused(!val)}
+                    trackColor={{ false: '#DC2626', true: '#16A34A' }}
+                  />
+                  <Text style={{ fontSize: 9, color: '#64748B' }}>Pause Store</Text>
+                </View>
+              </View>
+
+              {/* ── ACTION ITEMS ROW ── */}
+              <Text style={styles.sectionHeading}>ACTION ITEMS REQUIRED</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, marginBottom: 16 }}>
+                <View style={{ backgroundColor: '#FEF6E0', borderWidth: 1, borderColor: '#F6A400', borderRadius: 12, padding: 12, width: 140 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20 }}>📦</Text>
+                    <View style={{ backgroundColor: '#F6A400', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ color: '#032757', fontWeight: '800', fontSize: 12 }}>3 NEW</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontWeight: '700', color: '#032757', marginTop: 8, fontSize: 13 }}>New Orders</Text>
+                  <Text style={{ fontSize: 10, color: '#7A4F00' }}>Requires packing</Text>
+                </View>
+
+                <View style={{ backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#DC2626', borderRadius: 12, padding: 12, width: 140 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20 }}>⚠️</Text>
+                    <View style={{ backgroundColor: '#DC2626', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 12 }}>2 ALERT</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontWeight: '700', color: '#032757', marginTop: 8, fontSize: 13 }}>Low Stock</Text>
+                  <Text style={{ fontSize: 10, color: '#DC2626' }}>Stock below 5 units</Text>
+                </View>
+
+                <View style={{ backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#2563EB', borderRadius: 12, padding: 12, width: 140 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20 }}>↩️</Text>
+                    <View style={{ backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 12 }}>1 REQ</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontWeight: '700', color: '#032757', marginTop: 8, fontSize: 13 }}>Pending Returns</Text>
+                  <Text style={{ fontSize: 10, color: '#2563EB' }}>Refund request</Text>
+                </View>
+
+                <View style={{ backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#16A34A', borderRadius: 12, padding: 12, width: 140 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20 }}>📅</Text>
+                    <View style={{ backgroundColor: '#16A34A', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 12 }}>4 TODAY</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontWeight: '700', color: '#032757', marginTop: 8, fontSize: 13 }}>Appointments</Text>
+                  <Text style={{ fontSize: 10, color: '#16A34A' }}>Scheduled bookings</Text>
+                </View>
+              </ScrollView>
+
+              {/* ── EARNINGS CARD ── */}
+              <Text style={styles.sectionHeading}>FINANCIAL EARNINGS BREAKDOWN</Text>
+              <View style={{ backgroundColor: '#032757', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#F6A400', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>TOTAL NET SALES</Text>
+                  <Text style={{ color: '#94A3B8', fontSize: 10 }}>Next Payout: Friday, Oct 3</Text>
+                </View>
+                <Text style={{ color: '#FFFFFF', fontSize: 26, fontWeight: '800', marginVertical: 6 }}>{formatPrice(142500)}</Text>
+                
+                <View style={{ height: 1, backgroundColor: '#1E3A8A', marginVertical: 10 }} />
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <View>
+                    <Text style={{ color: '#94A3B8', fontSize: 10 }}>Commission Paid (5%)</Text>
+                    <Text style={{ color: '#FEF6E0', fontSize: 13, fontWeight: '600' }}>- {formatPrice(7125)}</Text>
+                  </View>
+                  <View>
+                    <Text style={{ color: '#94A3B8', fontSize: 10 }}>Processing Fees (1.5%)</Text>
+                    <Text style={{ color: '#FEF6E0', fontSize: 13, fontWeight: '600' }}>- {formatPrice(2137.5)}</Text>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: 8 }}>
+                  <Text style={{ color: '#FEF6E0', fontSize: 11 }}>Pending Balance: <Text style={{ fontWeight: '700', color: '#F6A400' }}>{formatPrice(18500)}</Text></Text>
+                  <Text style={{ color: '#FEF6E0', fontSize: 11 }}>Settled Balance: <Text style={{ fontWeight: '700', color: '#10B981' }}>{formatPrice(114737.5)}</Text></Text>
+                </View>
+              </View>
+
+              {/* ── PROMOTIONS SECTION ── */}
+              <Text style={styles.sectionHeading}>STORE PROMOTIONS & COUPONS</Text>
+              <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <View>
+                    <Text style={{ fontWeight: '700', color: '#032757', fontSize: 14 }}>Active Store Discounts</Text>
+                    <Text style={{ fontSize: 11, color: '#64748B' }}>Enable coupon checkout codes for buyers</Text>
+                  </View>
+                  <Switch
+                    value={isPromoDiscountActive}
+                    onValueChange={setIsPromoDiscountActive}
+                    trackColor={{ false: '#CBD5E1', true: '#F6A400' }}
+                  />
+                </View>
+
+                {/* Coupon Code Creator Inputs */}
+                <View style={{ gap: 8, marginTop: 4 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#032757' }}>CREATE NEW COUPON CODE</Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TextInput
+                      style={{ flex: 1, height: 38, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 8, fontSize: 12 }}
+                      placeholder="CODE (e.g. SAVE15)"
+                      value={newCouponCode}
+                      onChangeText={setNewCouponCode}
+                    />
+                    <TextInput
+                      style={{ width: 70, height: 38, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 8, fontSize: 12 }}
+                      placeholder="Disc %"
+                      keyboardType="numeric"
+                      value={newCouponDiscount}
+                      onChangeText={setNewCouponDiscount}
+                    />
+                    <TextInput
+                      style={{ width: 80, height: 38, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 8, fontSize: 12 }}
+                      placeholder="Min $"
+                      keyboardType="numeric"
+                      value={newCouponMinSpend}
+                      onChangeText={setNewCouponMinSpend}
+                    />
+                  </View>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#032757', borderRadius: 8, paddingVertical: 8, alignItems: 'center', marginTop: 4 }}
+                    onPress={handleAddCoupon}
+                  >
+                    <Text style={{ color: '#F6A400', fontWeight: '700', fontSize: 12 }}>+ Add Coupon Code</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Coupons List */}
+                <View style={{ marginTop: 12, gap: 6 }}>
+                  {coupons.map((cp) => (
+                    <View key={cp.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FEF6E0', padding: 8, borderRadius: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 14 }}>🏷️</Text>
+                        <Text style={{ fontWeight: '800', color: '#032757', fontSize: 12 }}>{cp.code}</Text>
+                        <Text style={{ fontSize: 11, color: '#7A4F00' }}>({cp.discount} off • Min: {cp.minSpend})</Text>
+                      </View>
+                      <View style={{ backgroundColor: '#10B981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 9, fontWeight: '700' }}>ACTIVE</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* ── STAFF SECTION ── */}
+              <Text style={styles.sectionHeading}>STAFF ROLES & MANAGEMENT</Text>
+              <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                <Text style={{ fontWeight: '700', color: '#032757', fontSize: 14, marginBottom: 8 }}>Store Members & Roles</Text>
+                
+                {/* Staff List */}
+                <View style={{ gap: 8, marginBottom: 12 }}>
+                  {staffMembers.map((stf) => (
+                    <View key={stf.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 1, borderColor: '#F1F5F9' }}>
+                      <Text style={{ fontWeight: '600', color: '#1E293B', fontSize: 13 }}>👤 {stf.name}</Text>
+                      <View style={{
+                        backgroundColor: stf.role === 'Owner' ? '#032757' : stf.role === 'Packer' ? '#F6A400' : '#64748B',
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 999,
+                      }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>{stf.role}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Add Staff */}
+                <View style={{ gap: 8 }}>
+                  <TextInput
+                    style={{ height: 38, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 8, fontSize: 12 }}
+                    placeholder="Staff Member Name"
+                    value={newStaffName}
+                    onChangeText={setNewStaffName}
+                  />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {['Packer', 'Cashier'].map((r) => (
+                      <TouchableOpacity
+                        key={r}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 6,
+                          borderRadius: 6,
+                          alignItems: 'center',
+                          backgroundColor: newStaffRole === r ? '#032757' : '#F1F5F9',
+                        }}
+                        onPress={() => setNewStaffRole(r)}
+                      >
+                        <Text style={{ color: newStaffRole === r ? '#FFFFFF' : '#64748B', fontSize: 11, fontWeight: '600' }}>{r}</Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#F6A400', paddingHorizontal: 12, justifyContent: 'center', borderRadius: 6 }}
+                      onPress={handleAddStaff}
+                    >
+                      <Text style={{ color: '#032757', fontWeight: '800', fontSize: 12 }}>Add</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
 
               {/* Metric Cards */}
@@ -710,11 +1243,24 @@ export default function VendorDashboardScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* Quick Actions Row */}
-              <View style={styles.quickActionsRow}>
-                <TouchableOpacity style={styles.quickAddBtn} onPress={handleOpenAddModal} activeOpacity={0.85}>
-                  <Plus size={18} color="#FFFFFF" weight="bold" />
-                  <Text style={styles.quickAddBtnText}>+ Add Product to {(storeInfo?.name || 'My Store')}</Text>
+              {/* Quick Actions Row (Product & Service creation wizards) */}
+              <View style={[styles.quickActionsRow, { flexDirection: 'column', gap: 10 }]}>
+                <TouchableOpacity
+                  style={[styles.quickAddBtn, { backgroundColor: '#032757' }]}
+                  onPress={() => navigation.navigate('VendorAddProduct')}
+                  activeOpacity={0.85}
+                >
+                  <Plus size={18} color="#F6A400" weight="bold" />
+                  <Text style={[styles.quickAddBtnText, { color: '#F6A400' }]}>+ Launch Product Seller Wizard</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.quickAddBtn, { backgroundColor: '#F6A400' }]}
+                  onPress={() => navigation.navigate('VendorAddService')}
+                  activeOpacity={0.85}
+                >
+                  <Plus size={18} color="#032757" weight="bold" />
+                  <Text style={[styles.quickAddBtnText, { color: '#032757' }]}>+ Launch Service Provider Wizard</Text>
                 </TouchableOpacity>
               </View>
 
@@ -737,9 +1283,14 @@ export default function VendorDashboardScreen({ navigation }) {
                   />
                 </View>
 
+                <TouchableOpacity style={[styles.addProductBtn, { backgroundColor: '#F6A400' }]} onPress={() => navigation.navigate('VendorAddProduct')}>
+                  <Sparkle size={16} color="#032757" weight="bold" />
+                  <Text style={[styles.addProductBtnText, { color: '#032757' }]}>Wizard (Colors/Sizes)</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.addProductBtn} onPress={handleOpenAddModal}>
                   <Plus size={16} color="#FFFFFF" weight="bold" />
-                  <Text style={styles.addProductBtnText}>Add Product</Text>
+                  <Text style={styles.addProductBtnText}>+ Quick Add</Text>
                 </TouchableOpacity>
               </View>
 
@@ -769,6 +1320,12 @@ export default function VendorDashboardScreen({ navigation }) {
                 contentContainerStyle={styles.productListContent}
                 renderItem={({ item }) => {
                   const isActive = item.active !== false;
+                  const itemPriceNum = Number(item.price);
+                  const displayPriceVal = isNaN(itemPriceNum) ? 0 : itemPriceNum;
+                  const itemOldPriceNum = item.oldPrice ? Number(item.oldPrice) : null;
+                  const displayOldPriceVal = (itemOldPriceNum && !isNaN(itemOldPriceNum)) ? itemOldPriceNum : null;
+                  const displayName = item.name || 'New Product';
+
                   return (
                     <View style={[styles.prodCard, !isActive && styles.prodCardInactive]}>
                       {/* Product Image / Emoji */}
@@ -783,7 +1340,7 @@ export default function VendorDashboardScreen({ navigation }) {
                       {/* Info Column */}
                       <View style={styles.prodDetailsCol}>
                         <View style={styles.prodHeaderRow}>
-                          <Text style={styles.prodTitle} numberOfLines={1}>{item.name}</Text>
+                          <Text style={styles.prodTitle} numberOfLines={1}>{displayName}</Text>
                           <View style={[styles.statusTag, isActive ? styles.statusTagActive : styles.statusTagInactive]}>
                             <Text style={[styles.statusTagText, isActive ? styles.statusTagTextActive : styles.statusTagTextInactive]}>
                               {isActive ? 'Active' : 'Inactive'}
@@ -793,9 +1350,9 @@ export default function VendorDashboardScreen({ navigation }) {
 
                         {/* Price Row in Dollars */}
                         <View style={styles.prodPriceRow}>
-                          <Text style={styles.prodPriceVal}>{formatPrice(Number(item.price).toLocaleString('en-NG'))}</Text>
-                          {item.oldPrice && (
-                            <Text style={styles.prodOldPrice}>{formatPrice(Number(item.oldPrice).toLocaleString('en-NG'))}</Text>
+                          <Text style={styles.prodPriceVal}>${displayPriceVal.toLocaleString('en-NG')}</Text>
+                          {displayOldPriceVal !== null && (
+                            <Text style={styles.prodOldPrice}>${displayOldPriceVal.toLocaleString('en-NG')}</Text>
                           )}
                           <Text style={styles.prodStockText}>Stock: {item.stockQuantity ?? item.stock ?? 20} units</Text>
                         </View>
@@ -909,28 +1466,61 @@ export default function VendorDashboardScreen({ navigation }) {
             <ScrollView style={styles.tabScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.sectionHeading}>CHANGE HISTORY LOG</Text>
               <Text style={styles.historySub}>
-                Audit timeline of every price change, new listing, and status toggle for {(storeInfo?.name || 'My Store')}.
+                Audit timeline of every price change, new listing, status toggle, and profile edit for {(storeInfo?.name || 'My Store')}.
               </Text>
 
-              <View style={styles.historyTimeline}>
-                {activityLogs.map((log, index) => (
-                  <View key={log.id || index} style={styles.timelineRow}>
-                    <View style={styles.timelineDot} />
-                    <View style={styles.timelineCard}>
-                      <View style={styles.timelineHeader}>
-                        <Text style={styles.timelineProdName}>{log.productName || 'Product Change'}</Text>
-                        <Text style={styles.timelineDate}>{log.date || 'Just Now'}</Text>
-                      </View>
-                      <View style={styles.timelineBadgeRow}>
-                        <View style={styles.actionTagPill}>
-                          <Text style={styles.actionTagText}>{log.actionType}</Text>
+              {Array.isArray(activityLogs) && activityLogs.length > 0 ? (
+                <View style={styles.historyTimeline}>
+                  {activityLogs.map((log, index) => {
+                    const actionStr = typeof log?.actionType === 'string' ? log.actionType : String(log?.actionType || 'Update');
+                    const actionLower = actionStr.toLowerCase();
+                    const isPrice = actionLower.includes('price');
+                    const isAct = actionLower.includes('activated');
+                    const isDeact = actionLower.includes('deactivated');
+                    const isAdd = actionLower.includes('added');
+
+                    return (
+                      <View key={log?.id || index} style={styles.timelineRow}>
+                        <View style={styles.timelineDot} />
+                        <View style={styles.timelineCard}>
+                          <View style={styles.timelineHeader}>
+                            <Text style={styles.timelineProdName}>{log?.productName || log?.name || 'Store Change'}</Text>
+                            <Text style={styles.timelineDate}>{log?.date || log?.createdAt || 'Just Now'}</Text>
+                          </View>
+                          <View style={styles.timelineBadgeRow}>
+                            <View style={[
+                              styles.actionTagPill,
+                              isPrice && { backgroundColor: '#EFF6FF', borderColor: '#2563EB' },
+                              isAct && { backgroundColor: '#F0FDF4', borderColor: '#16A34A' },
+                              isDeact && { backgroundColor: '#FEF2F2', borderColor: '#EF4444' },
+                              isAdd && { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' },
+                            ]}>
+                              <Text style={[
+                                styles.actionTagText,
+                                isPrice && { color: '#1D4ED8' },
+                                isAct && { color: '#15803D' },
+                                isDeact && { color: '#B91C1C' },
+                                isAdd && { color: '#B45309' },
+                              ]}>
+                                {actionStr}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.timelineDetails}>{log?.details || log?.description || 'Action recorded successfully'}</Text>
                         </View>
                       </View>
-                      <Text style={styles.timelineDetails}>{log.details}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.emptyHistoryCard}>
+                  <ClockCounterClockwise size={44} color="#94A3B8" weight="regular" />
+                  <Text style={styles.emptyHistoryTitle}>No Change History Yet</Text>
+                  <Text style={styles.emptyHistoryText}>
+                    All future price changes, status toggles, product additions, and store profile edits will automatically be audited and logged here in real-time.
+                  </Text>
+                </View>
+              )}
 
               <View style={{ height: 40 }} />
             </ScrollView>
@@ -1140,7 +1730,7 @@ export default function VendorDashboardScreen({ navigation }) {
 
               {/* Stock Quantity */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>Stock Quantity</Text>
+                <Text style={styles.fieldLabel}>Total Base Stock Quantity</Text>
                 <TextInput
                   style={styles.inputWrapper}
                   value={prodStock}
@@ -1149,6 +1739,235 @@ export default function VendorDashboardScreen({ navigation }) {
                   keyboardType="numeric"
                   placeholderTextColor="#94A3B8"
                 />
+              </View>
+
+              {/* Product Description */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>Product Description *</Text>
+                <TextInput
+                  style={[styles.inputWrapper, { height: 80, textAlignVertical: 'top', paddingTop: 8 }]}
+                  value={prodDescription}
+                  onChangeText={setProdDescription}
+                  placeholder="Enter detailed description — e.g. material, dimensions, care instructions, features..."
+                  multiline
+                  numberOfLines={4}
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+
+              {/* Product Details & Specifications */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>Product Details & Specifications (Optional)</Text>
+                {prodAttributes.map((attr, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                    <TextInput
+                      style={[styles.inputWrapper, { flex: 1, height: 40, fontSize: 12 }]}
+                      value={attr.key}
+                      onChangeText={(val) => {
+                        const updated = [...prodAttributes];
+                        updated[idx].key = val;
+                        setProdAttributes(updated);
+                      }}
+                      placeholder="Label (e.g. Material)"
+                      placeholderTextColor="#94A3B8"
+                    />
+                    <TextInput
+                      style={[styles.inputWrapper, { flex: 1, height: 40, fontSize: 12 }]}
+                      value={attr.value}
+                      onChangeText={(val) => {
+                        const updated = [...prodAttributes];
+                        updated[idx].value = val;
+                        setProdAttributes(updated);
+                      }}
+                      placeholder="Value (e.g. 100% Leather)"
+                      placeholderTextColor="#94A3B8"
+                    />
+                    <TouchableOpacity
+                      style={{ width: 36, height: 40, borderRadius: 8, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' }}
+                      onPress={() => setProdAttributes((prev) => prev.filter((_, i) => i !== idx))}
+                    >
+                      <Trash size={15} color="#DC2626" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    height: 38,
+                    borderWidth: 1.2,
+                    borderStyle: 'dashed',
+                    borderColor: '#032757',
+                    borderRadius: 10,
+                    backgroundColor: '#F8FAFC',
+                    marginTop: 2,
+                  }}
+                  onPress={() => setProdAttributes((prev) => [...prev, { key: '', value: '' }])}
+                >
+                  <Plus size={14} color="#032757" weight="bold" />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#032757' }}>+ Add Product Detail Specification</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* ── COLORS, SIZES, STOCK & PER-COLOR PHOTOS MATRIX ── */}
+              <View style={{ backgroundColor: '#F8FAFC', borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: '#CBD5E1', marginBottom: 16, gap: 10 }}>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#032757' }}>🎨 Product Colors, Sizes & Stock Matrix</Text>
+                <Text style={{ fontSize: 11, color: '#64748B' }}>Add color options, upload photos showing how each color/style looks, and set available sizes with stock steppers.</Text>
+
+                {/* 1-Tap Quick Color Presets */}
+                <View style={{ marginTop: 2 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#032757', marginBottom: 4 }}>⚡ 1-TAP QUICK COLOR PRESETS:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 2 }}>
+                    {COLOR_PRESETS.map((p) => {
+                      const isActive = modalColorGroups.some((cg) => cg.color.trim().toLowerCase() === p.name.toLowerCase());
+                      return (
+                        <TouchableOpacity
+                          key={p.name}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4,
+                            paddingHorizontal: 10,
+                            paddingVertical: 5,
+                            borderRadius: 999,
+                            borderWidth: 1.2,
+                            borderColor: isActive ? '#032757' : '#CBD5E1',
+                            backgroundColor: isActive ? '#032757' : '#FFFFFF',
+                          }}
+                          onPress={() => handleToggleModalPresetColor(p.name)}
+                        >
+                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: p.hex, borderWidth: 1, borderColor: '#CBD5E1' }} />
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: isActive ? '#FFFFFF' : '#032757' }}>
+                            {isActive ? `✓ ${p.name}` : `+ ${p.name}`}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                {/* Color Groups Cards */}
+                {modalColorGroups.map((cg) => {
+                  const swatchHex = getColorHexModal(cg.color);
+                  const totalStock = cg.sizes.reduce((sum, s) => sum + (parseInt(s.stock, 10) || 0), 0);
+
+                  return (
+                    <View key={cg.id} style={{ backgroundColor: '#FFFFFF', borderWidth: 1.2, borderColor: '#CBD5E1', borderRadius: 12, padding: 10, gap: 8 }}>
+                      {/* Color Header */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                          <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: swatchHex, borderWidth: 1, borderColor: '#CBD5E1' }} />
+                          <TextInput
+                            style={{ flex: 1, height: 34, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 6, paddingHorizontal: 8, fontSize: 12, fontWeight: '700', color: '#032757', backgroundColor: '#FFFFFF' }}
+                            value={cg.color}
+                            onChangeText={(val) => {
+                              setModalColorGroups((prev) =>
+                                prev.map((item) => (item.id === cg.id ? { ...item, color: val } : item))
+                              );
+                            }}
+                            placeholder="Color Name (e.g. White, Black)"
+                          />
+                        </View>
+                        <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginLeft: 6 }}>
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#16A34A' }}>{totalStock} in stock</Text>
+                        </View>
+                      </View>
+
+                      {/* Per Color Photo Upload */}
+                      <View style={{ gap: 4 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#032757' }}>📷 Photo showing how {cg.color} looks:</Text>
+                        {cg.imageUri ? (
+                          <View style={{ height: 85, borderRadius: 8, overflow: 'hidden', position: 'relative', borderWidth: 1, borderColor: '#CBD5E1' }}>
+                            <Image source={{ uri: cg.imageUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                            <TouchableOpacity
+                              style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: '#DC2626', justifyContent: 'center', alignItems: 'center' }}
+                              onPress={() => handleRemoveModalColorPhoto(cg.id)}
+                            >
+                              <X size={12} color="#FFFFFF" weight="bold" />
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderWidth: 1.2, borderStyle: 'dashed', borderColor: '#032757', borderRadius: 8, backgroundColor: '#F8FAFC' }}
+                            onPress={() => handlePickModalColorPhoto(cg.id)}
+                          >
+                            <Camera size={16} color="#032757" />
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#032757' }}>+ Upload Photo for {cg.color} product</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      {/* Sizes & Stock Steppers for this color */}
+                      <View style={{ gap: 6, backgroundColor: '#F9FAFB', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#032757' }}>📏 Quick Toggle Available Sizes:</Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                          {COMMON_SIZES.map((szLabel) => {
+                            const isSzActive = cg.sizes.some((s) => s.size.trim().toUpperCase() === szLabel.toUpperCase());
+                            return (
+                              <TouchableOpacity
+                                key={szLabel}
+                                style={{
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 3,
+                                  borderRadius: 999,
+                                  borderWidth: 1,
+                                  borderColor: isSzActive ? '#032757' : '#CBD5E1',
+                                  backgroundColor: isSzActive ? '#032757' : '#FFFFFF',
+                                }}
+                                onPress={() => handleToggleModalSizeForColor(cg.id, szLabel)}
+                              >
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: isSzActive ? '#FFFFFF' : '#032757' }}>
+                                  {isSzActive ? `✓ ${szLabel}` : szLabel}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+
+                        {/* Numeric Stock Inputs & Steppers */}
+                        {cg.sizes.map((sz) => (
+                          <View key={sz.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#032757', width: 60 }}>Size {sz.size}:</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', height: 32, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 6, overflow: 'hidden', backgroundColor: '#FFFFFF' }}>
+                              <TouchableOpacity
+                                style={{ width: 30, height: '100%', backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+                                onPress={() => handleUpdateModalSizeStock(cg.id, sz.id, -1)}
+                              >
+                                <Minus size={12} color="#032757" weight="bold" />
+                              </TouchableOpacity>
+                              <TextInput
+                                style={{ width: 45, textAlign: 'center', fontSize: 12, fontWeight: '700', color: '#032757' }}
+                                value={String(sz.stock)}
+                                onChangeText={(val) => {
+                                  setModalColorGroups((prev) =>
+                                    prev.map((item) => {
+                                      if (item.id === cg.id) {
+                                        return {
+                                          ...item,
+                                          sizes: item.sizes.map((s) => (s.id === sz.id ? { ...s, stock: val.replace(/[^0-9]/g, '') } : s)),
+                                        };
+                                      }
+                                      return item;
+                                    })
+                                  );
+                                }}
+                                keyboardType="numeric"
+                              />
+                              <TouchableOpacity
+                                style={{ width: 30, height: '100%', backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+                                onPress={() => handleUpdateModalSizeStock(cg.id, sz.id, 1)}
+                              >
+                                <Plus size={12} color="#032757" weight="bold" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
 
               {/* Photos Upload & Preview */}
@@ -1193,17 +2012,211 @@ export default function VendorDashboardScreen({ navigation }) {
                 />
               </View>
 
-              {/* Description */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>Description</Text>
-                <TextInput
-                  style={[styles.inputWrapper, { height: 75, textAlignVertical: 'top' }]}
-                  value={prodDescription}
-                  onChangeText={setProdDescription}
-                  placeholder="Enter product details, sizes, or specifications"
-                  multiline
-                  placeholderTextColor="#94A3B8"
-                />
+              {/* ─── LIVE CUSTOMER LISTING PREVIEW ─── */}
+              <View style={{
+                marginTop: 20,
+                marginBottom: 20,
+                borderWidth: 1.5,
+                borderColor: '#CBD5E1',
+                borderRadius: 16,
+                backgroundColor: '#FFFFFF',
+                overflow: 'hidden',
+              }}>
+                {/* Preview Header Banner */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: '#032757',
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                }}>
+                  <Eye size={16} color="#F6A400" weight="bold" />
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 }}>
+                    LIVE CUSTOMER STOREFRONT PREVIEW
+                  </Text>
+                  <View style={{ flex: 1 }} />
+                  <View style={{ backgroundColor: prodActive ? '#DCFCE7' : '#FEF2F2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: prodActive ? '#16A34A' : '#DC2626' }}>
+                      {prodActive ? 'LIVE' : 'DRAFT'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={{ padding: 16 }}>
+                  {/* Photo Swiper / Cover Image Preview */}
+                  <View style={{
+                    height: 180,
+                    borderRadius: 12,
+                    backgroundColor: '#F8FAFC',
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    overflow: 'hidden',
+                    marginBottom: 12,
+                  }}>
+                    {uploadedImages.length > 0 ? (
+                      <Image source={{ uri: uploadedImages[0] }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    ) : modalColorGroups.find(g => g.imageUri)?.imageUri ? (
+                      <Image source={{ uri: modalColorGroups.find(g => g.imageUri).imageUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    ) : (
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={{ fontSize: 36, marginBottom: 4 }}>{prodEmoji || '📦'}</Text>
+                        <Text style={{ fontSize: 12, color: '#94A3B8', fontWeight: '600' }}>Attach photos above to preview product image</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Additional photos thumbnails bar */}
+                  {uploadedImages.length > 1 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+                      {uploadedImages.map((imgUri, idx) => (
+                        <Image key={idx} source={{ uri: imgUri }} style={{ width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: '#CBD5E1' }} resizeMode="cover" />
+                      ))}
+                    </ScrollView>
+                  )}
+
+                  {/* Store & Category */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Storefront size={14} color="#F6A400" weight="bold" />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#032757' }}>{storeInfo?.name || 'My Store'}</Text>
+                    <Text style={{ fontSize: 12, color: '#94A3B8' }}>•</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748B' }}>{prodCategory || 'General'}</Text>
+                  </View>
+
+                  {/* Product Title */}
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#032757', marginBottom: 8, lineHeight: 24 }}>
+                    {prodName.trim() || 'Product Name Here'}
+                  </Text>
+
+                  {/* Price & Discount */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: '#032757' }}>
+                      ${parseFloat(prodPrice || 0).toLocaleString()}
+                    </Text>
+                    {prodDiscountPrice && parseFloat(prodDiscountPrice) > parseFloat(prodPrice || 0) && (
+                      <Text style={{ fontSize: 14, color: '#94A3B8', textDecorationLine: 'line-through' }}>
+                        ${parseFloat(prodDiscountPrice).toLocaleString()}
+                      </Text>
+                    )}
+                    {prodDiscountPrice && parseFloat(prodDiscountPrice) > parseFloat(prodPrice || 0) && (
+                      <View style={{ backgroundColor: '#FEF2F2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#DC2626' }}>
+                          {Math.round((1 - parseFloat(prodPrice) / parseFloat(prodDiscountPrice)) * 100)}% OFF
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Colors / Styles Preview */}
+                  {modalColorGroups.length > 0 && (
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
+                        🎨 Color / Style Options ({modalColorGroups.length}):
+                      </Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {modalColorGroups.map((cg) => {
+                          const hex = getColorHexModal(cg.color);
+                          const totalStock = cg.sizes.reduce((sum, sz) => sum + (parseInt(sz.stock, 10) || 0), 0);
+                          return (
+                            <View key={cg.id} style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              paddingHorizontal: 10,
+                              paddingVertical: 5,
+                              borderRadius: 999,
+                              borderWidth: 1.2,
+                              borderColor: '#CBD5E1',
+                              backgroundColor: '#F8FAFC',
+                            }}>
+                              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: hex, borderWidth: hex === '#FFFFFF' ? 1 : 0, borderColor: '#CBD5E1' }} />
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: '#032757' }}>{cg.color || 'Style'}</Text>
+                              <Text style={{ fontSize: 10, color: '#64748B', fontWeight: '600' }}>({totalStock})</Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Sizes Preview */}
+                  {(() => {
+                    const allSizes = Array.from(new Set(modalColorGroups.flatMap(cg => cg.sizes.map(s => s.size))));
+                    if (allSizes.length === 0) return null;
+                    return (
+                      <View style={{ marginBottom: 14 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
+                          🏷 Available Sizes:
+                        </Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                          {allSizes.map((sz) => (
+                            <View key={sz} style={{
+                              paddingHorizontal: 10,
+                              paddingVertical: 5,
+                              borderRadius: 8,
+                              borderWidth: 1.2,
+                              borderColor: '#032757',
+                              backgroundColor: '#032757',
+                            }}>
+                              <Text style={{ fontSize: 11, fontWeight: '800', color: '#FFFFFF' }}>{sz}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    );
+                  })()}
+
+                  {/* Description Preview */}
+                  <View style={{ marginBottom: 14, paddingTop: 10, borderTopWidth: 1, borderColor: '#F1F5F9' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 4 }}>Product Description:</Text>
+                    <Text style={{ fontSize: 13, color: '#334155', lineHeight: 19 }}>
+                      {prodDescription.trim() || 'No description added yet. Add details above to see preview here.'}
+                    </Text>
+                  </View>
+
+                  {/* Product Details & Specifications Preview */}
+                  {prodAttributes.some(a => a.key.trim() && a.value.trim()) && (
+                    <View style={{ marginBottom: 14, paddingTop: 10, borderTopWidth: 1, borderColor: '#F1F5F9' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>📋 Product Specifications & Details:</Text>
+                      <View style={{ gap: 4 }}>
+                        {prodAttributes.filter(a => a.key.trim() && a.value.trim()).map((attr, i) => (
+                          <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, borderBottomWidth: 0.5, borderColor: '#F1F5F9' }}>
+                            <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600' }}>{attr.key}</Text>
+                            <Text style={{ fontSize: 12, color: '#032757', fontWeight: '700' }}>{attr.value}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Customer Action Buttons Mock */}
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                    <View style={{
+                      flex: 1,
+                      height: 40,
+                      borderRadius: 10,
+                      backgroundColor: '#F1F5F9',
+                      borderWidth: 1.2,
+                      borderColor: '#CBD5E1',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#032757' }}>🛒 Add to Cart</Text>
+                    </View>
+                    <View style={{
+                      flex: 1,
+                      height: 40,
+                      borderRadius: 10,
+                      backgroundColor: '#032757',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: '#F6A400' }}>⚡ Buy Now</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
 
               {/* Save & Publish Button */}
@@ -2229,5 +3242,29 @@ const getStyles = (colors) => StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 14,
+  },
+  emptyHistoryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    padding: 32,
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  emptyHistoryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 12,
+  },
+  emptyHistoryText: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginTop: 6,
+    maxWidth: 280,
   },
 });
